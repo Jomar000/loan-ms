@@ -1,0 +1,78 @@
+####################
+# Global Artifacts #
+####################
+
+*.out
+dist
+node_modules
+.pnpm-store
+
+#################
+# Local Tooling #
+#################
+
+/.template.json
+.claude/*
+!.claude/skills
+!.claude/settings.json
+
+#########################
+# Environment & Secrets #
+#########################
+
+.env
+.env.*
+!.env.example
+!.env.test.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.npmrc
+*.key
+*.p12
+*.pem
+*.pfx
+
+# Wrangler
+.wrangler
+wrangler-*.toml
+!wrangler.toml
+
+#####################
+# OS & Build Caches #
+#####################
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+#######
+# API #
+#######
+
+coverage
+drizzle-*.config.ts
+*.cutover.con.test.ts
+*.cutover.seq.test.ts
+*.cutover.srt.test.ts
+*.cutover.con.spec.ts
+*.cutover.seq.spec.ts
+*.cutover.spec.ts
+*.cutover.test.mjs
+
+#######
+# Web #
+#######
+
+test-results
+
+# Output
+.svelte-kit
+build
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

@@ -1,0 +1,135 @@
+workflow:
+  # Only create a pipeline for specific events
+  # https://docs.gitlab.com/ee/ci/jobs/job_control.html
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'push' && $CI_COMMIT_BRANCH == 'main'
+      changes:
+        - "packages/**/src"
+      when: always
+    - if: $CI_PIPELINE_SOURCE == 'trigger' || $CI_PIPELINE_SOURCE == 'web'
+      when: always
+
+#############
+# VARIABLES #
+#############
+
+# Prefix Legend
+# CI_: Predefined GitLab CI variables
+# PS_: Variables defined on GitLab Pipeline Settings
+# TF_: Variables defined in this file
+
+variables:
+  TF_CONTAINERFILE_DIR: ".pipeline/containerfiles"
+  TF_SCRIPT_DIR: ".pipeline/scripts"
+
+##############
+# JOB STAGES #
+##############
+
+stages:
+  - init
+  - test
+  - build
+  - deploy
+
+#################
+# JOB TEMPLATES #
+#################
+
+
+
+###############
+# JOBS - INIT #
+###############
+
+init:
+  stage: init
+  before_script:
+    # Make pipeline scripts executable
+    - chmod +x .pipeline/scripts/*.sh
+  script:
+    - bash .pipeline/scripts/init-environment.sh
+    - >
+      podman secret create \
+      --env="true" \
+      --replace \
+      frontend-cf-api-key \
+      PS_FRONTEND_CF_API_KEY
+  tags:
+    - shell-executor
+
+###############
+# JOBS - TEST #
+###############
+
+
+
+################
+# JOBS - BUILD #
+################
+
+build-backend:
+  stage: build
+  script:
+    - >
+      podman build \
+      --tag="$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA" \
+      --target="backend" \
+      .
+    - podman push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+  tags:
+    - shell-executor
+
+build-frontend-preview:
+  stage: build
+  # Reuse layer cache
+  needs:
+    - build-backend
+  when: manual
+  script:
+    - >
+      podman build \
+      --volume="$PS_FRONTEND_ENV_FILE_PREVIEW:/build/@frontend/.env" \
+      --tag="$CI_REGISTRY_IMAGE/frontend-preview:$CI_COMMIT_SHORT_SHA" \
+      --target="frontend" \
+      .
+    - podman push $CI_REGISTRY_IMAGE/frontend-preview:$CI_COMMIT_SHORT_SHA
+  tags:
+    - shell-executor
+
+build-frontend-prod:
+  stage: build
+  # Reuse layer cache
+  needs:
+    - build-backend
+  when: manual
+  script:
+    - >
+      podman build \
+      --volume="$PS_FRONTEND_ENV_FILE_PROD:/build/@frontend/.env" \
+      --tag="$CI_REGISTRY_IMAGE/frontend-prod:$CI_COMMIT_SHORT_SHA" \
+      --target="frontend" \
+      .
+    - podman push $CI_REGISTRY_IMAGE/frontend-prod:$CI_COMMIT_SHORT_SHA
+  tags:
+    - shell-executor
+
+#################
+# JOBS - DEPLOY #
+#################
+
+# deploy-frontend-prod:
+#   stage: deploy
+#   needs:
+#     - build-frontend
+#   script:
+#     - >
+#       podman run \
+#       --rm \
+#       --interactive \
+#       --tty \
+#       --secret="" \
+#       --secret="" \
+#       $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+#   tags:
+#     - shell-executor

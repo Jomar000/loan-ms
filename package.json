@@ -1,0 +1,50 @@
+{
+    "name": "hyperion",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "dev": "pnpm run --recursive --parallel --if-present dev",
+        "build": "pnpm run --recursive --stream --if-present build",
+        "build:force": "pnpm run --recursive --stream --if-present build:force",
+        "check": "pnpm run --recursive --parallel --if-present check",
+        "format": "eslint . --fix && prettier --write .",
+        "lint": "prettier --check . && eslint .",
+        "prepare": "pnpm exec husky",
+        "test": "echo Use affected files with owning package phase scripts instead",
+        "test:cloudflare-headers": "node --test ./scripts/cloudflare/configure-security-headers.test.mjs",
+        "profile:check": "node ./scripts/repository/profile-check-fullstack-d1.mjs",
+        "profile:check:postgres": "node ./scripts/repository/profile-check-fullstack-d1.mjs --compare-postgres",
+        "profile:init": "node ./scripts/repository/profile-init.mjs",
+        "profile:test": "node --test ./scripts/repository/profile-init.test.mjs ./scripts/repository/profile-check-fullstack-d1.test.mjs"
+    },
+    "devDependencies": {
+        "@changesets/cli": "^3.0.3",
+        "@eslint/compat": "^2.1.1",
+        "@eslint/js": "^10.0.1",
+        "@sveltejs/mcp": "0.1.26",
+        "@types/node": "^26.6.3",
+        "eslint": "^10.11.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-better-tailwindcss": "^4.7.0",
+        "eslint-plugin-svelte": "^3.23.0",
+        "globals": "^17.12.0",
+        "husky": "^9.1.7",
+        "playwright": "catalog:",
+        "prettier": "^3.9.9",
+        "prettier-plugin-multiline-arrays": "^4.1.11",
+        "prettier-plugin-svelte": "^4.1.1",
+        "prettier-plugin-tailwindcss": "^0.8.1",
+        "tsx": "^4.23.15",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.71.0",
+        "wrangler": "^4.146.0"
+    }
+}

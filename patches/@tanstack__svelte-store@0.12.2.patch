@@ -1,0 +1,16 @@
+diff --git a/src/useSelector.svelte.ts b/src/useSelector.svelte.ts
+index 905310f..d4d314d 100644
+--- a/src/useSelector.svelte.ts
++++ b/src/useSelector.svelte.ts
+@@ -37,2 +37,2 @@ export function useSelector<TState, TSelected = NoInfer<TState>>(
+   const compare = options.compare ?? defaultCompare
+-  let slice = $state(selector(source.get()))
++  let slice = $state.raw(selector(source.get()))
+diff --git a/dist/useSelector.svelte.js b/dist/useSelector.svelte.js
+index b2cf1e8..92a9d88 100644
+--- a/dist/useSelector.svelte.js
++++ b/dist/useSelector.svelte.js
+@@ -21,2 +21,2 @@ export function useSelector(source, selector = (d) => d, options = {}) {
+     const compare = options.compare ?? defaultCompare;
+-    let slice = $state(selector(source.get()));
++    let slice = $state.raw(selector(source.get()));

@@ -1,0 +1,12 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        /* Modules */
+        "rootDir": "./src",
+
+        /* Emit */
+        "outDir": "./dist/"
+    },
+    "references": [{ "path": "../errors/tsconfig.build.json" }],
+    "include": ["./src/**/*"]
+}

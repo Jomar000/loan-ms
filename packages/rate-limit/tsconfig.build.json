@@ -1,0 +1,13 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        /* Modules */
+        "rootDir": "./src",
+        "types": ["@cloudflare/workers-types"],
+
+        /* Emit */
+        "outDir": "./dist/"
+    },
+    "references": [{ "path": "../errors/tsconfig.build.json" }],
+    "include": ["./src/**/*"]
+}

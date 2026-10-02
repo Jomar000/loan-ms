@@ -1,0 +1,13 @@
+{
+    "files": [],
+    "references": [
+        { "path": "packages/errors/tsconfig.build.json" },
+        { "path": "packages/types/tsconfig.json" },
+        { "path": "packages/validator/tsconfig.json" },
+        { "path": "packages/database/tsconfig.build.json" },
+        { "path": "packages/rate-limit/tsconfig.build.json" },
+        { "path": "packages/websocket/tsconfig.build.json" },
+        { "path": "apps/api-public/tsconfig.build.json" },
+        { "path": "apps/api-backoffice/tsconfig.build.json" }
+    ]
+}

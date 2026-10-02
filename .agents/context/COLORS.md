@@ -1,0 +1,138 @@
+---
+name: COLORS
+description: Color palette, design tokens, semantic states, and usage rules.
+---
+
+# Color System
+
+## Authoritative Guidance
+
+This document is the human-authoritative source for the project's color system. Keep it synchronized with `packages/ui/src/styles/globals.css` whenever a token or value changes. Any mismatch between this contract and the shared CSS is merge-blocking.
+
+Downstream forks must preserve this section. They must replace `Template-Specific Context` with `Fork-Specific Context` and record the fork's token inventory, values, roles, and component exceptions there.
+
+Light values map to `:root`; dark values map to `.dark`. Documented token values must match the shared theme. Implemented semantic tokens are available to applications. Reserved tokens marked `TBD` must remain absent from CSS and frontend usage until both values are defined here and implemented in the shared theme.
+
+### Usage rules
+
+- Use semantic tokens before raw color utilities or literals.
+- Pair surfaces with their matching foreground tokens and verify contrast in both themes.
+- Use `primary` for primary interactions and `destructive` for destructive actions.
+- Use `success`, `warning`, `danger`, and `info` only after their complete token families are defined.
+- Use `border`, `input`, and `ring` for control boundaries and focus treatment.
+- Keep raw colors limited to the documented component exceptions.
+
+### Maintenance rules
+
+- Update this document and `packages/ui/src/styles/globals.css` together in the same change.
+- Treat any documented-token, CSS-token, or shared-theme mapping mismatch as merge-blocking.
+- Keep every implemented token represented here with its exact light and dark values.
+- Replace every required `TBD` before using a semantic extension token.
+- Name semantic color tokens by purpose and keep their `@theme` aliases aligned; let the Tailwind utility express the CSS property.
+- Validate foreground/background contrast and visible focus states after palette changes.
+- Record unavoidable component-level color exceptions in the project-specific exception table.
+
+## Template-Specific Context
+
+### Global token
+
+| Token      | Value      | Role                         |
+| ---------- | ---------- | ---------------------------- |
+| `--radius` | `0.625rem` | Base component corner radius |
+
+### Core theme tokens
+
+| Token                    | Light                        | Dark                         | Role                           |
+| ------------------------ | ---------------------------- | ---------------------------- | ------------------------------ |
+| `--accent`               | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Hover and accent surface       |
+| `--accent-foreground`    | `oklch(0.21 0.006 285.885)`  | `oklch(0.985 0 0)`           | Accent text                    |
+| `--background`           | `oklch(1 0 0)`               | `oklch(0.141 0.005 285.823)` | Application canvas             |
+| `--border`               | `oklch(0.92 0.004 286.32)`   | `oklch(1 0 0 / 10%)`         | Standard border                |
+| `--card`                 | `oklch(1 0 0)`               | `oklch(0.21 0.006 285.885)`  | Card surface                   |
+| `--card-foreground`      | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Card text                      |
+| `--destructive`          | `oklch(0.577 0.245 27.325)`  | `oklch(0.704 0.191 22.216)`  | Destructive actions and errors |
+| `--foreground`           | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Default text                   |
+| `--input`                | `oklch(0.92 0.004 286.32)`   | `oklch(1 0 0 / 15%)`         | Input border                   |
+| `--muted`                | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Muted surface                  |
+| `--muted-foreground`     | `oklch(0.552 0.016 285.938)` | `oklch(0.705 0.015 286.067)` | Muted text                     |
+| `--popover`              | `oklch(1 0 0)`               | `oklch(0.21 0.006 285.885)`  | Popover surface                |
+| `--popover-foreground`   | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Popover text                   |
+| `--primary`              | `oklch(0.21 0.006 285.885)`  | `oklch(0.92 0.004 286.32)`   | Primary actions                |
+| `--primary-foreground`   | `oklch(0.985 0 0)`           | `oklch(0.21 0.006 285.885)`  | Primary-action text            |
+| `--ring`                 | `oklch(0.705 0.015 286.067)` | `oklch(0.552 0.016 285.938)` | Focus ring                     |
+| `--secondary`            | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Secondary surface              |
+| `--secondary-foreground` | `oklch(0.21 0.006 285.885)`  | `oklch(0.985 0 0)`           | Secondary text                 |
+
+### Chart tokens
+
+| Token       | Light                       | Dark                         | Role           |
+| ----------- | --------------------------- | ---------------------------- | -------------- |
+| `--chart-1` | `oklch(0.646 0.222 41.116)` | `oklch(0.488 0.243 264.376)` | Chart series 1 |
+| `--chart-2` | `oklch(0.6 0.118 184.704)`  | `oklch(0.696 0.17 162.48)`   | Chart series 2 |
+| `--chart-3` | `oklch(0.398 0.07 227.392)` | `oklch(0.769 0.188 70.08)`   | Chart series 3 |
+| `--chart-4` | `oklch(0.828 0.189 84.429)` | `oklch(0.627 0.265 303.9)`   | Chart series 4 |
+| `--chart-5` | `oklch(0.769 0.188 70.08)`  | `oklch(0.645 0.246 16.439)`  | Chart series 5 |
+
+### Sidebar tokens
+
+| Token                          | Light                        | Dark                         | Role                             |
+| ------------------------------ | ---------------------------- | ---------------------------- | -------------------------------- |
+| `--sidebar`                    | `oklch(0.985 0 0)`           | `oklch(0.21 0.006 285.885)`  | Sidebar surface                  |
+| `--sidebar-accent`             | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Sidebar hover and active surface |
+| `--sidebar-accent-foreground`  | `oklch(0.21 0.006 285.885)`  | `oklch(0.985 0 0)`           | Sidebar accent text              |
+| `--sidebar-border`             | `oklch(0.92 0.004 286.32)`   | `oklch(1 0 0 / 10%)`         | Sidebar border                   |
+| `--sidebar-foreground`         | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Sidebar text                     |
+| `--sidebar-primary`            | `oklch(0.21 0.006 285.885)`  | `oklch(0.488 0.243 264.376)` | Sidebar primary action           |
+| `--sidebar-primary-foreground` | `oklch(0.985 0 0)`           | `oklch(0.985 0 0)`           | Sidebar primary-action text      |
+| `--sidebar-ring`               | `oklch(0.705 0.015 286.067)` | `oklch(0.552 0.016 285.938)` | Sidebar focus ring               |
+
+### Implemented semantic tokens
+
+These shared semantic tokens are implemented in both themes and mapped through `@theme inline`.
+
+| Token                   | Light                       | Dark                        | Role                               |
+| ----------------------- | --------------------------- | --------------------------- | ---------------------------------- |
+| `--environment-staging` | `oklch(0.852 0.199 91.936)` | `oklch(0.852 0.199 91.936)` | Staging environment viewport frame |
+
+### Reserved semantic tokens
+
+Define both theme values and add their corresponding shared-theme mappings before using these tokens. A status family is complete only when its surface, foreground, active surface, active border, and active ring tokens are all defined in both themes.
+
+| Token                     | Light | Dark  | Role                            |
+| ------------------------- | ----- | ----- | ------------------------------- |
+| `--brand-link`            | `TBD` | `TBD` | Branded links and link emphasis |
+| `--danger`                | `TBD` | `TBD` | Danger status surface           |
+| `--danger-active`         | `TBD` | `TBD` | Selected danger surface         |
+| `--danger-active-border`  | `TBD` | `TBD` | Selected danger border          |
+| `--danger-active-ring`    | `TBD` | `TBD` | Selected danger ring            |
+| `--danger-foreground`     | `TBD` | `TBD` | Danger status text and icon     |
+| `--info`                  | `TBD` | `TBD` | Information surface             |
+| `--info-active`           | `TBD` | `TBD` | Selected information surface    |
+| `--info-active-border`    | `TBD` | `TBD` | Selected information border     |
+| `--info-active-ring`      | `TBD` | `TBD` | Selected information ring       |
+| `--info-foreground`       | `TBD` | `TBD` | Information text and icon       |
+| `--neutral-active`        | `TBD` | `TBD` | Selected neutral surface        |
+| `--neutral-active-border` | `TBD` | `TBD` | Selected neutral border         |
+| `--neutral-active-ring`   | `TBD` | `TBD` | Selected neutral ring           |
+| `--success`               | `TBD` | `TBD` | Success surface                 |
+| `--success-active`        | `TBD` | `TBD` | Selected success surface        |
+| `--success-active-border` | `TBD` | `TBD` | Selected success border         |
+| `--success-active-ring`   | `TBD` | `TBD` | Selected success ring           |
+| `--success-foreground`    | `TBD` | `TBD` | Success text and icon           |
+| `--warning`               | `TBD` | `TBD` | Warning surface                 |
+| `--warning-active`        | `TBD` | `TBD` | Selected warning surface        |
+| `--warning-active-border` | `TBD` | `TBD` | Selected warning border         |
+| `--warning-active-ring`   | `TBD` | `TBD` | Selected warning ring           |
+| `--warning-foreground`    | `TBD` | `TBD` | Warning text and icon           |
+
+### Component color exceptions
+
+Add a row only when a component cannot use an existing semantic token. Values and source globs must identify the exact allowed implementation, not descriptive examples.
+
+| Exception            | Light value or class                                     | Dark value or class                                      | Source glob                                                                      | Reason                                                           |
+| -------------------- | -------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Loader animation     | `#fff`, `#1c1c1e`                                        | `#fff`, `#1c1c1e`                                        | `apps/web-*/src/lib/components/loader/LoadingScreen.svelte`                      | Preserves the fixed inverse stroke animation                     |
+| Modal overlays       | `bg-black/10`                                            | `bg-black/10`                                            | `packages/ui/src/components/{alert-dialog,dialog,drawer,sheet}/*-overlay.svelte` | Provides a theme-independent translucent scrim                   |
+| Slider thumb         | `bg-white`                                               | `bg-white`                                               | `packages/ui/src/components/slider/slider.svelte`                                | Preserves the generated control's fixed thumb contrast           |
+| HLS media surface    | `bg-black`                                               | `bg-black`                                               | `packages/ui/src/shared/video/Hls.svelte`                                        | Provides a stable letterbox surface around native video playback |
+| YouTube media chrome | `bg-black`, `bg-black/60`, `text-white`, `text-white/60` | `bg-black`, `bg-black/60`, `text-white`, `text-white/60` | `packages/ui/src/shared/video/YouTube.svelte`                                    | Maintains predictable contrast over video thumbnails and media   |

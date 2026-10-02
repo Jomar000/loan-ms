@@ -1,0 +1,39 @@
+{
+    "phase": "http_response_headers_transform",
+    "ruleset": {
+        "name": "Hyperion Response Header Transform Rules",
+        "description": "Response security headers mirrored from the repository _headers policies."
+    },
+    "managedTransform": {
+        "id": "add_security_headers",
+        "enabled": false
+    },
+    "sharedHeaders": {
+        "Content-Security-Policy": "frame-ancestors 'none'; upgrade-insecure-requests;",
+        "X-Frame-Options": "DENY",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+        "X-XSS-Protection": "0"
+    },
+    "profiles": {
+        "public": {
+            "name": "Public",
+            "match": "hostname",
+            "headers": {}
+        },
+        "backoffice": {
+            "name": "BackOffice",
+            "match": "hostname",
+            "headers": {
+                "X-Robots-Tag": "noindex, nofollow, noarchive"
+            }
+        },
+        "global": {
+            "name": "Global",
+            "match": "all",
+            "headers": {}
+        }
+    }
+}

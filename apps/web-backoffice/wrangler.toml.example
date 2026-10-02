@@ -1,0 +1,25 @@
+name = "hyperion-web-backoffice"
+compatibility_date = "2026-09-25"
+
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"
+run_worker_first = false
+
+###########
+# STAGING #
+###########
+
+[env.staging]
+workers_dev = false
+preview_urls = false
+route = { custom_domain = true, pattern = "" }
+
+##############
+# PRODUCTION #
+##############
+
+[env.production]
+workers_dev = false
+preview_urls = false
+route = { custom_domain = true, pattern = "" }

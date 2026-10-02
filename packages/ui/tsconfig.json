@@ -1,0 +1,31 @@
+{
+    // Does not extend tsconfig.base.json because Svelte component libraries
+    // require moduleResolution: "bundler" (for $lib alias resolution and
+    // .svelte file imports), whereas the base config uses "nodenext".
+    "compilerOptions": {
+        "composite": true,
+        "declaration": true,
+        "declarationMap": true,
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": [
+            "ESNext",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "strict": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true,
+        "rootDir": "./src",
+        "outDir": "dist",
+        "paths": {
+            "$lib": ["./src"],
+            "$lib/*": ["./src/*"]
+        }
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.svelte"
+    ]
+}

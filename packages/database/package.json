@@ -1,0 +1,40 @@
+{
+    "name": "@hyperion/database",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion Database Component",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "build": "tsc --build ./tsconfig.build.json",
+        "build:force": "tsc --build ./tsconfig.build.json --clean && pnpm run build",
+        "check": "drizzle-kit check --config=drizzle.config.ts",
+        "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+        "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
+        "migrate:dev": "pnpm exec wrangler d1 migrations apply hyperion-development --local --config=../../apps/api-public/wrangler.toml --persist-to=../../.wrangler/state",
+        "migrate:prod": "pnpm exec wrangler d1 migrations apply hyperion-production --remote --env=production --config=../../apps/api-public/wrangler-production.toml",
+        "migrate:staging": "pnpm exec wrangler d1 migrations apply hyperion-staging --remote --env=staging --config=../../apps/api-public/wrangler-staging.toml",
+        "prepare": "pnpm build"
+    },
+    "dependencies": {
+        "drizzle-orm": "catalog:",
+        "uuid": "catalog:",
+        "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "catalog:",
+        "drizzle-kit": "catalog:",
+        "zod": "catalog:"
+    },
+    "exports": {
+        "./d1": {
+            "types": "./dist/d1/index.d.ts",
+            "default": "./dist/d1/index.js"
+        }
+    }
+}

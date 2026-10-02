@@ -1,0 +1,7 @@
+@import '@hyperion/ui/styles';
+
+@source '../../../packages/ui/dist';
+
+body {
+    font-family: 'Inter';
+}

@@ -1,0 +1,127 @@
+// https://code.visualstudio.com/docs/terminal/basics#_automating-terminals-with-tasks
+{
+    "version": "2.0.0",
+    "presentation": {
+        "echo": false,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": true
+    },
+    "tasks": [
+        {
+            "label": "Launch Workspace Terminals",
+            "dependsOn": [
+                "root",
+                "apps/api-public",
+                "apps/api-backoffice",
+                "apps/web-public",
+                "apps/web-backoffice",
+                "packages/database",
+                "packages/ui"
+            ],
+            "runOptions": {
+                "instancePolicy": "silent",
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": "root",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "packages/database",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/packages/database"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "packages/ui",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/packages/ui"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "apps/api-public",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/apps/api-public"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "apps/web-public",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/apps/web-public"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "apps/api-backoffice",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/apps/api-backoffice"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "apps/web-backoffice",
+            "icon": {
+                "id": "terminal",
+                "color": "terminal.ansiGreen"
+            },
+            "type": "shell",
+            "hide": true,
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/apps/web-backoffice"
+            },
+            "isBackground": true
+        }
+    ]
+}

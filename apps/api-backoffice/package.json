@@ -1,0 +1,90 @@
+{
+    "name": "@hyperion/api-backoffice",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion Backoffice API Component",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "build": "wrangler deploy --outdir=./dist/worker --dry-run --env=",
+        "build:force": "tsc --build ./tsconfig.build.json --clean && pnpm run build",
+        "check": "tsc --noEmit",
+        "deploy:prod": "tsc --build ./tsconfig.build.json --clean && wrangler deploy --minify --outdir=./dist/worker --env=production --config=wrangler-production.toml",
+        "deploy:staging": "tsc --build ./tsconfig.build.json --clean && wrangler deploy --minify --outdir=./dist/worker --env=staging --config=wrangler-staging.toml",
+        "dev": "wrangler dev --persist-to=../../.wrangler/state",
+        "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+        "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
+        "secret:prod": "wrangler secret bulk .dev.vars.production --env=production --config=wrangler-production.toml",
+        "secret:staging": "wrangler secret bulk .dev.vars.staging --env=staging --config=wrangler-staging.toml",
+        "test": "echo Use affected files with test:con, test:seq, or test:srt instead",
+        "test:con": "vitest run --no-color --silent=passed-only --project=concurrent-test-files",
+        "test:seq": "vitest run --no-color --silent=passed-only --project=sequential-test-files",
+        "test:srt": "vitest run --no-color --silent=passed-only --project=single-runtime-test-files",
+        "test:ui": "echo Use `test:ui:con`, `test:ui:seq`, or `test:ui:srt` instead",
+        "test:ui:con": "vitest watch --ui --api.port=51200 --api.strictPort --project=concurrent-test-files",
+        "test:ui:seq": "vitest watch --ui --api.port=51201 --api.strictPort --project=sequential-test-files",
+        "test:ui:srt": "vitest watch --ui --api.port=51202 --api.strictPort --project=single-runtime-test-files",
+        "types:worker": "wrangler types ./src/worker-configuration.d.ts --config=wrangler.toml --config=wrangler.toml --env-file=.dev.vars.example"
+    },
+    "README": "This is a private package bundled by wrangler — the deps/devDeps split has no effect on its own build. dependencies lists only what consumers need for type resolution of the exported Hono routes. Server-only packages live in devDependencies to avoid leaking them transitively into frontend apps.",
+    "dependencies": {
+        "@hyperion/types": "workspace:*",
+        "@hyperion/validator": "workspace:*",
+        "hono": "catalog:",
+        "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@better-auth/api-key": "catalog:",
+        "@cloudflare/vitest-plugin": "catalog:",
+        "@hono/zod-validator": "catalog:",
+        "@hyperion/database": "workspace:*",
+        "@hyperion/errors": "workspace:*",
+        "@hyperion/rate-limit": "workspace:*",
+        "@hyperion/websocket": "workspace:*",
+        "@noble/hashes": "catalog:",
+        "@vitest/coverage-istanbul": "catalog:",
+        "@vitest/runner": "catalog:",
+        "@vitest/snapshot": "catalog:",
+        "@vitest/ui": "catalog:",
+        "aws4fetch": "catalog:",
+        "better-auth": "catalog:",
+        "dayjs": "catalog:",
+        "drizzle-orm": "catalog:",
+        "nanoid": "catalog:",
+        "resend": "catalog:",
+        "uuid": "catalog:",
+        "vite": "catalog:",
+        "vitest": "catalog:"
+    },
+    "exports": {
+        "./api/admin": {
+            "types": "./dist/core/api/admin/index.d.ts",
+            "default": "./dist/core/api/admin/index.js"
+        },
+        "./api/auth": {
+            "types": "./dist/core/api/auth.d.ts",
+            "default": "./dist/core/api/auth.js"
+        },
+        "./api/auditTrail": {
+            "types": "./dist/core/api/auditTrail.d.ts",
+            "default": "./dist/core/api/auditTrail.js"
+        },
+        "./api/objectStorage": {
+            "types": "./dist/core/api/objectStorage/index.d.ts",
+            "default": "./dist/core/api/objectStorage/index.js"
+        },
+        "./api/user": {
+            "types": "./dist/core/api/user/index.d.ts",
+            "default": "./dist/core/api/user/index.js"
+        },
+        "./api/heartbeat": {
+            "types": "./dist/core/api/heartbeat.d.ts",
+            "default": "./dist/core/api/heartbeat.js"
+        }
+    }
+}

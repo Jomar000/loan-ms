@@ -1,0 +1,79 @@
+{
+    "name": "@hyperion/validator",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion Validator Component",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "build": "tsc --build ./tsconfig.json",
+        "build:force": "tsc --build ./tsconfig.json --clean && pnpm run build",
+        "check": "tsc --noEmit",
+        "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+        "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
+        "prepare": "pnpm build"
+    },
+    "dependencies": {
+        "@hyperion/types": "workspace:*",
+        "zod": "catalog:"
+    },
+    "exports": {
+        "./backoffice": {
+            "types": "./dist/backoffice/index.d.ts",
+            "default": "./dist/backoffice/index.js"
+        },
+        "./backoffice/auth": {
+            "types": "./dist/backoffice/auth.schema.d.ts",
+            "default": "./dist/backoffice/auth.schema.js"
+        },
+        "./backoffice/auditTrail": {
+            "types": "./dist/backoffice/auditTrail.schema.d.ts",
+            "default": "./dist/backoffice/auditTrail.schema.js"
+        },
+        "./backoffice/admin/servicePrincipal": {
+            "types": "./dist/backoffice/admin/servicePrincipal.schema.d.ts",
+            "default": "./dist/backoffice/admin/servicePrincipal.schema.js"
+        },
+        "./backoffice/admin/user": {
+            "types": "./dist/backoffice/admin/user/index.d.ts",
+            "default": "./dist/backoffice/admin/user/index.js"
+        },
+        "./backoffice/objectStorage": {
+            "types": "./dist/backoffice/objectStorage.schema.d.ts",
+            "default": "./dist/backoffice/objectStorage.schema.js"
+        },
+        "./backoffice/user": {
+            "types": "./dist/backoffice/user/index.d.ts",
+            "default": "./dist/backoffice/user/index.js"
+        },
+        "./public": {
+            "types": "./dist/public/index.d.ts",
+            "default": "./dist/public/index.js"
+        },
+        "./public/auth": {
+            "types": "./dist/public/auth.schema.d.ts",
+            "default": "./dist/public/auth.schema.js"
+        },
+        "./public/admin/user": {
+            "types": "./dist/public/admin/user/index.d.ts",
+            "default": "./dist/public/admin/user/index.js"
+        },
+        "./public/objectStorage": {
+            "types": "./dist/public/objectStorage.schema.d.ts",
+            "default": "./dist/public/objectStorage.schema.js"
+        },
+        "./public/user": {
+            "types": "./dist/public/user/index.d.ts",
+            "default": "./dist/public/user/index.js"
+        },
+        "./shared": {
+            "types": "./dist/shared/index.d.ts",
+            "default": "./dist/shared/index.js"
+        }
+    }
+}

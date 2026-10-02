@@ -1,0 +1,126 @@
+allowBuilds:
+  '@tailwindcss/oxide': true
+  esbuild: true
+  sharp: true
+  workerd: true
+
+allowedDeprecatedVersions:
+  eslint: 9.39.5
+
+autoInstallPeers: true
+
+dedupePeers: true
+
+engineStrict: true
+
+catalog:
+  '@better-auth/api-key': ^1.7.7
+  '@cloudflare/vitest-plugin': ^1.3.5
+  '@cloudflare/workers-types': ^5.20261001.1
+  '@hono/zod-validator': ^0.9.1
+  '@internationalized/date': ^3.12.4
+  '@lucide/svelte': ^1.49.0
+  '@noble/hashes': ^2.4.0
+  '@playwright/test': ^1.63.0
+  '@sveltejs/adapter-static': ^3.0.10
+  '@sveltejs/kit': ^2.70.3
+  '@sveltejs/package': ^2.5.8
+  '@sveltejs/vite-plugin-svelte': ^7.3.1
+  '@tailwindcss/vite': ^4.3.3
+  '@tanstack/svelte-form': ^1.33.5
+  '@tanstack/svelte-query': ^6.3.0
+  '@tanstack/table-core': ^8.21.3
+  '@types/cloudflare-turnstile': ^0.2.2
+  '@types/papaparse': ^5.5.2
+  '@vitest/browser': ^4.1.11
+  '@vitest/browser-playwright': ^4.1.11
+  '@vitest/coverage-istanbul': ^4.1.11
+  '@vitest/runner': ^4.1.11
+  '@vitest/snapshot': ^4.1.11
+  '@vitest/ui': ^4.1.11
+  aws4fetch: ^1.0.20
+  better-auth: ^1.7.7
+  bits-ui: ^2.19.4
+  canonicalize: 5.1.0
+  chart.js: ^4.5.1
+  clsx: ^2.1.1
+  dayjs: ^1.11.23
+  drizzle-kit: 1.0.0-rc.4
+  drizzle-orm: 1.0.0-rc.4
+  embla-carousel-svelte: ^8.6.0
+  file-type: ^22.1.1
+  formsnap: ^2.0.1
+  hls.js: ^1.7.3
+  hono: ^4.13.12
+  inapp-spy: ^5.0.10
+  ky: ^2.1.0
+  libphonenumber-js: ^1.13.6
+  mode-watcher: ^1.1.0
+  motion: ^12.42.0
+  nanoid: ^6.0.1
+  p-queue: ^9.3.3
+  paneforge: ^1.0.2
+  papaparse: ^5.7.0
+  perfect-debounce: ^2.1.0
+  playwright: ^1.63.0
+  remark-parse: ^11.0.0
+  resend: ^6.31.0
+  shadcn-svelte: ^1.7.0
+  svelte: ^5.57.1
+  svelte-check: ^4.7.6
+  svelte-sonner: ^1.2.1
+  sveltekit-superforms: ^2.31.0
+  tailwind-merge: ^3.7.0
+  tailwind-variants: ^3.3.1
+  tailwindcss: ^4.3.3
+  tw-animate-css: ^1.4.0
+  unified: ^11.0.5
+  uuid: ^14.0.2
+  vaul-svelte: 1.0.0-next.7
+  vite: ^8.3.1
+  vite-imagetools: ^12.0.1
+  vitest: ^4.1.11
+  vitest-browser-svelte: ^3.1.0
+  zod: ^4.6.5
+
+minimumReleaseAgeExclude:
+  - '@cloudflare/unenv-preset'
+  - '@cloudflare/vitest-plugin'
+  - '@cloudflare/workerd-darwin-64'
+  - '@cloudflare/workerd-darwin-arm64'
+  - '@cloudflare/workerd-linux-64'
+  - '@cloudflare/workerd-linux-arm64'
+  - '@cloudflare/workerd-windows-64'
+  - miniflare
+  - workerd
+  - wrangler
+  - tsx
+
+overrides:
+  # Keep the transitive version aligned with the selector patch below.
+  '@better-auth/drizzle-adapter>drizzle-orm': 1.0.0-rc.4
+  '@tanstack/svelte-store': 0.12.2
+  'better-auth>drizzle-orm': 1.0.0-rc.4
+  cookie@<0.7.0: ^0.7.2
+  esbuild: ^0.28.1
+  globals: ^17.9.0
+
+packages:
+  - apps/**
+  - packages/**
+
+patchedDependencies:
+  '@tanstack/svelte-store@0.12.2': patches/@tanstack__svelte-store@0.12.2.patch
+
+peerDependencyRules:
+  allowedVersions:
+    '@better-auth/drizzle-adapter>drizzle-orm': 1.0.0-rc.4
+    'better-auth>drizzle-orm': 1.0.0-rc.4
+    typescript: ^6.0.0
+  ignoreMissing: []
+
+resolutionMode: highest
+
+verifyDepsBeforeRun: false
+
+virtualStoreType: project

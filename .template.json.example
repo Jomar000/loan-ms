@@ -1,0 +1,8 @@
+{
+    "slug": "hyperion",
+    "displayName": "Hyperion",
+    "author": "4thDEVisionTech",
+    "scope": "@hyperion",
+    "bindingPrefix": "HYPERION",
+    "domain": "hyperion.example"
+}

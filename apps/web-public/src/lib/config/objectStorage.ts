@@ -1,0 +1,1 @@
+export const objectStorageFeatureEnabled = __FEATURE_OBJECT_STORAGE__

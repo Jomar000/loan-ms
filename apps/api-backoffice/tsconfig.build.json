@@ -1,0 +1,37 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        /* Modules */
+        "rootDir": "./src",
+        "types": [
+            "@cloudflare/vitest-plugin",
+            "node"
+        ],
+
+        /* Emit */
+        "outDir": "./dist/"
+    },
+    "references": [
+        {
+            "path": "../../packages/errors/tsconfig.build.json"
+        },
+        {
+            "path": "../../packages/types/tsconfig.json"
+        },
+        {
+            "path": "../../packages/validator/tsconfig.json"
+        },
+        {
+            "path": "../../packages/database/tsconfig.build.json"
+        },
+        {
+            "path": "../../packages/rate-limit/tsconfig.build.json"
+        },
+        {
+            "path": "../../packages/websocket/tsconfig.build.json"
+        }
+    ],
+    "include": [
+        "./src/**/*"
+    ]
+}

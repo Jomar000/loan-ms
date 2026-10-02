@@ -1,0 +1,66 @@
+{
+    "name": "@hyperion/websocket",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion WebSocket Component",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "build": "tsc --build ./tsconfig.build.json",
+        "build:force": "tsc --build ./tsconfig.build.json --clean && pnpm run build",
+        "check": "tsc --noEmit",
+        "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+        "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
+        "prepare": "pnpm build",
+        "test:con": "vitest run --no-color"
+    },
+    "dependencies": {
+        "@hyperion/errors": "workspace:*",
+        "@hyperion/types": "workspace:*",
+        "@hyperion/validator": "workspace:*",
+        "zod": "catalog:"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "catalog:",
+        "vitest": "catalog:"
+    },
+    "exports": {
+        "./client": {
+            "types": "./dist/client.d.ts",
+            "default": "./dist/client.js"
+        },
+        "./coordination": {
+            "types": "./dist/coordination.d.ts",
+            "default": "./dist/coordination.js"
+        },
+        "./protocol": {
+            "types": "./dist/protocol.d.ts",
+            "default": "./dist/protocol.js"
+        },
+        "./publisher": {
+            "types": "./dist/publisher.d.ts",
+            "default": "./dist/publisher.js"
+        },
+        "./registry": {
+            "types": "./dist/registry.d.ts",
+            "default": "./dist/registry.js"
+        },
+        "./server": {
+            "types": "./dist/server.d.ts",
+            "default": "./dist/server.js"
+        },
+        "./topology": {
+            "types": "./dist/topology.d.ts",
+            "default": "./dist/topology.js"
+        },
+        "./transport": {
+            "types": "./dist/transport.d.ts",
+            "default": "./dist/transport.js"
+        }
+    }
+}

@@ -1,0 +1,20 @@
+# Prettier Ignore File
+# https://prettier.io/docs/en/ignore
+
+# Generated Cloudflare Worker bindings
+apps/api-*/src/worker-configuration.d.ts
+
+# Generated dependency lockfile and workspace
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Canonical and compatibility-mirrored skill packages contain verbatim examples
+.agents/skills/**
+.claude/skills/**
+
+# Provider-owned CI/CD templates are intentionally reviewed separately
+.github/workflows/**
+.gitlab-ci.yaml
+
+# Vendor-generated shadcn-svelte primitives
+packages/ui/src/components/**

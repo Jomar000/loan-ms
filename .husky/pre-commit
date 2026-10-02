@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+echo
+echo ==============================
+echo = BEGIN: git pre-commit hook =
+echo ==============================
+echo
+
+# Capture non-deleted staged paths once so every step processes the same files.
+staged_files_file=$(mktemp) || exit 1
+trap 'rm -f "$staged_files_file"' EXIT
+git diff --name-only -z --diff-filter=d --cached > "$staged_files_file"
+
+if [ -s "$staged_files_file" ]; then
+    echo 'Linting and formatting staged files...'
+
+    cache_key=$(git hash-object pnpm-lock.yaml) || exit 1
+    eslint_cache_location="node_modules/.cache/eslint/$cache_key/"
+    prettier_cache_location="node_modules/.cache/prettier/$cache_key"
+
+    # Run sequentially so Prettier observes any changes made during linting.
+    xargs -0 ./node_modules/.bin/eslint \
+        --fix \
+        --cache \
+        --cache-location "$eslint_cache_location" \
+        --cache-strategy content \
+        --no-warn-ignored \
+        --no-error-on-unmatched-pattern \
+        -- < "$staged_files_file"
+    eslint_exit=$?
+
+    xargs -0 ./node_modules/.bin/prettier \
+        --write \
+        --cache \
+        --cache-location "$prettier_cache_location" \
+        --cache-strategy content \
+        --ignore-unknown \
+        --no-error-on-unmatched-pattern \
+        -- < "$staged_files_file"
+    prettier_exit=$?
+
+    # Re-stage any files reformatted by Prettier.
+    if [ "$prettier_exit" -eq 0 ]; then
+        xargs -0 git add -- < "$staged_files_file"
+    fi
+
+    # Abort commit if either tool found errors.
+    if [ "$eslint_exit" -ne 0 ]; then
+        echo 'ESLint found errors. Commit aborted.'
+    fi
+    if [ "$prettier_exit" -ne 0 ]; then
+        echo 'Prettier found errors. Commit aborted.'
+    fi
+    if [ "$eslint_exit" -ne 0 ] || [ "$prettier_exit" -ne 0 ]; then
+        exit 1
+    fi
+fi
+
+echo
+echo ============================
+echo = END: git pre-commit hook =
+echo ============================
+echo
+
+exit 0

@@ -1,0 +1,185 @@
+name = "hyperion-api-backoffice"
+main = "src/core/index.ts"
+compatibility_date = "2026-09-25"
+compatibility_flags = ['nodejs_compat']
+upload_source_maps = true
+
+##########
+# Global #
+##########
+
+[observability]
+enabled = true
+
+[limits]
+cpu_ms = 5000
+
+[placement]
+mode = "smart"
+# https://developers.cloudflare.com/workers/configuration/placement/#provide-placement-hints
+# region = "aws:ap-southeast-1"
+
+[triggers]
+crons = ["*/5 * * * *", "0 19 * * *", "5 * * * *", "10 * * * *", "15 * * * *"]
+
+[exports.RateLimit]
+type = "durable-object"
+storage = "sqlite"
+
+[exports.WebSocketBroker]
+type = "durable-object"
+storage = "sqlite"
+
+[exports.WebSocketServer]
+type = "durable-object"
+storage = "sqlite"
+
+[exports.RealtimePublisher]
+type = "worker"
+
+[exports.RealtimeRevocationBroker]
+type = "worker"
+
+[build]
+# Used only to generate build artifacts used in project references
+command = "tsc --build ./tsconfig.build.json"
+watch_dir = [
+    "./src/",
+    "../../packages/errors/src/",
+    "../../packages/types/src/",
+    "../../packages/validator/src/",
+    "../../packages/database/src/",
+    "../../packages/rate-limit/src/",
+    "../../packages/websocket/src/",
+]
+
+[dev]
+port = 8080
+
+###########
+# STAGING #
+###########
+
+[env.staging]
+workers_dev = false
+preview_urls = false
+route = { zone_name = "", pattern = "" }
+#route = { custom_domain = true, pattern = "" }
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+STATUS = "up"
+CF_R2_BUCKET_PRIVATE = "hyperion-staging-prv"
+CF_R2_BUCKET_PUBLIC = "hyperion-staging-pub"
+CF_R2_BUCKET_PUBLIC_URL = ""
+CF_R2_PRESIGN_EXPIRY = 300 # 5 minutes (seconds)
+CF_TURNSTILE_BYPASS = 1 # (0|1)
+CF_TURNSTILE_SITE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+CF_TURNSTILE_SITE_VERIFY_TIMEOUT_MS = 5000
+CF_TURNSTILE_TOKEN_MAX_LENGTH = 2048
+CORS_ALLOW_CREDENTIALS = 1 # (0|1)
+CORS_ALLOW_HEADERS = "Content-Type,User-Agent,X-CAPTCHA-Response,X-CSRF-Token"
+CORS_ALLOW_METHODS = "GET,POST,QUERY"
+CORS_EXPOSE_HEADERS = "Content-Length"
+CORS_MAX_AGE = 7200 # 2 hours (seconds)
+FEATURE_API_KEY = 0
+FEATURE_MAIL = 0 # Set to 1 only after configuring one mail provider below.
+FEATURE_OBJECT_STORAGE = 0 # Configure R2 variables and secrets before enabling.
+# Required only when FEATURE_MAIL = 1. Replace the illustrative sender.
+# MAILER_ACCOUNT = "no-reply@mail.staging.hyperion.example"
+# MAILER_PROVIDER = "resend"
+SESSION_EXPIRATION = 604800 # 7 days (seconds)
+SESSION_UPDATE_AGE = 86400 # 1 day (seconds)
+URL_BACKEND = "https://api-backoffice.staging.hyperion.example"
+URL_FRONTEND = "https://backoffice.staging.hyperion.example"
+
+# Cloudflare only: onboard the exact sender subdomain, verify its managed DNS
+# records, and uncomment this environment-specific binding before enabling mail.
+# [[env.staging.send_email]]
+# name = "HYPERIONBOFC_EMAIL"
+# allowed_sender_addresses = ["no-reply@mail.staging.hyperion.example"]
+
+[[env.staging.kv_namespaces]]
+binding = "HYPERIONBOFC_KV"
+id = "00000000000000000000000000000002"
+
+[[env.staging.d1_databases]]
+binding = "HYPERIONBOFC_D1"
+database_name = "hyperion-staging"
+database_id = "00000000-0000-0000-0000-000000000002"
+
+[[env.staging.durable_objects.bindings]]
+name = "HYPERIONBOFC_DO_RL"
+class_name = "RateLimit"
+
+[[env.staging.durable_objects.bindings]]
+name = "HYPERIONBOFC_DO_WSB"
+class_name = "WebSocketBroker"
+
+[[env.staging.durable_objects.bindings]]
+name = "HYPERIONBOFC_DO_WSS"
+class_name = "WebSocketServer"
+
+##############
+# PRODUCTION #
+##############
+
+[env.production]
+workers_dev = false
+preview_urls = false
+route = { zone_name = "", pattern = "" }
+#route = { custom_domain = true, pattern = "" }
+
+[env.production.vars]
+ENVIRONMENT = "production"
+STATUS = "up"
+CF_R2_BUCKET_PRIVATE = "hyperion-production-prv"
+CF_R2_BUCKET_PUBLIC = "hyperion-production-pub"
+CF_R2_BUCKET_PUBLIC_URL = ""
+CF_R2_PRESIGN_EXPIRY = 300 # 5 minutes (seconds)
+CF_TURNSTILE_BYPASS = 0
+CF_TURNSTILE_SITE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+CF_TURNSTILE_SITE_VERIFY_TIMEOUT_MS = 5000
+CF_TURNSTILE_TOKEN_MAX_LENGTH = 2048
+CORS_ALLOW_CREDENTIALS = 1 # (0|1)
+CORS_ALLOW_HEADERS = "Content-Type,User-Agent,X-CAPTCHA-Response,X-CSRF-Token"
+CORS_ALLOW_METHODS = "GET,POST,QUERY"
+CORS_EXPOSE_HEADERS = "Content-Length"
+CORS_MAX_AGE = 7200 # 2 hours (seconds)
+FEATURE_API_KEY = 0
+FEATURE_MAIL = 0 # Set to 1 only after configuring one mail provider below.
+FEATURE_OBJECT_STORAGE = 0 # Configure R2 variables and secrets before enabling.
+# Required only when FEATURE_MAIL = 1. Replace the illustrative sender.
+# MAILER_ACCOUNT = "no-reply@mail.hyperion.example"
+# MAILER_PROVIDER = "resend"
+SESSION_EXPIRATION = 604800 # 7 days (seconds)
+SESSION_UPDATE_AGE = 86400 # 1 day (seconds)
+URL_BACKEND = "https://api-backoffice.hyperion.example"
+URL_FRONTEND = "https://backoffice.hyperion.example"
+
+# Cloudflare only: onboard the exact sender subdomain, verify its managed DNS
+# records, and uncomment this environment-specific binding before enabling mail.
+# [[env.production.send_email]]
+# name = "HYPERIONBOFC_EMAIL"
+# allowed_sender_addresses = ["no-reply@mail.hyperion.example"]
+
+[[env.production.kv_namespaces]]
+binding = "HYPERIONBOFC_KV"
+id = "00000000000000000000000000000003"
+
+[[env.production.d1_databases]]
+binding = "HYPERIONBOFC_D1"
+database_name = "hyperion-production"
+database_id = "00000000-0000-0000-0000-000000000003"
+
+[[env.production.durable_objects.bindings]]
+name = "HYPERIONBOFC_DO_RL"
+class_name = "RateLimit"
+
+[[env.production.durable_objects.bindings]]
+name = "HYPERIONBOFC_DO_WSB"
+class_name = "WebSocketBroker"
+
+[[env.production.durable_objects.bindings]]
+name = "HYPERIONBOFC_DO_WSS"
+class_name = "WebSocketServer"

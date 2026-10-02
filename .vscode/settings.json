@@ -1,0 +1,82 @@
+{
+    "css.lint.unknownAtRules": "ignore",
+
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+
+    "eslint.validate": [
+        "javascript",
+        "typescript",
+        "svelte"
+    ],
+
+    "explorer.compactFolders": false,
+    "explorer.sortOrder": "filesFirst",
+
+    "files.trimTrailingWhitespace": true,
+
+    "js/ts.tsdk.path": "./node_modules/typescript/lib",
+    "js/ts.updateImportsOnFileMove.enabled": "always",
+
+    "redhat.telemetry.enabled": false,
+
+    "svelte.ask-to-enable-ts-plugin": false,
+    "svelte.enable-ts-plugin": false,
+    "svelte.plugin.svelte.defaultScriptLanguage": "ts",
+
+    "terminal.integrated.defaultProfile.linux": "Bash",
+    "terminal.integrated.profiles.linux": {
+        "Bash": {
+            "path": "/usr/bin/bash",
+            "args": [
+                "--login",
+                "-i"
+            ]
+        }
+    },
+
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "terminal.integrated.profiles.windows": {
+        "Git Bash": {
+            "path": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+                "--login",
+                "-i"
+            ]
+        }
+    },
+
+    "workbench.editor.labelFormat": "short",
+    "workbench.tree.indent": 18,
+
+    "yaml.format.bracketSpacing": true,
+    "yaml.format.enable": true,
+    "yaml.format.singleQuote": true,
+
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[javascript][typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[json][jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[yaml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml",
+        "editor.formatOnSave": false,
+        "editor.tabSize": 2
+    },
+
+    "[svelte]": {
+        "editor.defaultFormatter": "svelte.svelte-vscode",
+        "editor.formatOnSave": true
+    }
+}

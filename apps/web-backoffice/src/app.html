@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1"
+        />
+        <meta
+            name="description"
+            content="The backoffice web application for %sveltekit.env.PUBLIC_NAME%."
+        />
+        <meta
+            name="color-scheme"
+            content="dark light"
+        />
+        <meta
+            name="robots"
+            content="noindex, nofollow, noarchive"
+        />
+        <meta
+            property="og:type"
+            content="website"
+        />
+        <meta
+            property="og:site_name"
+            content="%sveltekit.env.PUBLIC_NAME%"
+        />
+        <meta
+            property="og:title"
+            content="%sveltekit.env.PUBLIC_NAME% Backoffice"
+        />
+        <meta
+            property="og:description"
+            content="The backoffice web application for %sveltekit.env.PUBLIC_NAME%."
+        />
+        <meta
+            property="og:url"
+            content="https://backoffice.hyperion.example/"
+        />
+        <!-- Open Graph cover standard: /images/open-graph-cover.png
+        <meta
+            property="og:image"
+            content="https://backoffice.hyperion.example/images/open-graph-cover.png"
+        />
+        <meta
+            property="og:image:secure_url"
+            content="https://backoffice.hyperion.example/images/open-graph-cover.png"
+        />
+        <meta
+            property="og:image:type"
+            content="image/png"
+        />
+        <meta
+            property="og:image:width"
+            content="1200"
+        />
+        <meta
+            property="og:image:height"
+            content="630"
+        />
+        <meta
+            property="og:image:alt"
+            content="%sveltekit.env.PUBLIC_NAME% Backoffice Open Graph cover"
+        />
+        -->
+        <link
+            rel="preload"
+            href="%sveltekit.assets%/fonts/inter-variable.woff2"
+            as="font"
+            type="font/woff2"
+            crossorigin
+        />
+        <link
+            rel="icon"
+            href="%sveltekit.assets%/favicon.png"
+            type="image/png"
+            sizes="128x128"
+        />
+        <link
+            rel="stylesheet"
+            href="%sveltekit.assets%/fonts/fonts.css"
+        />
+        %sveltekit.head%
+    </head>
+    <body data-sveltekit-preload-data="hover">
+        <noscript>This application requires JavaScript to function.</noscript>
+        <div style="display: contents">%sveltekit.body%</div>
+        <script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+            async
+        ></script>
+    </body>
+</html>

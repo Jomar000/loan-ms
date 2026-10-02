@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo
+echo ==============================
+echo = BEGIN: git post-merge hook =
+echo ==============================
+echo
+
+dependencies_changed=false
+typescript_changed=false
+changed_files_file=$(mktemp)
+trap 'rm -f "$changed_files_file"' EXIT
+
+git diff --name-only -z ORIG_HEAD HEAD > "$changed_files_file"
+
+# Inspect the merge diff once and classify filename-safe paths in-process.
+while IFS= read -r -d '' changed_file; do
+    case $changed_file in
+        package.json | */package.json | pnpm-lock.yaml | */pnpm-lock.yaml | pnpm-workspace.yaml | */pnpm-workspace.yaml)
+            dependencies_changed=true
+            ;;
+    esac
+
+    case $changed_file in
+        packages/types/src/* | packages/validator/src/* | packages/database/src/* | packages/websocket/src/* | apps/api-public/src/* | apps/api-backoffice/src/* | *tsconfig*)
+            typescript_changed=true
+            ;;
+    esac
+done < "$changed_files_file"
+
+if $dependencies_changed; then
+    echo "Installing project dependencies..."
+    pnpm install --frozen-lockfile
+    echo
+fi
+
+if $typescript_changed; then
+    echo "Rebuilding TypeScript project graph..."
+    pnpm exec tsc --build ./tsconfig.json --clean
+    pnpm exec tsc --build ./tsconfig.json
+    echo
+fi
+
+echo ============================
+echo = END: git post-merge hook =
+echo ============================
+echo
+
+exit 0

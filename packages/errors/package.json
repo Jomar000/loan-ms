@@ -1,0 +1,32 @@
+{
+    "name": "@hyperion/errors",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion Worker-safe error definitions and classifications",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "build": "tsc --build ./tsconfig.build.json",
+        "build:force": "tsc --build ./tsconfig.build.json --clean && pnpm run build",
+        "check": "tsc --noEmit",
+        "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+        "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
+        "prepare": "pnpm build",
+        "test:con": "vitest run --no-color"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "vitest": "catalog:"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    }
+}

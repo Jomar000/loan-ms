@@ -1,0 +1,38 @@
+{
+    "name": "@hyperion/types",
+    "version": "0.0.1",
+    "author": "4thDEVisionTech",
+    "description": "Hyperion Types Component",
+    "type": "module",
+    "private": true,
+    "license": "ISC",
+    "engines": {
+        "node": ">=26.8.1",
+        "pnpm": ">=12.8.1"
+    },
+    "scripts": {
+        "build": "tsc --build ./tsconfig.json",
+        "build:force": "tsc --build ./tsconfig.json --clean && pnpm run build",
+        "check": "tsc --noEmit",
+        "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+        "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
+        "prepare": "pnpm build"
+    },
+    "dependencies": {
+        "@hyperion/errors": "workspace:*"
+    },
+    "exports": {
+        "./backoffice": {
+            "types": "./dist/backoffice/index.d.ts",
+            "default": "./dist/backoffice/index.js"
+        },
+        "./public": {
+            "types": "./dist/public/index.d.ts",
+            "default": "./dist/public/index.js"
+        },
+        "./shared": {
+            "types": "./dist/shared/index.d.ts",
+            "default": "./dist/shared/index.js"
+        }
+    }
+}
