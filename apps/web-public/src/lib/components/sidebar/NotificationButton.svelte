@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import * as Tooltip from '@hyperion/ui/components/tooltip'
-    import { cn } from '@hyperion/ui/utils'
+    import { Button } from '@loanms/ui/components/button'
+    import * as Tooltip from '@loanms/ui/components/tooltip'
+    import { cn } from '@loanms/ui/utils'
     import BellIcon from '@lucide/svelte/icons/bell'
 
     ////////////////////

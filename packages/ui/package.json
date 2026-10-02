@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/ui",
+    "name": "@loanms/ui",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion UI Component Library (shadcn-svelte)",
+    "description": "LoanMS UI Component Library (shadcn-svelte)",
     "type": "module",
     "private": true,
     "license": "ISC",

@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
 import { createEmailVerificationToken } from 'better-auth/api'
 import { env } from 'cloudflare:workers'
 import { and, count, desc, eq, sql } from 'drizzle-orm'
@@ -27,7 +27,7 @@ import {
 
 const AUTH_RATE_LIMIT_IP = '198.51.100.201'
 const mailBindings = new Set<PropertyKey>([
-    'HYPERIONBOFC_EMAIL',
+    'LOANMSBOFC_EMAIL',
     'MAILER_ACCOUNT',
     'MAILER_PROVIDER',
     'RESEND_API_KEY',
@@ -62,7 +62,7 @@ type TSessionResponseData = {
 }
 
 beforeAll(() => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
 })
 
 afterAll(async () => {})
@@ -165,7 +165,7 @@ const withMutableIsolatedMembership = async (
 const verificationUser = {
     id: '__TEST-USER_EMAIL_VERIFICATION_BACKOFFICE',
     name: '__TEST-EMAIL VERIFICATION BACKOFFICE',
-    email: 'email.verification.backoffice@test.hyperion.app',
+    email: 'email.verification.backoffice@test.loanms.example',
     username: '__test_email_verification_backoffice',
 }
 
@@ -1154,7 +1154,7 @@ describe('Auth Endpoint', () => {
                     },
                     {
                         ...env,
-                        HYPERIONBOFC_D1: failD1Batch(env.HYPERIONBOFC_D1),
+                        LOANMSBOFC_D1: failD1Batch(env.LOANMSBOFC_D1),
                     },
                 )
                 const [
@@ -1453,7 +1453,7 @@ describe('Auth Endpoint', () => {
                 )
                 expect(interceptedToken).toBeTruthy()
                 expect(
-                    await env.HYPERIONBOFC_KV.list({ prefix: 'verification:' }),
+                    await env.LOANMSBOFC_KV.list({ prefix: 'verification:' }),
                 ).toMatchObject({ keys: [] })
             })
 
@@ -1490,7 +1490,7 @@ describe('Auth Endpoint', () => {
                     },
                     {
                         ...env,
-                        HYPERIONBOFC_D1: failD1Batch(env.HYPERIONBOFC_D1),
+                        LOANMSBOFC_D1: failD1Batch(env.LOANMSBOFC_D1),
                     },
                 )
                 const [

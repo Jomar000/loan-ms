@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseOk } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, eq, like } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -30,7 +30,7 @@ const cleanTestAddress = async () => {
 }
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
     const cookies = await seedTestingCookies()
     privilegedCookie = cookies[0]
 

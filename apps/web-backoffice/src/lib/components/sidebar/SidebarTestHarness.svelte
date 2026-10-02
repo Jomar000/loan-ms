@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as UiSidebar from '@hyperion/ui/overrides/sidebar'
+    import * as UiSidebar from '@loanms/ui/overrides/sidebar'
 
     import {
         setSessionActionsContext,

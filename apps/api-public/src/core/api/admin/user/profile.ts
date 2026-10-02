@@ -1,5 +1,5 @@
-import { AppError, catalog, defineError } from '@hyperion/errors'
-import { profile } from '@hyperion/validator/public/admin/user'
+import { AppError, catalog, defineError } from '@loanms/errors'
+import { profile } from '@loanms/validator/public/admin/user'
 import { and, asc, count as countFn, desc, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 

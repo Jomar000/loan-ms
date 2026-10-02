@@ -1,4 +1,4 @@
-import { AppError } from '@hyperion/errors'
+import { AppError } from '@loanms/errors'
 import type { Context } from 'hono'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -260,7 +260,7 @@ describe('Audit helpers', () => {
             role: 'member',
             session: { activeOrganizationId: 'organization-id' },
             user: {
-                email: 'user@test.hyperion.app',
+                email: 'user@test.loanms.example',
                 id: 'user-id',
                 name: 'Test User',
                 username: 'test_user',

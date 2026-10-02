@@ -1,4 +1,4 @@
-import type { TApiResponseError } from '@hyperion/types/shared'
+import type { TApiResponseError } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
@@ -8,10 +8,10 @@ import type { THonoBindings } from '../../src/types.js'
 const guardedBindings = new Set<PropertyKey>([
     'BETTER_AUTH_SECRET',
     'CF_DO_RATE_LIMIT_SECRET',
-    'HYPERIONPUB_D1',
-    'HYPERIONPUB_DO_RL',
-    'HYPERIONPUB_EMAIL',
-    'HYPERIONPUB_KV',
+    'LOANMSPUB_D1',
+    'LOANMSPUB_DO_RL',
+    'LOANMSPUB_EMAIL',
+    'LOANMSPUB_KV',
     'MAILER_ACCOUNT',
     'MAILER_PROVIDER',
     'RESEND_API_KEY',

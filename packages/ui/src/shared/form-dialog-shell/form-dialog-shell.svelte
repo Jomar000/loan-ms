@@ -134,7 +134,7 @@
 @component
 Use `FormDialogShell` for create and edit workflows that need a fixed header and
 optional footer around a scrollable form body. Import it from
-`@hyperion/ui/shared/form-dialog-shell`.
+`@loanms/ui/shared/form-dialog-shell`.
 
 Bind `open`, render the form as the default snippet, and optionally provide a
 `footer` snippet. `locked` prevents escape-key, outside-click, and close-button
@@ -148,7 +148,7 @@ cannot be focused preserves the Dialog primitive's first-focusable fallback.
 
 ```svelte
 <script lang="ts">
-    import { FormDialogShell } from '@hyperion/ui/shared/form-dialog-shell'
+    import { FormDialogShell } from '@loanms/ui/shared/form-dialog-shell'
 
     let open = $state(false)
     let primaryInput = $state<HTMLInputElement | null>(null)

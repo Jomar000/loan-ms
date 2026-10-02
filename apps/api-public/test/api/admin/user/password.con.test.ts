@@ -1,4 +1,4 @@
-import type { TApiResponseError } from '@hyperion/types/shared'
+import type { TApiResponseError } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { beforeAll, describe, expect, it } from 'vitest'
 

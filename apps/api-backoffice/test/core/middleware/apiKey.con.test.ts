@@ -1,6 +1,6 @@
-import { dbSchema } from '@hyperion/database/d1'
-import { AppError } from '@hyperion/errors'
-import { deriveRateLimitTarget } from '@hyperion/rate-limit/transport'
+import { dbSchema } from '@loanms/database/d1'
+import { AppError } from '@loanms/errors'
+import { deriveRateLimitTarget } from '@loanms/rate-limit/transport'
 import { Hono } from 'hono'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -163,7 +163,7 @@ function createRateLimitApp(options?: {
         env: {
             CF_DO_RATE_LIMIT_SECRET: RATE_LIMIT_SECRET,
             ENVIRONMENT: 'test',
-            HYPERIONBOFC_DO_RL: { getByName },
+            LOANMSBOFC_DO_RL: { getByName },
         } as never,
         getByName,
         release,

@@ -1,4 +1,4 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import { env } from 'cloudflare:workers'
 import { and, eq, inArray } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -37,7 +37,7 @@ const expectD1UniqueViolation = async (
 }
 
 beforeAll(() => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
 })
 
 afterAll(async () => {

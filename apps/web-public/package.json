@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/web-public",
+    "name": "@loanms/web-public",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion Public Web UI Component",
+    "description": "LoanMS Public Web UI Component",
     "type": "module",
     "private": true,
     "license": "ISC",
@@ -27,11 +27,11 @@
         "test:e2e": "vite build --mode=test && playwright test"
     },
     "devDependencies": {
-        "@hyperion/api-public": "workspace:*",
-        "@hyperion/types": "workspace:*",
-        "@hyperion/ui": "workspace:*",
-        "@hyperion/validator": "workspace:*",
-        "@hyperion/websocket": "workspace:*",
+        "@loanms/api-public": "workspace:*",
+        "@loanms/types": "workspace:*",
+        "@loanms/ui": "workspace:*",
+        "@loanms/validator": "workspace:*",
+        "@loanms/websocket": "workspace:*",
         "@lucide/svelte": "catalog:",
         "@playwright/test": "catalog:",
         "@sveltejs/adapter-static": "catalog:",

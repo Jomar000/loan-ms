@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -81,7 +81,7 @@ function sqlAddressAuditRecord(publicId: string) {
 }
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONPUB_D1)
+    db = dbClient(env.LOANMSPUB_D1)
     ;[
         ,
         standardCookie,
@@ -313,7 +313,7 @@ describe('User Address Endpoint', () => {
 
         it('Should roll back all primary flags when address auditing fails.', async () => {
             const before = await readAddresses()
-            await env.HYPERIONPUB_D1.prepare(
+            await env.LOANMSPUB_D1.prepare(
                 `CREATE TRIGGER test_address_audit_failure
                  BEFORE INSERT ON audit_trail
                  WHEN NEW.component = 'user.address'
@@ -332,7 +332,7 @@ describe('User Address Endpoint', () => {
                 expect(response.status).toBe(500)
                 expect(await readAddresses()).toEqual(before)
             } finally {
-                await env.HYPERIONPUB_D1.exec(
+                await env.LOANMSPUB_D1.exec(
                     'DROP TRIGGER IF EXISTS test_address_audit_failure',
                 )
             }
@@ -573,7 +573,7 @@ describe('User Address Endpoint', () => {
             const primary = (await readAddresses()).find(
                 (address) => address.isPrimary,
             )!
-            const failingDatabase = new Proxy(env.HYPERIONPUB_D1, {
+            const failingDatabase = new Proxy(env.LOANMSPUB_D1, {
                 get(target, property, receiver) {
                     if (property === 'batch')
                         return async () => {
@@ -596,7 +596,7 @@ describe('User Address Endpoint', () => {
                     },
                     body: JSON.stringify({ publicId: primary.publicId }),
                 },
-                { ...env, HYPERIONPUB_D1: failingDatabase },
+                { ...env, LOANMSPUB_D1: failingDatabase },
             )
 
             expect(response.status).toBe(500)

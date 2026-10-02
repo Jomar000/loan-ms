@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as Alert from '@hyperion/ui/components/alert'
+    import * as Alert from '@loanms/ui/components/alert'
     import { tick } from 'svelte'
 
     import { afterNavigate, beforeNavigate, goto } from '$app/navigation'

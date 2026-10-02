@@ -1,8 +1,8 @@
 import {
     createRealtimeRegistry,
     defineRealtimeEvent,
-} from '@hyperion/websocket/registry'
-import { createRealtimeBrokerObjectName } from '@hyperion/websocket/transport'
+} from '@loanms/websocket/registry'
+import { createRealtimeBrokerObjectName } from '@loanms/websocket/transport'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 

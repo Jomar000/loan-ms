@@ -1,8 +1,8 @@
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import {
     downloadLinkCreateInputSchema,
     downloadReadManyInputSchema,
-} from '@hyperion/validator/backoffice/objectStorage'
+} from '@loanms/validator/backoffice/objectStorage'
 import { and, asc, count as countFn, desc, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 

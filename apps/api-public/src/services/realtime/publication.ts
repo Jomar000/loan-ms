@@ -1,4 +1,4 @@
-import { serializeError } from '@hyperion/errors'
+import { serializeError } from '@loanms/errors'
 import {
     realtimePublicationDeliveryResultSchema,
     resolveRealtimePublication,
@@ -7,14 +7,14 @@ import {
     type TRealtimePublicationDescriptor,
     type TRealtimePublicationOrigin,
     type TRealtimePublisher,
-} from '@hyperion/websocket/publisher'
-import type { TRealtimeRegistry } from '@hyperion/websocket/registry'
+} from '@loanms/websocket/publisher'
+import type { TRealtimeRegistry } from '@loanms/websocket/registry'
 import {
     getRealtimeEventDestinations,
     type TRealtimeSurface,
     type TRealtimeTopologyProfile,
-} from '@hyperion/websocket/topology'
-import { createRealtimeBrokerObjectName } from '@hyperion/websocket/transport'
+} from '@loanms/websocket/topology'
+import { createRealtimeBrokerObjectName } from '@loanms/websocket/transport'
 
 import type { WebSocketBroker } from '../../core/durableObject/webSocket.js'
 import {

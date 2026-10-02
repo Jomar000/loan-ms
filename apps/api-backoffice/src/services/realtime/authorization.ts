@@ -1,17 +1,17 @@
-import { dbClient } from '@hyperion/database/d1'
-import { serializeError } from '@hyperion/errors'
+import { dbClient } from '@loanms/database/d1'
+import { serializeError } from '@loanms/errors'
 import {
     brokerRealtimeRevocationResultSchema,
     realtimeRevocationDeliveryResultSchema,
     type TBrokerRealtimeRevocationInput,
     type TRealtimeRevocationBroker,
     type TRealtimeRevocationDeliveryResult,
-} from '@hyperion/websocket/server'
+} from '@loanms/websocket/server'
 import {
     getRealtimeRevocationDestinations,
     validateRealtimeTopologyCapabilities,
     type TRealtimeTopologyProfile,
-} from '@hyperion/websocket/topology'
+} from '@loanms/websocket/topology'
 import {
     createRealtimeBrokerObjectName,
     REALTIME_STORAGE_VERSION,
@@ -20,7 +20,7 @@ import {
     WS_BROKER_FAN_OUT_CONCURRENCY,
     type TRealtimeBrokerScope,
     type TRealtimeRevocationDirective,
-} from '@hyperion/websocket/transport'
+} from '@loanms/websocket/transport'
 
 import type { WebSocketBroker } from '../../core/durableObject/webSocket.js'
 import {

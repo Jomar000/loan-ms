@@ -1,4 +1,4 @@
-import { dbSchema } from '@hyperion/database/d1'
+import { dbSchema } from '@loanms/database/d1'
 import { and, asc, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 
 import type { THonoVariables } from '../types.js'

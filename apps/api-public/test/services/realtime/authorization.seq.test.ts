@@ -10,7 +10,7 @@ describe('Public realtime authorization', () => {
 
         await expect(
             deliverPublicRealtimeRevocationLocally(
-                { getByName } as unknown as typeof env.HYPERIONPUB_DO_WSB,
+                { getByName } as unknown as typeof env.LOANMSPUB_DO_WSB,
                 {
                     authorizationVersion: uuidv7(),
                     expiresAt: Date.now() - 1,
@@ -41,7 +41,7 @@ describe('Public realtime authorization', () => {
 
         try {
             await deliverPublicRealtimeRevocationLocally(
-                { getByName } as unknown as typeof env.HYPERIONPUB_DO_WSB,
+                { getByName } as unknown as typeof env.LOANMSPUB_DO_WSB,
                 {
                     authorizationVersion: uuidv7(),
                     expiresAt: Date.now() + 60_000,
@@ -81,7 +81,7 @@ describe('Public realtime authorization', () => {
 
         await expect(
             deliverPublicRealtimeRevocationLocally(
-                { getByName } as unknown as typeof env.HYPERIONPUB_DO_WSB,
+                { getByName } as unknown as typeof env.LOANMSPUB_DO_WSB,
                 {
                     authorizationVersion: uuidv7(),
                     expiresAt: Date.now() + 60_000,

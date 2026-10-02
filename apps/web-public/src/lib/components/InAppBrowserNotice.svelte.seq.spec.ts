@@ -1,4 +1,4 @@
-import { InAppBrowserNotice } from '@hyperion/ui/shared/in-app-browser-notice'
+import { InAppBrowserNotice } from '@loanms/ui/shared/in-app-browser-notice'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 

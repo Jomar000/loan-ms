@@ -2,7 +2,7 @@
  * Shared Contracts
  */
 
-import type { TPublicCode } from '@hyperion/errors'
+import type { TPublicCode } from '@loanms/errors'
 
 export * from './apiKeyPermission.js'
 

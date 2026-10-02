@@ -1,4 +1,4 @@
-import type { TAuditJsonValue, TAuditSnapshot } from '@hyperion/database/d1'
+import type { TAuditJsonValue, TAuditSnapshot } from '@loanms/database/d1'
 
 export type TAuditSnapshotValueProjector = (
     value: unknown,

@@ -1,4 +1,4 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import { env } from 'cloudflare:workers'
 import { and, eq } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -28,7 +28,7 @@ async function expectD1Failure(
 }
 
 beforeAll(() => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
 })
 
 afterAll(async () => {
@@ -47,7 +47,7 @@ afterAll(async () => {
 
 describe('Audit Trail persistence contract', () => {
     it('installs the implemented tenant, filter, actor, and record indexes', async () => {
-        const { results } = await env.HYPERIONBOFC_D1.prepare(
+        const { results } = await env.LOANMSBOFC_D1.prepare(
             `SELECT name
              FROM sqlite_schema
              WHERE type = 'index' AND tbl_name = 'audit_trail'
@@ -115,7 +115,7 @@ describe('Audit Trail persistence contract', () => {
 
     it('requires immutable organization, actor, and display attribution', async () => {
         await expectD1Failure(
-            env.HYPERIONBOFC_D1.prepare(
+            env.LOANMSBOFC_D1.prepare(
                 `INSERT INTO audit_trail (
                      public_id, component, action, description, actor_type
                  ) VALUES (?, 'auth', 'verifyEmail', ?, 'anonymous')`,
@@ -128,7 +128,7 @@ describe('Audit Trail persistence contract', () => {
 
     it('rolls back a business mutation when its D1 batch audit fails', async () => {
         const counterKey = '__TEST-AUDIT-ROLLBACK'
-        const database = env.HYPERIONBOFC_D1
+        const database = env.LOANMSBOFC_D1
 
         await expectD1Failure(
             database.batch([

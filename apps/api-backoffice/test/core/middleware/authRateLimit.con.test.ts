@@ -1,4 +1,4 @@
-import { catalog } from '@hyperion/errors'
+import { catalog } from '@loanms/errors'
 import { Hono } from 'hono'
 import { describe, expect, it, vi } from 'vitest'
 

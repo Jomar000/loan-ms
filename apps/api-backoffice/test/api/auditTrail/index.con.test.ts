@@ -1,5 +1,5 @@
-import type { TApiResponseError } from '@hyperion/types/shared'
-import * as auditTrail from '@hyperion/validator/backoffice/auditTrail'
+import type { TApiResponseError } from '@loanms/types/shared'
+import * as auditTrail from '@loanms/validator/backoffice/auditTrail'
 import { env } from 'cloudflare:workers'
 import { beforeAll, describe, expect, it } from 'vitest'
 

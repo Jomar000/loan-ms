@@ -1,9 +1,9 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import type {
     TApiResponseError,
     TApiResponseOk,
     TApiResponsePaginatedOk,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { eq } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -2850,7 +2850,7 @@ export const registerSequentialObjectStorageTests = (
                                     requestUploadAttachment(uploadId),
                                     commitUpload(uploadId, []),
                                 ])
-                                const database = dbClient(env.HYPERIONBOFC_D1)
+                                const database = dbClient(env.LOANMSBOFC_D1)
                                 const [uploadRow] = await database
                                     .select({
                                         isCommitted:

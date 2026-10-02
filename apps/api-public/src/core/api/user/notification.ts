@@ -1,5 +1,5 @@
-import { AppError, catalog } from '@hyperion/errors'
-import { notification } from '@hyperion/validator/public/user'
+import { AppError, catalog } from '@loanms/errors'
+import { notification } from '@loanms/validator/public/user'
 import { and, desc, eq, inArray, lt, or, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 

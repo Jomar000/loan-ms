@@ -1,4 +1,4 @@
-import type { TApiResponseError } from '@hyperion/types/shared'
+import type { TApiResponseError } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
@@ -10,10 +10,10 @@ const VALID_API_KEY = `bof_${'A'.repeat(64)}`
 const guardedBindings = new Set<PropertyKey>([
     'BETTER_AUTH_SECRET',
     'CF_DO_RATE_LIMIT_SECRET',
-    'HYPERIONBOFC_DO_RL',
-    'HYPERIONBOFC_DO_WSS',
-    'HYPERIONBOFC_D1',
-    'HYPERIONBOFC_KV',
+    'LOANMSBOFC_DO_RL',
+    'LOANMSBOFC_DO_WSS',
+    'LOANMSBOFC_D1',
+    'LOANMSBOFC_KV',
 ])
 
 const disabledEnvironment = new Proxy(env, {

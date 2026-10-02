@@ -1,4 +1,4 @@
-import { dbSchema } from '@hyperion/database/d1'
+import { dbSchema } from '@loanms/database/d1'
 import { describe, expect, it, vi } from 'vitest'
 
 import { aclBuilder } from '../../src/auth/acl.js'

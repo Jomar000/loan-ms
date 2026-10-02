@@ -1,4 +1,4 @@
-import { catalog } from '@hyperion/errors'
+import { catalog } from '@loanms/errors'
 import { every } from 'hono/combine'
 import { createMiddleware } from 'hono/factory'
 

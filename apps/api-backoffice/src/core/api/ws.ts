@@ -1,13 +1,13 @@
-import { catalog, type TErrorDefinition } from '@hyperion/errors'
+import { catalog, type TErrorDefinition } from '@loanms/errors'
 import {
     hasRealtimeWireVersion,
     REALTIME_WIRE_VERSION,
-} from '@hyperion/websocket/protocol'
+} from '@loanms/websocket/protocol'
 import {
     APP_REALTIME_STREAM,
     resolveRealtimeAdmission,
-} from '@hyperion/websocket/registry'
-import { setRealtimeTransportHeaders } from '@hyperion/websocket/server'
+} from '@loanms/websocket/registry'
+import { setRealtimeTransportHeaders } from '@loanms/websocket/server'
 import {
     createRealtimeLeafObjectName,
     createRealtimeLeafProbeOrder,
@@ -16,7 +16,7 @@ import {
     REALTIME_STORAGE_VERSION,
     type TRealtimeBrokerScope,
     type TRealtimeTransportAttachment,
-} from '@hyperion/websocket/transport'
+} from '@loanms/websocket/transport'
 import { Hono, type Context } from 'hono'
 
 import {

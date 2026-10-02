@@ -1,4 +1,4 @@
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import { eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 

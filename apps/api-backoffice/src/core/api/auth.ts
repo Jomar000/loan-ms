@@ -1,4 +1,4 @@
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import {
     organizationReadManyInputSchema,
     organizationSetActiveInputSchema,
@@ -7,7 +7,7 @@ import {
     passwordResetRequestInputSchema,
     signInInputSchema,
     verifyEmailInputSchema,
-} from '@hyperion/validator/backoffice/auth'
+} from '@loanms/validator/backoffice/auth'
 import { isAPIError } from 'better-auth/api'
 import { makeSignature } from 'better-auth/crypto'
 import { and, asc, count, desc, eq, or, sql } from 'drizzle-orm'
@@ -993,9 +993,9 @@ export const authRoute = new Hono<THonoInstance>()
 
                 await createAndDeliverMembershipRealtimeRevocation({
                     client: ctx.get('dbClient'),
-                    database: ctx.env.HYPERIONBOFC_D1,
+                    database: ctx.env.LOANMSBOFC_D1,
                     mutation: { kind: 'rotate' },
-                    namespace: ctx.env.HYPERIONBOFC_DO_WSB,
+                    namespace: ctx.env.LOANMSBOFC_DO_WSB,
                     operationId: uuidv7(),
                     organizationId,
                     profile: BACKOFFICE_REALTIME_TOPOLOGY,

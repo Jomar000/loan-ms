@@ -1,4 +1,4 @@
-import { BaseError } from '@hyperion/errors'
+import { BaseError } from '@loanms/errors'
 import { createMiddleware } from 'hono/factory'
 
 import type { TErrorLogDetail, THonoInstance } from '../../types.js'

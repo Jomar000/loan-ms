@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as Tooltip from '@hyperion/ui/components/tooltip'
+    import * as Tooltip from '@loanms/ui/components/tooltip'
     import {
         setSessionActionsContext,
         type SessionState,

@@ -68,19 +68,19 @@ function writeJson(root, path, contents) {
 }
 
 function workspacePackageName(path) {
-    return `@hyperion/${path.slice(path.lastIndexOf('/') + 1)}`
+    return `@loanms/${path.slice(path.lastIndexOf('/') + 1)}`
 }
 
 function createFixture() {
-    const root = mkdtempSync(join(tmpdir(), 'hyperion-check-d1-'))
+    const root = mkdtempSync(join(tmpdir(), 'loanms-check-d1-'))
     git(root, 'init', '--quiet')
     git(root, 'config', 'user.email', 'template-test@example.com')
     git(root, 'config', 'user.name', 'Template Test')
 
     writeJson(root, 'package.json', {
         author: '4thDEVisionTech',
-        description: 'Hyperion',
-        name: 'hyperion',
+        description: 'LoanMS',
+        name: 'loanms',
         private: true,
         scripts: {
             'profile:init': 'node ./scripts/repository/profile-init.mjs',
@@ -95,7 +95,7 @@ function createFixture() {
         }
         if (path.startsWith('apps/api-')) {
             manifest.devDependencies = {
-                '@hyperion/database': 'workspace:*',
+                '@loanms/database': 'workspace:*',
             }
         }
         writeJson(root, `${path}/package.json`, manifest)
@@ -107,7 +107,7 @@ function createFixture() {
         exports: {
             './postgres': './src/postgres/index.ts',
         },
-        name: '@hyperion/database',
+        name: '@loanms/database',
         private: true,
     })
 
@@ -115,7 +115,7 @@ function createFixture() {
     const skillContents = '# Skill\n\n## Guidance\n\nText.\n'
     writeFixtureFile(root, '.agents/skills/example/SKILL.md', skillContents)
     writeFixtureFile(root, '.claude/skills/example/SKILL.md', skillContents)
-    writeFixtureFile(root, 'README.md', '# Hyperion\n')
+    writeFixtureFile(root, 'README.md', '# LoanMS\n')
     writeFixtureFile(
         root,
         'scripts/repository/profile-init.mjs',
@@ -143,7 +143,7 @@ function createFixture() {
         writeFixtureFile(
             root,
             `apps/${surface}/src/core/middleware/initContext.ts`,
-            "import { dbClient } from '@hyperion/database/postgres'\n",
+            "import { dbClient } from '@loanms/database/postgres'\n",
         )
         writeFixtureFile(
             root,
@@ -159,7 +159,7 @@ function createFixture() {
     writeFixtureFile(
         root,
         'packages/ui/src/common.ts',
-        "export const packageName = '@hyperion/ui'\n",
+        "export const packageName = '@loanms/ui'\n",
     )
     writeFixtureFile(
         root,
@@ -228,8 +228,8 @@ function applyD1Profile(root) {
     })
     writeJson(root, 'package.json', {
         author: '4thDEVisionTech',
-        description: 'Hyperion',
-        name: 'hyperion',
+        description: 'LoanMS',
+        name: 'loanms',
         private: true,
         profile: 'fullstack-d1',
         scripts: {
@@ -249,7 +249,7 @@ function applyD1Profile(root) {
         exports: {
             './d1': './src/d1/index.ts',
         },
-        name: '@hyperion/database',
+        name: '@loanms/database',
         private: true,
         scripts: {
             'migrate:dev': 'pnpm exec wrangler d1 migrations apply app-dev',
@@ -332,13 +332,13 @@ function applyD1Profile(root) {
         writeFixtureFile(
             root,
             `apps/${surface}/src/core/middleware/initContext.ts`,
-            "import { dbClient } from '@hyperion/database/d1'\n",
+            "import { dbClient } from '@loanms/database/d1'\n",
         )
         writeFixtureFile(
             root,
             `apps/${surface}/src/worker-configuration.d.ts`,
             [
-                `interface Env { HYPERION${suffix}_D1: D1Database }`,
+                `interface Env { LOANMS${suffix}_D1: D1Database }`,
                 '// Begin runtime types',
                 'interface Hyperdrive { connect(): unknown }',
                 '',
@@ -430,14 +430,14 @@ function createWranglerFixture(suffix, migrationOwner) {
         : []
     return [
         '[[d1_databases]]',
-        `binding = "HYPERION${suffix}_D1"`,
-        'database_name = "hyperion-development"',
+        `binding = "LOANMS${suffix}_D1"`,
+        'database_name = "loanms-development"',
         'database_id = "development-id"',
         ...migrationLines,
         '',
         '[[env.test.d1_databases]]',
-        `binding = "HYPERION${suffix}_D1"`,
-        'database_name = "hyperion-test"',
+        `binding = "LOANMS${suffix}_D1"`,
+        'database_name = "loanms-test"',
         'database_id = "test-id"',
         ...migrationLines,
         '',
@@ -507,8 +507,8 @@ test('accepts initialized identities without recursive replacement', (context) =
     context.after(() => rmSync(root, { force: true, recursive: true }))
     initializeFixture(root, {
         ...customConfiguration,
-        author: 'Hyperion Labs',
-        scope: '@hyperion-labs',
+        author: 'LoanMS Labs',
+        scope: '@loanms-labs',
     })
 
     assert.deepEqual(verify(root), [])
@@ -520,7 +520,7 @@ test('rejects shared drift and unclassified paths', (context) => {
     writeFixtureFile(
         root,
         'packages/ui/src/common.ts',
-        "export const packageName = '@hyperion/ui' // drift\n",
+        "export const packageName = '@loanms/ui' // drift\n",
     )
     writeFixtureFile(
         root,
@@ -592,7 +592,7 @@ test('rejects PostgreSQL leakage and invalid D1 contracts', (context) => {
     writeFixtureFile(
         root,
         'apps/api-public/src/worker-configuration.d.ts',
-        'interface Env { HYPERIONPUB_D1: Hyperdrive }\n',
+        'interface Env { LOANMSPUB_D1: Hyperdrive }\n',
     )
     const backofficeWrangler = createWranglerFixture('BOFC', false).replace(
         'database_id = "test-id"',
@@ -623,12 +623,12 @@ test('rejects PostgreSQL leakage and invalid D1 contracts', (context) => {
     )
     assert.ok(
         errors.some((error) =>
-            error.includes('must import @hyperion/database/d1'),
+            error.includes('must import @loanms/database/d1'),
         ),
     )
     assert.ok(
         errors.some((error) =>
-            error.includes('must declare HYPERIONPUB_D1: D1Database'),
+            error.includes('must declare LOANMSPUB_D1: D1Database'),
         ),
     )
     assert.ok(

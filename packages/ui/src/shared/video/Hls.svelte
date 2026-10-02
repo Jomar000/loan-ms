@@ -169,7 +169,7 @@
 <!--
 @component
 Use `Hls` for browser-native video controls backed by HLS.js with native HLS
-fallback. Import it from `@hyperion/ui/shared/video`.
+fallback. Import it from `@loanms/ui/shared/video`.
 
 Provide a complete HLS manifest `url` and accessible `title`. The player uses
 muted autoplay and native controls by default, reports unrecoverable playback

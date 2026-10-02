@@ -7,7 +7,7 @@ import AppRoleSelector from './AppRoleSelector.svelte'
 const mocks = vi.hoisted(() => ({ goto: vi.fn() }))
 
 vi.mock('$app/navigation', () => ({ goto: mocks.goto }))
-vi.mock('$env/static/public', () => ({ PUBLIC_NAME: 'Hyperion' }))
+vi.mock('$env/static/public', () => ({ PUBLIC_NAME: 'LoanMS' }))
 vi.mock('$lib/states/session', () => ({
     useSessionContext: () => ({
         getRoles: () => [

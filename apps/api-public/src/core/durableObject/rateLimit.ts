@@ -1,4 +1,4 @@
-import { RateLimitBase } from '@hyperion/rate-limit/server'
+import { RateLimitBase } from '@loanms/rate-limit/server'
 
 type TRateLimitEnvironment = {
     ENVIRONMENT: string

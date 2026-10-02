@@ -1,4 +1,4 @@
-import * as auditTrailValidator from '@hyperion/validator/backoffice/auditTrail'
+import * as auditTrailValidator from '@loanms/validator/backoffice/auditTrail'
 import type { z } from 'zod'
 
 type ReadManyResponse = z.infer<

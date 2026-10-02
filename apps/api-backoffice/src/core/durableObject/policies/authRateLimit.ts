@@ -1,4 +1,4 @@
-import { defineRateLimitPolicy } from '@hyperion/rate-limit/policy'
+import { defineRateLimitPolicy } from '@loanms/rate-limit/policy'
 
 /**
  * Keep policy ownership local so this API can deploy independently. Increment

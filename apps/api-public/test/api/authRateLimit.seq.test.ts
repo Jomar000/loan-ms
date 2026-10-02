@@ -1,6 +1,6 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import { deriveRateLimitTarget } from '@hyperion/rate-limit/transport'
-import type { TApiResponseError, TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import { deriveRateLimitTarget } from '@loanms/rate-limit/transport'
+import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
 import { runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { and, count, eq, like } from 'drizzle-orm'
@@ -61,7 +61,7 @@ const authTestControl = vi.hoisted(() => ({
 vi.mock('../../src/utilities/helpers.js', async (importOriginal) => {
     const actual =
         await importOriginal<typeof import('../../src/utilities/helpers.js')>()
-    const { AppError, catalog } = await import('@hyperion/errors')
+    const { AppError, catalog } = await import('@loanms/errors')
     const originalPrepare = actual.auditTrailLogger.prepare
 
     actual.auditTrailLogger.prepare = (data) => {
@@ -193,7 +193,7 @@ beforeAll(async () => {
             }),
         )
         .route('/api', apiRoute)
-    db = dbClient(env.HYPERIONPUB_D1)
+    db = dbClient(env.LOANMSPUB_D1)
 })
 
 beforeEach(() => {
@@ -223,7 +223,7 @@ const createRateLimitStub = async (
     return {
         definition,
         keyPrefix: target.keyPrefix,
-        stub: env.HYPERIONPUB_DO_RL.getByName(target.objectName),
+        stub: env.LOANMSPUB_DO_RL.getByName(target.objectName),
     }
 }
 
@@ -536,7 +536,7 @@ describe('Authentication rate-limit route integration', () => {
         )
         expect(captchaResponse.status).toBe(400)
 
-        const suppressedEmail = 'suppressed.context@test.hyperion.app'
+        const suppressedEmail = 'suppressed.context@test.loanms.example'
         await consume(
             'password-reset-identity-minute',
             [normalizeAuthRateLimitIdentity(suppressedEmail)],
@@ -580,7 +580,7 @@ describe('Authentication rate-limit route integration', () => {
                     'content-type': 'application/json',
                 },
                 body: JSON.stringify({
-                    email: 'invalid.secret@test.hyperion.app',
+                    email: 'invalid.secret@test.loanms.example',
                 }),
             },
             { ...env, CF_DO_RATE_LIMIT_SECRET: '' },
@@ -594,7 +594,7 @@ describe('Authentication rate-limit route integration', () => {
             getByName: () => ({
                 consume: () => Promise.reject(new Error('Unavailable DO.')),
             }),
-        } as unknown as typeof env.HYPERIONPUB_DO_RL
+        } as unknown as typeof env.LOANMSPUB_DO_RL
         const unavailableResponse = await app.request(
             '/api/auth/password/resetRequest',
             {
@@ -605,10 +605,10 @@ describe('Authentication rate-limit route integration', () => {
                     'content-type': 'application/json',
                 },
                 body: JSON.stringify({
-                    email: 'unavailable.namespace@test.hyperion.app',
+                    email: 'unavailable.namespace@test.loanms.example',
                 }),
             },
-            { ...env, HYPERIONPUB_DO_RL: unavailableNamespace },
+            { ...env, LOANMSPUB_DO_RL: unavailableNamespace },
         )
         expect(unavailableResponse.status).toBe(503)
         expect(
@@ -783,8 +783,8 @@ describe('Authentication rate-limit route integration', () => {
     })
 
     it('enforces reset identity-hour and network-hour suppression independently.', async () => {
-        const identityEmail = 'identity.hour@test.hyperion.app'
-        const networkEmail = 'network.hour@test.hyperion.app'
+        const identityEmail = 'identity.hour@test.loanms.example'
+        const networkEmail = 'network.hour@test.loanms.example'
         const network = '192.0.2.145'
         const aclCallsBefore = authTestControl.aclBuilderCalls
         const authCallsBefore = authTestControl.authCalls
@@ -1017,7 +1017,7 @@ describe('Authentication rate-limit route integration', () => {
                         ),
                     ),
             }),
-        } as unknown as typeof env.HYPERIONPUB_DO_RL
+        } as unknown as typeof env.LOANMSPUB_DO_RL
         const request = (accountId: string) =>
             app.request(
                 '/api/auth/signIn/username',
@@ -1035,7 +1035,7 @@ describe('Authentication rate-limit route integration', () => {
                         password: 'P@ssw0rd1234',
                     }),
                 },
-                { ...env, HYPERIONPUB_DO_RL: failingMutationNamespace },
+                { ...env, LOANMSPUB_DO_RL: failingMutationNamespace },
             )
 
         try {
@@ -1201,7 +1201,7 @@ describe('Authentication rate-limit route integration', () => {
                 '198.18.0.193',
             )
             const cookie = signedIn.headers.getSetCookie().join('; ')
-            await env.HYPERIONPUB_D1.prepare(
+            await env.LOANMSPUB_D1.prepare(
                 `CREATE TRIGGER test_reset_audit_failure
                  BEFORE INSERT ON audit_trail
                  WHEN NEW.action IN ('resetRequest', 'password.resetRequest')
@@ -1241,7 +1241,7 @@ describe('Authentication rate-limit route integration', () => {
                     .where(eq(dbSchema.verification.value, TEST_OWNER_USER_ID))
                 expect(tokens.length).toBeGreaterThan(0)
             } finally {
-                await env.HYPERIONPUB_D1.exec(
+                await env.LOANMSPUB_D1.exec(
                     'DROP TRIGGER IF EXISTS test_reset_audit_failure',
                 )
                 await deletePasswordResetRows(TEST_OWNER_USER_ID)

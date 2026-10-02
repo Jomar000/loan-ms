@@ -7,7 +7,7 @@ vi.mock('$app/state', () => ({
     page: { url: new URL('https://example.test/app/owner/dashboard') },
 }))
 
-vi.mock('$env/static/public', () => ({ PUBLIC_NAME: 'Hyperion' }))
+vi.mock('$env/static/public', () => ({ PUBLIC_NAME: 'LoanMS' }))
 
 vi.mock('$lib/components/sidebar/navigation', () => ({
     createRoleNavigation: () => [],

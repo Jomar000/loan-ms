@@ -1,4 +1,4 @@
-import type { TAuditEntityType } from '@hyperion/validator/backoffice/auditTrail'
+import type { TAuditEntityType } from '@loanms/validator/backoffice/auditTrail'
 
 import type { TAuditSnapshotPolicy } from './snapshotPolicy.js'
 

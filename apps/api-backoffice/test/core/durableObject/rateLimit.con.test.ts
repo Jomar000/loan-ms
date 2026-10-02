@@ -1,4 +1,4 @@
-import { defineRateLimitPolicy } from '@hyperion/rate-limit/policy'
+import { defineRateLimitPolicy } from '@loanms/rate-limit/policy'
 import { env } from 'cloudflare:workers'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -9,7 +9,7 @@ const policy = defineRateLimitPolicy({
     windowMs: 60_000,
 })
 
-const createStub = () => env.HYPERIONBOFC_DO_RL.getByName(crypto.randomUUID())
+const createStub = () => env.LOANMSBOFC_DO_RL.getByName(crypto.randomUUID())
 
 const consumeConcurrently = (
     stub: ReturnType<typeof createStub>,

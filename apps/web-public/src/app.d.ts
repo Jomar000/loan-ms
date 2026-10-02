@@ -1,7 +1,7 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
 
-import type { auth as authValidator } from '@hyperion/validator/public'
+import type { auth as authValidator } from '@loanms/validator/public'
 import type { Component } from 'svelte'
 import type { z } from 'zod'
 

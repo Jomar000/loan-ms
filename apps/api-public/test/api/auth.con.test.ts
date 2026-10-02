@@ -1,9 +1,9 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import type {
     TApiResponseError,
     TApiResponseOk,
     TApiResponsePaginatedOk,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { createEmailVerificationToken } from 'better-auth/api'
 import { env } from 'cloudflare:workers'
 import { and, eq } from 'drizzle-orm'
@@ -45,7 +45,7 @@ type TSessionResponseData = {
 }
 
 beforeAll(async () => {
-    const db = dbClient(env.HYPERIONPUB_D1)
+    const db = dbClient(env.LOANMSPUB_D1)
 
     try {
         await db
@@ -401,7 +401,7 @@ describe('Auth Endpoint', () => {
                     const sessionToken = decodeURIComponent(
                         sessionCookie!.split(';', 1)[0].split('=', 2)[1],
                     ).split('.')[0]
-                    const sessionDb = dbClient(env.HYPERIONPUB_D1)
+                    const sessionDb = dbClient(env.LOANMSPUB_D1)
                     let persistedSession
 
                     try {
@@ -423,13 +423,11 @@ describe('Auth Endpoint', () => {
                         kvMetadata,
                         aclCache,
                     ] = await Promise.all([
-                        env.HYPERIONPUB_KV.get(sessionToken),
-                        env.HYPERIONPUB_KV.get(
+                        env.LOANMSPUB_KV.get(sessionToken),
+                        env.LOANMSPUB_KV.get(
                             `active-sessions-${TEST_OWNER_USER_ID}`,
                         ),
-                        env.HYPERIONPUB_KV.get(
-                            'api-public:cache:acl:v20260825',
-                        ),
+                        env.LOANMSPUB_KV.get('api-public:cache:acl:v20260825'),
                     ])
 
                     expect(sessionData.data.organizationName).toBe(
@@ -901,7 +899,7 @@ describe('Auth Endpoint', () => {
                     sessionTokenCookie!.split(';', 1)[0].split('=', 2)[1],
                 ).split('.')[0]
                 const sessionCookie = setCookies.join('; ')
-                const db = dbClient(env.HYPERIONPUB_D1)
+                const db = dbClient(env.LOANMSPUB_D1)
                 const readAuthorizationVersion = async () =>
                     (
                         await db
@@ -987,7 +985,7 @@ describe('Auth Endpoint', () => {
             it('Expired token should return 422.', async () => {
                 const token = await createEmailVerificationToken(
                     env.BETTER_AUTH_SECRET,
-                    'expired.email.verification.public@test.hyperion.app',
+                    'expired.email.verification.public@test.loanms.example',
                     undefined,
                     -1,
                 )
@@ -1214,7 +1212,7 @@ describe('Auth Endpoint', () => {
                             'content-type': 'application/json',
                         },
                         body: JSON.stringify({
-                            email: '__TEST-nonexistent@test.hyperion.app',
+                            email: '__TEST-nonexistent@test.loanms.example',
                         }),
                     },
                     env,

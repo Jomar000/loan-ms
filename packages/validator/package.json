@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/validator",
+    "name": "@loanms/validator",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion Validator Component",
+    "description": "LoanMS Validator Component",
     "type": "module",
     "private": true,
     "license": "ISC",
@@ -19,7 +19,7 @@
         "prepare": "pnpm build"
     },
     "dependencies": {
-        "@hyperion/types": "workspace:*",
+        "@loanms/types": "workspace:*",
         "zod": "catalog:"
     },
     "exports": {

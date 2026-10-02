@@ -1,4 +1,4 @@
-import { createWsClientManager } from '@hyperion/websocket/client'
+import { createWsClientManager } from '@loanms/websocket/client'
 
 import { PUBLIC_API_URL } from '$env/static/public'
 import { EXTENSION_APP_REALTIME_REGISTRY } from './registry.extension'

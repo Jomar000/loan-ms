@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as Tooltip from '@hyperion/ui/components/tooltip'
+    import * as Tooltip from '@loanms/ui/components/tooltip'
     import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
     import type { Snippet } from 'svelte'
 

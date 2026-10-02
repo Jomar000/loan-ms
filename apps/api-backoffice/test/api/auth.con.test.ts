@@ -1,10 +1,10 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import type {
     TApiResponseError,
     TApiResponseOk,
     TApiResponsePaginatedOk,
-} from '@hyperion/types/shared'
-import { sessionPermissionsSchema } from '@hyperion/validator/backoffice/auth'
+} from '@loanms/types/shared'
+import { sessionPermissionsSchema } from '@loanms/validator/backoffice/auth'
 import { createEmailVerificationToken } from 'better-auth/api'
 import { env } from 'cloudflare:workers'
 import { and, eq } from 'drizzle-orm'
@@ -46,7 +46,7 @@ type TSessionResponseData = {
 }
 
 beforeAll(async () => {
-    const db = dbClient(env.HYPERIONBOFC_D1)
+    const db = dbClient(env.LOANMSBOFC_D1)
 
     try {
         await db
@@ -402,7 +402,7 @@ describe('Auth Endpoint', () => {
                     const sessionToken = decodeURIComponent(
                         sessionCookie!.split(';', 1)[0].split('=', 2)[1],
                     ).split('.')[0]
-                    const sessionDb = dbClient(env.HYPERIONBOFC_D1)
+                    const sessionDb = dbClient(env.LOANMSBOFC_D1)
                     let persistedSession
 
                     try {
@@ -424,11 +424,11 @@ describe('Auth Endpoint', () => {
                         kvMetadata,
                         aclCache,
                     ] = await Promise.all([
-                        env.HYPERIONBOFC_KV.get(sessionToken),
-                        env.HYPERIONBOFC_KV.get(
+                        env.LOANMSBOFC_KV.get(sessionToken),
+                        env.LOANMSBOFC_KV.get(
                             `active-sessions-${TEST_OWNER_USER_ID}`,
                         ),
-                        env.HYPERIONBOFC_KV.get(
+                        env.LOANMSBOFC_KV.get(
                             'api-backoffice:cache:acl:v20260903',
                         ),
                     ])
@@ -910,7 +910,7 @@ describe('Auth Endpoint', () => {
                     sessionTokenCookie!.split(';', 1)[0].split('=', 2)[1],
                 ).split('.')[0]
                 const sessionCookie = setCookies.join('; ')
-                const db = dbClient(env.HYPERIONBOFC_D1)
+                const db = dbClient(env.LOANMSBOFC_D1)
                 const readAuthorizationVersion = async () =>
                     (
                         await db
@@ -996,7 +996,7 @@ describe('Auth Endpoint', () => {
             it('Expired token should return 422.', async () => {
                 const token = await createEmailVerificationToken(
                     env.BETTER_AUTH_SECRET,
-                    'expired.email.verification.backoffice@test.hyperion.app',
+                    'expired.email.verification.backoffice@test.loanms.example',
                     undefined,
                     -1,
                 )
@@ -1223,7 +1223,7 @@ describe('Auth Endpoint', () => {
                             'content-type': 'application/json',
                         },
                         body: JSON.stringify({
-                            email: '__TEST-nonexistent@test.hyperion.app',
+                            email: '__TEST-nonexistent@test.loanms.example',
                         }),
                     },
                     env,

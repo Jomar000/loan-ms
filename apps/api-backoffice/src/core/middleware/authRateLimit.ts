@@ -3,12 +3,12 @@ import {
     catalog,
     serializeError,
     type TErrorDefinition,
-} from '@hyperion/errors'
+} from '@loanms/errors'
 import {
     createRateLimiter,
     RateLimitConfigurationError,
     type TRateLimitReservation,
-} from '@hyperion/rate-limit/client'
+} from '@loanms/rate-limit/client'
 import type { Context } from 'hono'
 import { createMiddleware } from 'hono/factory'
 
@@ -189,7 +189,7 @@ export const authRateLimit = async (
     }
 
     const limiter = createRateLimiter({
-        namespace: ctx.env.HYPERIONBOFC_DO_RL,
+        namespace: ctx.env.LOANMSBOFC_DO_RL,
         secret: ctx.env.CF_DO_RATE_LIMIT_SECRET,
     })
     const inputs = getKeys().map(({ action, keyParts }) => {

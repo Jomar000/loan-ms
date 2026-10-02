@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
+    import { Button } from '@loanms/ui/components/button'
     import XIcon from '@lucide/svelte/icons/x'
 
     import {

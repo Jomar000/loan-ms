@@ -217,11 +217,11 @@ test('derives stable, profile-specific rule references', () => {
     )
     assert.match(
         createRuleReference(publicTarget),
-        /^hyperion_security_headers_public_[a-f0-9]{12}$/u,
+        /^loanms_security_headers_public_[a-f0-9]{12}$/u,
     )
     assert.equal(
         createRuleReference(globalTarget),
-        'hyperion_security_headers_global',
+        'loanms_security_headers_global',
     )
 })
 

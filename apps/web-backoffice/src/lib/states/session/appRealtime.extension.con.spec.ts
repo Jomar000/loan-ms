@@ -1,4 +1,4 @@
-import { realtimeEventNameSchema } from '@hyperion/websocket/registry'
+import { realtimeEventNameSchema } from '@loanms/websocket/registry'
 import { describe, expect, it } from 'vitest'
 
 import { EXTENSION_APP_REALTIME_REGISTRY } from '$lib/utilities/wsClientManager/registry.extension'

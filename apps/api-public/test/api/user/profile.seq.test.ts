@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -49,7 +49,7 @@ function sqlProfileAuditRecord(publicId: string) {
 }
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONPUB_D1)
+    db = dbClient(env.LOANMSPUB_D1)
     ;[
         ,
         standardCookie,

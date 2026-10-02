@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Toaster as Sonner } from '@hyperion/ui/components/sonner'
+    import { Toaster as Sonner } from '@loanms/ui/components/sonner'
     import {
         createQuery,
         QueryClient,

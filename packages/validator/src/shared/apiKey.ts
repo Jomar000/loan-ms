@@ -2,7 +2,7 @@ import {
     API_KEY_AUDIENCES,
     API_KEY_PERMISSION_ACTION_PATTERN,
     API_KEY_PERMISSION_NAMESPACE_PATTERN,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { z } from 'zod'
 
 import { vText } from './field.js'

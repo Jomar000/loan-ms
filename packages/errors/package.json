@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/errors",
+    "name": "@loanms/errors",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion Worker-safe error definitions and classifications",
+    "description": "LoanMS Worker-safe error definitions and classifications",
     "type": "module",
     "private": true,
     "license": "ISC",

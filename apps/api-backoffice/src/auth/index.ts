@@ -1,5 +1,5 @@
 import { apiKey } from '@better-auth/api-key'
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import { betterAuth } from 'better-auth'
 import type { Auth, BetterAuthOptions } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'

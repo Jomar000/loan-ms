@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import * as Empty from '@hyperion/ui/components/empty'
+    import { Button } from '@loanms/ui/components/button'
+    import * as Empty from '@loanms/ui/components/empty'
     import SearchXIcon from '@lucide/svelte/icons/search-x'
 
     ////////////////////

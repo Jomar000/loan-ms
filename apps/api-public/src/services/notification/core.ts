@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import { AppError, catalog } from '@hyperion/errors'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import { AppError, catalog } from '@loanms/errors'
 import { and, eq } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
 

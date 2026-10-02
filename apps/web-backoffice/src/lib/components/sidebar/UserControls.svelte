@@ -1,8 +1,8 @@
 <script lang="ts">
-    import * as Avatar from '@hyperion/ui/components/avatar'
-    import { Button } from '@hyperion/ui/components/button'
-    import * as DropdownMenu from '@hyperion/ui/components/dropdown-menu'
-    import { cn } from '@hyperion/ui/utils'
+    import * as Avatar from '@loanms/ui/components/avatar'
+    import { Button } from '@loanms/ui/components/button'
+    import * as DropdownMenu from '@loanms/ui/components/dropdown-menu'
+    import { cn } from '@loanms/ui/utils'
     import LogOutIcon from '@lucide/svelte/icons/log-out'
     import SettingsIcon from '@lucide/svelte/icons/settings'
     import UserIcon from '@lucide/svelte/icons/user'

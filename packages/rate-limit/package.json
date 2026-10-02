@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/rate-limit",
+    "name": "@loanms/rate-limit",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion exact rate-limit coordination for Cloudflare Workers",
+    "description": "LoanMS exact rate-limit coordination for Cloudflare Workers",
     "type": "module",
     "private": true,
     "license": "ISC",
@@ -20,7 +20,7 @@
         "test:con": "vitest run --no-color"
     },
     "dependencies": {
-        "@hyperion/errors": "workspace:*"
+        "@loanms/errors": "workspace:*"
     },
     "devDependencies": {
         "@cloudflare/workers-types": "catalog:",

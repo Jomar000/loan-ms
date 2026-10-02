@@ -1,16 +1,16 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError } from '@loanms/types/shared'
 import {
     parseRealtimeServerFrame,
     REALTIME_WIRE_VERSION,
-} from '@hyperion/websocket/protocol'
+} from '@loanms/websocket/protocol'
 import {
     builtInRealtimeRegistry,
     createRealtimeRegistry,
     defineRealtimeEvent,
     defineRealtimeStream,
     type TRealtimeRegistry,
-} from '@hyperion/websocket/registry'
+} from '@loanms/websocket/registry'
 import {
     setRealtimeTransportHeaders,
     type TBrokerPublishResult,
@@ -20,7 +20,7 @@ import {
     type TRealtimeLeafDeliveryResult,
     type TRealtimeLeafRevocationInput,
     type TRealtimeLeafRevocationResult,
-} from '@hyperion/websocket/server'
+} from '@loanms/websocket/server'
 import {
     createRealtimeBrokerObjectName,
     createRealtimeLeafObjectName,
@@ -30,7 +30,7 @@ import {
     type TRealtimeBrokerScope,
     type TRealtimeLeafScope,
     type TRealtimeTransportAttachment,
-} from '@hyperion/websocket/transport'
+} from '@loanms/websocket/transport'
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { eq } from 'drizzle-orm'
@@ -59,7 +59,7 @@ const fetchRealtimeSocket = (attachment: TRealtimeTransportAttachment) => {
 
     setRealtimeTransportHeaders(headers, attachment)
 
-    return env.HYPERIONPUB_DO_WSS.getByName(
+    return env.LOANMSPUB_DO_WSS.getByName(
         createRealtimeLeafObjectName(attachment, attachment.shardIndex),
     ).fetch(new Request('https://internal.test/api/ws/app', { headers }))
 }
@@ -275,7 +275,7 @@ describe('WebSocket Endpoint', () => {
                 stream: 'APP',
                 surface: 'public',
             }
-            const brokerStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const brokerStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const deliveredFrames: Array<{
@@ -430,7 +430,7 @@ describe('WebSocket Endpoint', () => {
                 scope: unknown
                 serializedFrame: string
             }> = []
-            const brokerStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const brokerStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const outcome = await runInDurableObject(
@@ -526,7 +526,7 @@ describe('WebSocket Endpoint', () => {
                 stream: 'APP',
                 surface: 'public',
             }
-            const stub = env.HYPERIONPUB_DO_WSB.getByName(
+            const stub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const results = await runInDurableObject(stub, async (instance) => {
@@ -589,7 +589,7 @@ describe('WebSocket Endpoint', () => {
                 stream: 'APP',
                 surface: 'public',
             }
-            const stub = env.HYPERIONPUB_DO_WSB.getByName(
+            const stub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const outcome = await runInDurableObject(
@@ -705,7 +705,7 @@ describe('WebSocket Endpoint', () => {
                 stream: 'APP',
                 surface: 'public',
             }
-            const rateStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const rateStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(rateScope),
             )
             const rateResults = await runInDurableObject(
@@ -760,7 +760,7 @@ describe('WebSocket Endpoint', () => {
                 ...rateScope,
                 organizationId: `${TEST_ORGANIZATION_ID}RealtimeOversize`,
             }
-            const sequenceStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const sequenceStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(sequenceScope),
             )
             const deliveredFrames: string[] = []
@@ -866,7 +866,7 @@ describe('WebSocket Endpoint', () => {
                 surface: 'public',
                 storageVersion: 1,
             }
-            const sequenceStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const sequenceStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(sequenceScope),
             )
             const sequenceResult = await runInDurableObject(
@@ -907,7 +907,7 @@ describe('WebSocket Endpoint', () => {
                 ...sequenceScope,
                 organizationId: `${TEST_ORGANIZATION_ID}InvalidScope`,
             }
-            const scopeStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const scopeStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const scopeResult = await runInDurableObject(
@@ -955,7 +955,7 @@ describe('WebSocket Endpoint', () => {
                 ...sequenceScope,
                 organizationId: `${TEST_ORGANIZATION_ID}InvalidRpcResult`,
             }
-            const malformedResultStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const malformedResultStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(malformedResultScope),
             )
             const malformedResult = await runInDurableObject(
@@ -993,7 +993,7 @@ describe('WebSocket Endpoint', () => {
                 ...sequenceScope,
                 organizationId: `${TEST_ORGANIZATION_ID}InvalidBucket`,
             }
-            const bucketStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const bucketStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(bucketScope),
             )
             const bucketResult = await runInDurableObject(
@@ -1035,7 +1035,7 @@ describe('WebSocket Endpoint', () => {
                 ...sequenceScope,
                 organizationId: `${TEST_ORGANIZATION_ID}InvalidRevocation`,
             }
-            const revocationStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const revocationStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(revocationScope),
             )
             const corruptRevocation = { invalid: true }
@@ -1114,7 +1114,7 @@ describe('WebSocket Endpoint', () => {
                 scope,
                 connectionId,
             )[0]
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(scope, shardIndex),
             )
 
@@ -1178,7 +1178,7 @@ describe('WebSocket Endpoint', () => {
                 sessionExpiresAt: Date.now() + 60_000,
                 target: null,
             }
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(scope, scope.shardIndex),
             )
             const outcome = await runInDurableObject(
@@ -1237,7 +1237,7 @@ describe('WebSocket Endpoint', () => {
             const socket = response.webSocket as WebSocket
             socket.accept()
             const close = waitForClose(socket)
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(scope, attachment.shardIndex),
             )
 
@@ -1311,7 +1311,7 @@ describe('WebSocket Endpoint', () => {
                 shardIndex: 11,
                 topology: 'leaf' as const,
             }
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(scope, leafScope.shardIndex),
             )
 
@@ -1411,7 +1411,7 @@ describe('WebSocket Endpoint', () => {
                 surface: 'public',
                 topology: 'leaf',
             }
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(scope, scope.shardIndex),
             )
 
@@ -1684,7 +1684,7 @@ describe('WebSocket Endpoint', () => {
                 unexpectedInputProperty: true,
             }
             const originalInput = structuredClone(rawInput)
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(scope, scope.shardIndex),
             )
             const result = await stub.applyRealtimeRevocation(
@@ -1754,7 +1754,7 @@ describe('WebSocket Endpoint', () => {
             revokedSocket.accept()
             replacementSocket.accept()
             const revokedClose = waitForClose(revokedSocket)
-            const stub = env.HYPERIONPUB_DO_WSS.getByName(
+            const stub = env.LOANMSPUB_DO_WSS.getByName(
                 createRealtimeLeafObjectName(brokerScope, shardIndex),
             )
 
@@ -1809,7 +1809,7 @@ describe('WebSocket Endpoint', () => {
                 stream: 'APP',
                 surface: 'public',
             }
-            const brokerStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const brokerStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const attempts = Array.from({ length: WS_LEAF_COUNT }, () => 0)
@@ -1936,7 +1936,7 @@ describe('WebSocket Endpoint', () => {
                 stream: 'APP',
                 surface: 'public',
             }
-            const brokerStub = env.HYPERIONPUB_DO_WSB.getByName(
+            const brokerStub = env.LOANMSPUB_DO_WSB.getByName(
                 createRealtimeBrokerObjectName(scope),
             )
             const operationId = '0198ef86-e6ab-7da4-98d3-57e3101779f8'
@@ -1977,7 +1977,7 @@ describe('WebSocket Endpoint', () => {
 
         it('recovers due rows and suppresses retries until their backoff expires.', async () => {
             const operationId = '0198ef86-e6ab-7da4-98d3-57e3101779e9'
-            const db = dbClient(env.HYPERIONPUB_D1)
+            const db = dbClient(env.LOANMSPUB_D1)
             let brokerCallCount = 0
             let shouldAccept = false
             const namespace = {
@@ -2001,7 +2001,7 @@ describe('WebSocket Endpoint', () => {
                               }
                     },
                 }),
-            } as unknown as typeof env.HYPERIONPUB_DO_WSB
+            } as unknown as typeof env.LOANMSPUB_DO_WSB
 
             try {
                 await db.insert(dbSchema.websocketRevocationOperation).values({

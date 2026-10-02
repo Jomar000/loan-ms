@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import { DrawerShell } from '@hyperion/ui/shared/drawer-shell'
-    import { DrawerWorkspace } from '@hyperion/ui/shared/drawer-workspace'
-    import { FormDialogShell } from '@hyperion/ui/shared/form-dialog-shell'
-    import { FormFieldLabel } from '@hyperion/ui/shared/form-field-label'
+    import { Button } from '@loanms/ui/components/button'
+    import { DrawerShell } from '@loanms/ui/shared/drawer-shell'
+    import { DrawerWorkspace } from '@loanms/ui/shared/drawer-workspace'
+    import { FormDialogShell } from '@loanms/ui/shared/form-dialog-shell'
+    import { FormFieldLabel } from '@loanms/ui/shared/form-field-label'
 
     ////////////////////
     // 01. Properties //

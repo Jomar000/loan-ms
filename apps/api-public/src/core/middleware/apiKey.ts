@@ -1,9 +1,9 @@
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import {
     API_KEY_AUDIENCE_ROOT_PERMISSIONS,
     type TApiKeyAudience,
     type TApiKeyPermissionRecord,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { and, eq } from 'drizzle-orm'
 import type { Context } from 'hono'
 import { createMiddleware } from 'hono/factory'

@@ -30,7 +30,7 @@ describe('Backoffice realtime configuration', () => {
         ).toThrow(/remote broker capability/)
         expect(() =>
             validateBackofficeRealtimeConfiguration(
-                { HYPERIONBOFC_DO_WSB_REMOTE_PUB: {} },
+                { LOANMSBOFC_DO_WSB_REMOTE_PUB: {} },
                 {
                     direction: 'backoffice-to-public',
                     kind: 'shared-auth-events',
@@ -40,8 +40,8 @@ describe('Backoffice realtime configuration', () => {
         expect(() =>
             validateBackofficeRealtimeConfiguration(
                 {
-                    HYPERIONBOFC_DO_WSB_REMOTE_PUB: {},
-                    HYPERIONBOFC_REALTIME_PUBLISHER_PUB: {},
+                    LOANMSBOFC_DO_WSB_REMOTE_PUB: {},
+                    LOANMSBOFC_REALTIME_PUBLISHER_PUB: {},
                 },
                 {
                     direction: 'backoffice-to-public',
@@ -76,8 +76,8 @@ describe('Backoffice realtime configuration', () => {
         expect(() =>
             validateBackofficeRealtimeStartupConfiguration(
                 {
-                    HYPERIONBOFC_DO_WSB_REMOTE_PUB: {},
-                    HYPERIONBOFC_REALTIME_PUBLISHER_PUB: {},
+                    LOANMSBOFC_DO_WSB_REMOTE_PUB: {},
+                    LOANMSBOFC_REALTIME_PUBLISHER_PUB: {},
                     STATUS: 'up',
                 },
                 linkedProfile,

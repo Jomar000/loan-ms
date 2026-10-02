@@ -1,9 +1,9 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import type {
     TApiResponseCursorPaginatedOk,
     TApiResponseError,
     TApiResponseOk,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, count, eq, inArray, like, sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -129,7 +129,7 @@ const markRead = (notificationPublicIds: string[], cookie = ownerCookie) =>
     })
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONPUB_D1)
+    db = dbClient(env.LOANMSPUB_D1)
     ;[
         ownerCookie,
         ,
@@ -595,8 +595,8 @@ describe('User Notification Endpoint', () => {
     it('marks the 200-notification contract maximum in one atomic D1 batch.', async () => {
         const publicIds = Array.from({ length: 200 }, () => crypto.randomUUID())
         const encodedIds = JSON.stringify(publicIds)
-        await env.HYPERIONPUB_D1.batch([
-            env.HYPERIONPUB_D1.prepare(
+        await env.LOANMSPUB_D1.batch([
+            env.LOANMSPUB_D1.prepare(
                 `INSERT INTO notification_event (organization_id, public_id, event_key, content_fingerprint, category, title, message)
                  SELECT ?, value, ? || key, ? || key, 'system', 'Batch test', 'Batch test'
                  FROM json_each(?)`,
@@ -606,7 +606,7 @@ describe('User Notification Endpoint', () => {
                 `${TEST_EVENT_PREFIX}max-fingerprint-`,
                 encodedIds,
             ),
-            env.HYPERIONPUB_D1.prepare(
+            env.LOANMSPUB_D1.prepare(
                 `INSERT INTO notification_delivery (organization_id, notification_event_id, user_id)
                  SELECT organization_id, id, ? FROM notification_event
                  WHERE organization_id = ? AND public_id IN (SELECT value FROM json_each(?))`,

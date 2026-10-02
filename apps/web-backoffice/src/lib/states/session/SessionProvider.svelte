@@ -2,7 +2,7 @@
     import {
         createAppRealtimeLifecycle,
         type TRealtimeServerFrame,
-    } from '@hyperion/websocket/client'
+    } from '@loanms/websocket/client'
     import { useQueryClient } from '@tanstack/svelte-query'
     import { onMount, type Snippet } from 'svelte'
 

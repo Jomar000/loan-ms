@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/web-backoffice",
+    "name": "@loanms/web-backoffice",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion Backoffice Web UI Component",
+    "description": "LoanMS Backoffice Web UI Component",
     "type": "module",
     "private": true,
     "license": "ISC",
@@ -27,11 +27,11 @@
         "test:e2e": "vite build --mode=test && playwright test"
     },
     "devDependencies": {
-        "@hyperion/api-backoffice": "workspace:*",
-        "@hyperion/types": "workspace:*",
-        "@hyperion/ui": "workspace:*",
-        "@hyperion/validator": "workspace:*",
-        "@hyperion/websocket": "workspace:*",
+        "@loanms/api-backoffice": "workspace:*",
+        "@loanms/types": "workspace:*",
+        "@loanms/ui": "workspace:*",
+        "@loanms/validator": "workspace:*",
+        "@loanms/websocket": "workspace:*",
         "@lucide/svelte": "catalog:",
         "@playwright/test": "catalog:",
         "@sveltejs/adapter-static": "catalog:",

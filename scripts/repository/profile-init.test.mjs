@@ -47,11 +47,11 @@ const overlappingArguments = [
     '--author',
     `${templateDisplayName} Labs`,
     '--scope',
-    '@hyperion-labs',
+    '@loanms-labs',
     '--binding-prefix',
     'ACME_PORTAL',
     '--domain',
-    'hyperion-labs.example',
+    'loanms-labs.example',
 ]
 
 const punctuatedDisplayName = `O'Reilly "Portal" \\ $BRAND`
@@ -123,7 +123,7 @@ function git(root, ...arguments_) {
 }
 
 function createFixture() {
-    const root = mkdtempSync(join(tmpdir(), 'hyperion-template-'))
+    const root = mkdtempSync(join(tmpdir(), 'loanms-template-'))
     git(root, 'init', '--quiet')
     git(root, 'config', 'user.email', 'template-test@example.com')
     git(root, 'config', 'user.name', 'Template Test')
@@ -153,9 +153,9 @@ function createFixture() {
         join(root, 'package.json'),
         `${JSON.stringify({
             author: templateAuthor,
-            dependencies: { '@hyperion/types': 'workspace:*' },
+            dependencies: { '@loanms/types': 'workspace:*' },
             description: templateDisplayName,
-            name: 'hyperion',
+            name: 'loanms',
         })}\n`,
     )
     writeFileSync(
@@ -163,11 +163,11 @@ function createFixture() {
         `${JSON.stringify(
             {
                 author: templateAuthor,
-                bindingPrefix: 'HYPERION',
+                bindingPrefix: 'LOANMS',
                 displayName: templateDisplayName,
-                domain: 'hyperion.example',
-                scope: '@hyperion',
-                slug: 'hyperion',
+                domain: 'loanms.example',
+                scope: '@loanms',
+                slug: 'loanms',
             },
             null,
             4,
@@ -196,9 +196,9 @@ function createFixture() {
     writeFileSync(
         join(root, 'wrangler.toml'),
         [
-            'name = "hyperion-api"',
-            'BINDING = "HYPERION_BUCKET"',
-            'URL = "https://api.hyperion.example"',
+            'name = "loanms-api"',
+            'BINDING = "LOANMS_BUCKET"',
+            'URL = "https://api.loanms.example"',
             '',
         ].join('\n'),
     )
@@ -206,7 +206,7 @@ function createFixture() {
         join(root, 'apps/web-public/src/lib/TemplateComponent.svelte'),
         [
             '<script lang="ts">',
-            "    import { Button } from '@hyperion/ui/components/button'",
+            "    import { Button } from '@loanms/ui/components/button'",
             '',
             "    import { PUBLIC_NAME } from '$env/static/public'",
             '</script>',
@@ -217,7 +217,7 @@ function createFixture() {
         ].join('\n'),
     )
     for (const [source] of localConfigurationCopies) {
-        let content = 'LOCAL_PLACEHOLDER="HYPERION_LOCAL"\n'
+        let content = 'LOCAL_PLACEHOLDER="LOANMS_LOCAL"\n'
         if (source.endsWith('/.env.example')) {
             content = `PUBLIC_NAME="${templateDisplayName}"\n`
         }
@@ -497,7 +497,7 @@ test('write applies identity and refuses a second initialization', (context) => 
             destinationContent,
             readFileSync(join(root, source), 'utf8'),
         )
-        assert.doesNotMatch(destinationContent, /Hyperion|HYPERION|hyperion/u)
+        assert.doesNotMatch(destinationContent, /LoanMS|LOANMS|loanms/u)
     }
     assert.equal(existsSync(join(root, '.template-initialized.json')), true)
     const marker = JSON.parse(
@@ -588,10 +588,10 @@ test('preserves replacement values that contain template identities', (context) 
 
     assert.equal(packageManifest.author, `${templateDisplayName} Labs`)
     assert.equal(
-        packageManifest.dependencies['@hyperion-labs/types'],
+        packageManifest.dependencies['@loanms-labs/types'],
         'workspace:*',
     )
-    assert.match(wrangler, /https:\/\/api\.hyperion-labs\.example/u)
+    assert.match(wrangler, /https:\/\/api\.loanms-labs\.example/u)
     assert.doesNotMatch(wrangler, /api\.acme-portal-labs\.example/u)
 })
 

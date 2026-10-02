@@ -69,7 +69,7 @@
 @component
 Use `YouTube` for a responsive YouTube player with an optional
 thumbnail-first loading experience. Import it from
-`@hyperion/ui/shared/video`.
+`@loanms/ui/shared/video`.
 
 Provide a supported YouTube `url` and an accessible iframe `title`. By default,
 the component displays a thumbnail and play button before creating an autoplaying
@@ -81,7 +81,7 @@ full-screen support, and an accessible play target.
 
 ```svelte
 <script lang="ts">
-    import { YouTube } from '@hyperion/ui/shared/video'
+    import { YouTube } from '@loanms/ui/shared/video'
 </script>
 
 <YouTube

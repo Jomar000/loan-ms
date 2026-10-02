@@ -1,4 +1,4 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import { env } from 'cloudflare:workers'
 import { and, count, eq, isNull, like, sql } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -106,7 +106,7 @@ async function credentialFingerprint(input: {
 }
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
     ;[
         ownerCookie,
         memberCookie,
@@ -570,7 +570,7 @@ describe('Service principal management', () => {
             name: `${TEST_NAME_PREFIX}AUDIT-ROLLBACK-CREDENTIAL`,
             principalPublicId: principal.json.data.publicId,
         }
-        await env.HYPERIONBOFC_D1.prepare(
+        await env.LOANMSBOFC_D1.prepare(
             `CREATE TRIGGER test_credential_audit_failure
              BEFORE INSERT ON audit_trail
              WHEN NEW.component = 'admin.servicePrincipal'
@@ -611,7 +611,7 @@ describe('Service principal management', () => {
             )
             expect(replay.status).toBe(409)
         } finally {
-            await env.HYPERIONBOFC_D1.exec(
+            await env.LOANMSBOFC_D1.exec(
                 'DROP TRIGGER IF EXISTS test_credential_audit_failure',
             )
         }

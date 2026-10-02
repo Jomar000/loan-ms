@@ -1,5 +1,5 @@
-import { AppError } from '@hyperion/errors'
-import type { TAuditEntityType } from '@hyperion/validator/backoffice/auditTrail'
+import { AppError } from '@loanms/errors'
+import type { TAuditEntityType } from '@loanms/validator/backoffice/auditTrail'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { TAuditSnapshotPolicy } from '../../../src/services/auditTrail/snapshotPolicy.js'

@@ -2,7 +2,7 @@ import {
     API_KEY_AUDIENCE_ROOT_PERMISSIONS,
     type TApiKeyAudience,
     type TApiKeyPermissionRecord,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { createMutation, createQuery } from '@tanstack/svelte-query'
 
 import { adminClient } from '$lib/clients'

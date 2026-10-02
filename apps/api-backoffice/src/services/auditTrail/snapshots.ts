@@ -2,12 +2,12 @@ import type {
     TAuditJsonValue,
     TAuditRecord,
     TAuditSnapshot,
-} from '@hyperion/database/d1'
-import { AppError, catalog } from '@hyperion/errors'
+} from '@loanms/database/d1'
+import { AppError, catalog } from '@loanms/errors'
 import {
     auditTrailEntityTypes,
     auditTrailEntityTypeSchema,
-} from '@hyperion/validator/backoffice/auditTrail'
+} from '@loanms/validator/backoffice/auditTrail'
 import type { z } from 'zod'
 
 import {

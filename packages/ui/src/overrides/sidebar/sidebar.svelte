@@ -29,8 +29,8 @@ Project-owned replacement for shadcn-svelte Vega's Sidebar.Root.
 Upstream target: the `sidebar/sidebar.svelte` registry primitive.
 Defect: the generated mobile Sidebar imports the generated Sheet directly, bypassing the qualified Sheet override, so the panel retains selectors that do not match Bits UI's state attributes and its entrance and exit animations do not run.
 Composition limitation: the Sheet dependency is internal to Sidebar.Root and cannot be replaced through props or call-site composition.
-Intentional divergence: only the internal mobile Sheet import points to `@hyperion/ui/overrides/sheet`; props, snippets, events, context, desktop behavior, layout, styling, and exports otherwise mirror upstream.
-Retirement condition: remove this replacement after shadcn-svelte's generated Sheet uses Bits UI-compatible state selectors and the generated Sidebar consumes that corrected Sheet, then migrate consumers back to `@hyperion/ui/components/sidebar`.
+Intentional divergence: only the internal mobile Sheet import points to `@loanms/ui/overrides/sheet`; props, snippets, events, context, desktop behavior, layout, styling, and exports otherwise mirror upstream.
+Retirement condition: remove this replacement after shadcn-svelte's generated Sheet uses Bits UI-compatible state selectors and the generated Sidebar consumes that corrected Sheet, then migrate consumers back to `@loanms/ui/components/sidebar`.
 
 Upstream references:
 - https://shadcn-svelte.com/docs/components/sidebar

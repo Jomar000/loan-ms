@@ -41,7 +41,7 @@
 @component
 Use `FormFieldLabel` whenever a field needs required state, visible Optional
 text, or contextual help. Import it from
-`@hyperion/ui/shared/form-field-label` and place it in the field-label row.
+`@loanms/ui/shared/form-field-label` and place it in the field-label row.
 
 `for` labels the matching control. When `helpDescription` is present, the
 control's `aria-describedby` must match `helpDescriptionId`, or `${for}-help`
@@ -54,8 +54,8 @@ persistent description plus tooltip/popover behavior.
 
 ```svelte
 <script lang="ts">
-    import { Input } from '@hyperion/ui/components/input'
-    import { FormFieldLabel } from '@hyperion/ui/shared/form-field-label'
+    import { Input } from '@loanms/ui/components/input'
+    import { FormFieldLabel } from '@loanms/ui/shared/form-field-label'
 </script>
 
 <FormFieldLabel

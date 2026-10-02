@@ -1,4 +1,4 @@
-import { serializeError } from '@hyperion/errors'
+import { serializeError } from '@loanms/errors'
 import type { Context } from 'hono'
 import { z } from 'zod'
 

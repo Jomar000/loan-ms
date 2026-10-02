@@ -1,8 +1,8 @@
 {
-    "name": "hyperion",
+    "name": "loanms",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion",
+    "description": "LoanMS",
     "type": "module",
     "private": true,
     "license": "ISC",

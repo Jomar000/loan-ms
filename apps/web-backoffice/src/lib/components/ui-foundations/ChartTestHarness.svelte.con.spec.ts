@@ -2,7 +2,7 @@ import type {
     ChartConfiguration,
     ChartType,
     Plugin,
-} from '@hyperion/ui/shared/chart'
+} from '@loanms/ui/shared/chart'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 import { page, userEvent } from 'vitest/browser'

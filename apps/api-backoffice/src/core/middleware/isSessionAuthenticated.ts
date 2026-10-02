@@ -1,4 +1,4 @@
-import { catalog } from '@hyperion/errors'
+import { catalog } from '@loanms/errors'
 import { and, eq, sql } from 'drizzle-orm'
 import { createMiddleware } from 'hono/factory'
 

@@ -61,7 +61,7 @@
 @component
 Use `DrawerWorkspace` inside `DrawerShell size="workspace"` when a record needs
 a persistent summary plus related lists or sections. Import it from
-`@hyperion/ui/shared/drawer-workspace`.
+`@loanms/ui/shared/drawer-workspace`.
 
 Render the record overview through the `summary` snippet and provide tab objects
 with stable `id`, `label`, optional `count`, and snippet-based `content`. Bind
@@ -73,7 +73,7 @@ content scroll independently while the tab rail remains fixed.
 
 ```svelte
 <script lang="ts">
-    import { DrawerWorkspace } from '@hyperion/ui/shared/drawer-workspace'
+    import { DrawerWorkspace } from '@loanms/ui/shared/drawer-workspace'
 
     let activeTab = $state('orders')
 </script>

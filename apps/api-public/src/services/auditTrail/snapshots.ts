@@ -1,6 +1,6 @@
-import type { TAuditJsonValue, TAuditRecord } from '@hyperion/database/d1'
-import { AppError, catalog } from '@hyperion/errors'
-import { auditTrailEntityTypeSchema } from '@hyperion/validator/backoffice/auditTrail'
+import type { TAuditJsonValue, TAuditRecord } from '@loanms/database/d1'
+import { AppError, catalog } from '@loanms/errors'
+import { auditTrailEntityTypeSchema } from '@loanms/validator/backoffice/auditTrail'
 import type { z } from 'zod'
 
 type TAuditEntityType = z.output<typeof auditTrailEntityTypeSchema>

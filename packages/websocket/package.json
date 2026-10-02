@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/websocket",
+    "name": "@loanms/websocket",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion WebSocket Component",
+    "description": "LoanMS WebSocket Component",
     "type": "module",
     "private": true,
     "license": "ISC",
@@ -20,9 +20,9 @@
         "test:con": "vitest run --no-color"
     },
     "dependencies": {
-        "@hyperion/errors": "workspace:*",
-        "@hyperion/types": "workspace:*",
-        "@hyperion/validator": "workspace:*",
+        "@loanms/errors": "workspace:*",
+        "@loanms/types": "workspace:*",
+        "@loanms/validator": "workspace:*",
         "zod": "catalog:"
     },
     "devDependencies": {

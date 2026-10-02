@@ -10,7 +10,7 @@ import { isDeepStrictEqual } from 'node:util'
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const defaultPolicyPath = resolve(scriptDirectory, 'security-headers.json')
 const apiBaseUrl = 'https://api.cloudflare.com/client/v4'
-const ownedRulePrefix = 'hyperion_security_headers_'
+const ownedRulePrefix = 'loanms_security_headers_'
 
 const usage = `Usage:
   configure-security-headers [--apply --acknowledge-zone-wide-disable] \\

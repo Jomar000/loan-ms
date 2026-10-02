@@ -1,4 +1,4 @@
-import { AppError, BaseError, catalog } from '@hyperion/errors'
+import { AppError, BaseError, catalog } from '@loanms/errors'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import { afterEach, describe, expect, it, vi } from 'vitest'

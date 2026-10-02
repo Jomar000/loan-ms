@@ -1,4 +1,4 @@
-import { catalog } from '@hyperion/errors'
+import { catalog } from '@loanms/errors'
 import { createMiddleware } from 'hono/factory'
 
 import { isObjectStorageFeatureEnabled } from '../../config/objectStorage.js'

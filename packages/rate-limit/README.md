@@ -1,6 +1,6 @@
-# `@hyperion/rate-limit`
+# `@loanms/rate-limit`
 
-`@hyperion/rate-limit` is Hyperion's reusable exact rate-limit coordination
+`@loanms/rate-limit` is LoanMS's reusable exact rate-limit coordination
 package for Cloudflare Workers. It provides structured logical keys,
 privacy-preserving HMAC routing, typed Durable Object RPC, an exact
 sliding-window reservation ledger, and a SQLite-backed Durable Object base
@@ -49,7 +49,7 @@ responsibilities.
 | `TRateLimitPolicy.windowMs`    | Lifetime of each accepted reservation in milliseconds              | Change only through the owning application's reviewed policy definition | Produces a distinct HMAC target because the window is part of the canonical tuple         |
 
 `RATE_LIMIT_TRANSPORT_VERSION` is exported from
-`@hyperion/rate-limit/transport`. Policy versions are values in application
+`@loanms/rate-limit/transport`. Policy versions are values in application
 policy definitions rather than a package-wide constant.
 
 ## Architectural principles
@@ -153,7 +153,7 @@ tenant identifiers, and action-specific tuple ordering.
 Use `defineRateLimitPolicy` to validate and preserve a literal policy type:
 
 ```ts
-import { defineRateLimitPolicy } from '@hyperion/rate-limit/policy'
+import { defineRateLimitPolicy } from '@loanms/rate-limit/policy'
 
 export const signInIdentityPolicy = defineRateLimitPolicy({
     algorithm: 'sliding-window',
@@ -231,10 +231,10 @@ Create one request-scoped or application-scoped client from a namespace and
 secret:
 
 ```ts
-import { createRateLimiter } from '@hyperion/rate-limit/client'
+import { createRateLimiter } from '@loanms/rate-limit/client'
 
 const limiter = createRateLimiter({
-    namespace: env.HYPERIONPUB_DO_RL,
+    namespace: env.LOANMSPUB_DO_RL,
     secret: env.CF_DO_RATE_LIMIT_SECRET,
 })
 ```
@@ -406,7 +406,7 @@ failure logs, request correlation, metrics aggregation, and alerting.
 
 ## Package boundaries
 
-`@hyperion/rate-limit` depends only on the Worker-safe `@hyperion/errors`
+`@loanms/rate-limit` depends only on the Worker-safe `@loanms/errors`
 package. Worker-facing modules otherwise use Web Crypto and Cloudflare Durable
 Object APIs without Node-only APIs or direct environment access.
 
@@ -418,7 +418,7 @@ Object APIs without Node-only APIs or direct environment access.
 | Better Auth        | Authentication behavior invoked after application-owned throttling permits the reviewed request                   |
 
 The package is not a Better Auth `rateLimit.customStorage.consume` adapter.
-Hyperion keeps Better Auth's generic limiter disabled and applies reviewed
+LoanMS keeps Better Auth's generic limiter disabled and applies reviewed
 application-level policies around selected server-side authentication flows.
 Plugin-defined or default Better Auth rate-limit rules do not automatically
 flow through this package.
@@ -427,12 +427,12 @@ flow through this package.
 
 The package exposes behavior-focused subpaths:
 
-| Subpath                          | Purpose                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| `@hyperion/rate-limit/client`    | Namespace client, single/multi-key operations, errors, and public result types |
-| `@hyperion/rate-limit/policy`    | Policy contract, validation, and `defineRateLimitPolicy`                       |
-| `@hyperion/rate-limit/server`    | SQLite Durable Object base class and typed RPC request/response contracts      |
-| `@hyperion/rate-limit/transport` | Structured key validation, transport version, and HMAC target derivation       |
+| Subpath                        | Purpose                                                                        |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| `@loanms/rate-limit/client`    | Namespace client, single/multi-key operations, errors, and public result types |
+| `@loanms/rate-limit/policy`    | Policy contract, validation, and `defineRateLimitPolicy`                       |
+| `@loanms/rate-limit/server`    | SQLite Durable Object base class and typed RPC request/response contracts      |
+| `@loanms/rate-limit/transport` | Structured key validation, transport version, and HMAC target derivation       |
 
 Internal `errors.ts` and `types.ts` modules are not package subpaths. Their
 established public symbols are re-exported through the client or server
@@ -443,7 +443,7 @@ subpaths.
 Each owning API application exports a thin concrete class:
 
 ```ts
-import { RateLimitBase } from '@hyperion/rate-limit/server'
+import { RateLimitBase } from '@loanms/rate-limit/server'
 
 import type { THonoBindings } from '../../types.js'
 
@@ -458,7 +458,7 @@ type = "durable-object"
 storage = "sqlite"
 
 [[durable_objects.bindings]]
-name = "HYPERIONPUB_DO_RL"
+name = "LOANMSPUB_DO_RL"
 class_name = "RateLimit"
 ```
 
@@ -477,10 +477,10 @@ contains no surface name or binding-name dependency.
 Run package commands from the repository root:
 
 ```bash
-pnpm --filter=@hyperion/rate-limit check
-pnpm --filter=@hyperion/rate-limit lint
-pnpm --filter=@hyperion/rate-limit test:con
-pnpm --filter=@hyperion/rate-limit build
+pnpm --filter=@loanms/rate-limit check
+pnpm --filter=@loanms/rate-limit lint
+pnpm --filter=@loanms/rate-limit test:con
+pnpm --filter=@loanms/rate-limit build
 ```
 
 The package concurrency suite covers safe-integer policy bounds, HMAC

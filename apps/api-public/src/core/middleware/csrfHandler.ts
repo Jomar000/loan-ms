@@ -1,4 +1,4 @@
-import { catalog } from '@hyperion/errors'
+import { catalog } from '@loanms/errors'
 import { constantTimeEqual } from 'better-auth/crypto'
 import { getCookie, setCookie } from 'hono/cookie'
 import { createMiddleware } from 'hono/factory'

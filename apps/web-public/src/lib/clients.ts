@@ -1,8 +1,8 @@
-import type { AdminRouteType } from '@hyperion/api-public/api/admin'
-import type { AuthRouteType } from '@hyperion/api-public/api/auth'
-import type { HeartbeatRouteType } from '@hyperion/api-public/api/heartbeat'
-import type { ObjectStorageRouteType } from '@hyperion/api-public/api/objectStorage'
-import type { UserRouteType } from '@hyperion/api-public/api/user'
+import type { AdminRouteType } from '@loanms/api-public/api/admin'
+import type { AuthRouteType } from '@loanms/api-public/api/auth'
+import type { HeartbeatRouteType } from '@loanms/api-public/api/heartbeat'
+import type { ObjectStorageRouteType } from '@loanms/api-public/api/objectStorage'
+import type { UserRouteType } from '@loanms/api-public/api/user'
 import { hc } from 'hono/client'
 import ky from 'ky'
 

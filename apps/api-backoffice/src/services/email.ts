@@ -1,4 +1,4 @@
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import { Resend } from 'resend'
 
 import type { TEnabledMailerConfiguration } from '../config/mailer.js'

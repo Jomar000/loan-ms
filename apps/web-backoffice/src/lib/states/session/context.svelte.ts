@@ -1,4 +1,4 @@
-import { auth as authValidator } from '@hyperion/validator/backoffice'
+import { auth as authValidator } from '@loanms/validator/backoffice'
 import { createContext } from 'svelte'
 
 export type TSessionPhase =

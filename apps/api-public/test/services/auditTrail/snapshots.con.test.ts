@@ -1,4 +1,4 @@
-import { AppError } from '@hyperion/errors'
+import { AppError } from '@loanms/errors'
 import { describe, expect, it, vi } from 'vitest'
 
 import { projectAuditRecord } from '../../../src/services/auditTrail/snapshots.js'

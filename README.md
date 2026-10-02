@@ -1,6 +1,6 @@
-# Hyperion
+# LoanMS
 
-Hyperion is the source full-stack template for independently owned public and
+LoanMS is the source full-stack template for independently owned public and
 backoffice surfaces. It combines static/SPA SvelteKit frontends, Cloudflare
 Worker APIs, Cloudflare D1 persistence, shared contracts, authentication, and
 realtime infrastructure without forcing the two product surfaces into another
@@ -76,7 +76,7 @@ providers for their environment.
    app's `.env`. The initializer creates missing ignored files from their
    committed examples; source-template contributors who do not initialize must
    copy the matching examples manually.
-3. Run `pnpm --filter=@hyperion/database migrate:dev`.
+3. Run `pnpm --filter=@loanms/database migrate:dev`.
 4. Start all declared development processes with `pnpm dev`. When this
    repository is opened in VS Code, the committed tasks automatically launch
    the seven development terminals through Bash; stop any terminal you do not
@@ -112,12 +112,12 @@ Secret, live-binding, and deployment commands require explicit approval.
 Use narrow workspace commands during development:
 
 ```bash
-pnpm --filter=@hyperion/errors check
-pnpm --filter=@hyperion/types check
-pnpm --filter=@hyperion/database build
-pnpm --filter=@hyperion/api-public check
-pnpm --filter=@hyperion/web-public lint
-pnpm --filter=@hyperion/ui build
+pnpm --filter=@loanms/errors check
+pnpm --filter=@loanms/types check
+pnpm --filter=@loanms/database build
+pnpm --filter=@loanms/api-public check
+pnpm --filter=@loanms/web-public lint
+pnpm --filter=@loanms/ui build
 ```
 
 Root `check` and `build` run the corresponding declared workspace scripts. Root
@@ -132,8 +132,8 @@ Regenerate committed Worker binding types explicitly after changing Wrangler
 bindings:
 
 ```bash
-pnpm --filter=@hyperion/api-public types:worker
-pnpm --filter=@hyperion/api-backoffice types:worker
+pnpm --filter=@loanms/api-public types:worker
+pnpm --filter=@loanms/api-backoffice types:worker
 ```
 
 ## Environment Authority
@@ -177,8 +177,8 @@ An enabled API selects exactly one provider with `MAILER_PROVIDER="resend"` or
 `MAILER_PROVIDER="cloudflare"`. There is no automatic fallback.
 `MAILER_ACCOUNT` is the sender address for the selected provider. Resend
 additionally requires `RESEND_API_KEY`; keep that secret while rollback support
-is required. Cloudflare uses `HYPERIONPUB_EMAIL` for the public API and
-`HYPERIONBOFC_EMAIL` for backoffice.
+is required. Cloudflare uses `LOANMSPUB_EMAIL` for the public API and
+`LOANMSBOFC_EMAIL` for backoffice.
 
 Cloudflare delivery to arbitrary application users requires Workers Paid
 [Email Sending](https://developers.cloudflare.com/email-service/platform/pricing/),
@@ -186,7 +186,7 @@ not Email Routing's verified-destination-only free mode. Before selecting it,
 [onboard the exact sender domain or subdomain](https://developers.cloudflare.com/email-service/configuration/subdomains/)
 and wait for Cloudflare-managed SPF, DKIM, DMARC, and bounce records to verify.
 Replace every committed `.example` sender before deployment; the reserved
-`hyperion.example` addresses are illustrative and must never be used live.
+`loanms.example` addresses are illustrative and must never be used live.
 
 When Cloudflare is selected, declare a `send_email` binding separately in every
 enabled environment because named environments do not inherit binding arrays.

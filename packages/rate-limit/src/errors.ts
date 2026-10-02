@@ -1,4 +1,4 @@
-import { BaseError, type TErrorOptions } from '@hyperion/errors'
+import { BaseError, type TErrorOptions } from '@loanms/errors'
 
 export class RateLimitConfigurationError extends BaseError {
     public override readonly name = 'RateLimitConfigurationError'

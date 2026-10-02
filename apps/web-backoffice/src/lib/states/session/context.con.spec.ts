@@ -1,4 +1,4 @@
-import { auth as authValidator } from '@hyperion/validator/backoffice'
+import { auth as authValidator } from '@loanms/validator/backoffice'
 import { describe, expect, it } from 'vitest'
 
 import { SessionState } from './context.svelte.js'

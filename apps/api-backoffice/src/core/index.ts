@@ -1,5 +1,5 @@
-import { dbClient } from '@hyperion/database/d1'
-import { catalog } from '@hyperion/errors'
+import { dbClient } from '@loanms/database/d1'
+import { catalog } from '@loanms/errors'
 import { env } from 'cloudflare:workers'
 import { Hono } from 'hono'
 import { requestId } from 'hono/request-id'
@@ -62,14 +62,14 @@ const worker = Object.assign(app, {
         env: THonoInstance['Bindings'],
         executionContext: ExecutionContext,
     ) => {
-        const client = dbClient(env.HYPERIONBOFC_D1)
+        const client = dbClient(env.LOANMSBOFC_D1)
 
         const retention = runRetentionCron(client, controller.cron)
         executionContext.waitUntil(
             retention ??
                 recoverBackofficeRealtimeRevocations({
                     client,
-                    namespace: env.HYPERIONBOFC_DO_WSB,
+                    namespace: env.LOANMSBOFC_DO_WSB,
                 }),
         )
     },

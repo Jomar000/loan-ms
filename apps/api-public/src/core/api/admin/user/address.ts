@@ -1,4 +1,4 @@
-import { address as addressValidator } from '@hyperion/validator/public/admin/user'
+import { address as addressValidator } from '@loanms/validator/public/admin/user'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 
@@ -10,7 +10,7 @@ import {
 import { isAuthorized } from '../../../middleware/isAuthorized.js'
 import { validateRequest } from '../../../middleware/validateRequest.js'
 
-type TDatabaseSchema = typeof import('@hyperion/database/d1').dbSchema
+type TDatabaseSchema = typeof import('@loanms/database/d1').dbSchema
 
 const addressSelection = (userAddress: TDatabaseSchema['userAddress']) => ({
     publicId: userAddress.publicId,

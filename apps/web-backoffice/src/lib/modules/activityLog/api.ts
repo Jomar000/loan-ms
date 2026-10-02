@@ -1,4 +1,4 @@
-import * as auditTrailValidator from '@hyperion/validator/backoffice/auditTrail'
+import * as auditTrailValidator from '@loanms/validator/backoffice/auditTrail'
 
 import { auditTrailClient } from '$lib/clients'
 import type {

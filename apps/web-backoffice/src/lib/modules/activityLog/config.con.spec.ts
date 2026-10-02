@@ -1,4 +1,4 @@
-import { auditTrailGroups } from '@hyperion/validator/backoffice/auditTrail'
+import { auditTrailGroups } from '@loanms/validator/backoffice/auditTrail'
 import { describe, expect, it } from 'vitest'
 
 import { ACTIVITY_LOG_STAT_CARDS } from './config'

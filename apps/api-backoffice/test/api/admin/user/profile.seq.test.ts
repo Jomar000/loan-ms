@@ -1,9 +1,9 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import type {
     TApiResponseError,
     TApiResponseOk,
     TApiResponsePaginatedOk,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { asc, count as countFn, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -61,7 +61,7 @@ const profileUpdatePayload = {
 let db: ReturnType<typeof dbClient>
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
     ;[
         privilegedCookie,
         standardCookie,

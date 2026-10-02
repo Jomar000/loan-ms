@@ -1,4 +1,4 @@
-name = "hyperion-api-public"
+name = "loanms-api-public"
 main = "src/core/index.ts"
 compatibility_date = "2026-09-25"
 compatibility_flags = ['nodejs_compat']
@@ -69,8 +69,8 @@ route = { zone_name = "", pattern = "" }
 [env.staging.vars]
 ENVIRONMENT = "staging"
 STATUS = "up"
-CF_R2_BUCKET_PRIVATE = "hyperion-staging-prv"
-CF_R2_BUCKET_PUBLIC = "hyperion-staging-pub"
+CF_R2_BUCKET_PRIVATE = "loanms-staging-prv"
+CF_R2_BUCKET_PUBLIC = "loanms-staging-pub"
 CF_R2_BUCKET_PUBLIC_URL = ""
 CF_R2_PRESIGN_EXPIRY = 300 # 5 minutes (seconds)
 CF_TURNSTILE_BYPASS = 1 # (0|1)
@@ -86,40 +86,40 @@ FEATURE_API_KEY = 0
 FEATURE_MAIL = 0 # Set to 1 only after configuring one mail provider below.
 FEATURE_OBJECT_STORAGE = 0 # Configure R2 variables and secrets before enabling.
 # Required only when FEATURE_MAIL = 1. Replace the illustrative sender.
-# MAILER_ACCOUNT = "no-reply@mail.staging.hyperion.example"
+# MAILER_ACCOUNT = "no-reply@mail.staging.loanms.example"
 # MAILER_PROVIDER = "resend"
 SESSION_EXPIRATION = 604800 # 7 days (seconds)
 SESSION_UPDATE_AGE = 86400 # 1 day (seconds)
-URL_BACKEND = "https://api-public.staging.hyperion.example"
-URL_FRONTEND = "https://www.staging.hyperion.example"
+URL_BACKEND = "https://api-public.staging.loanms.example"
+URL_FRONTEND = "https://www.staging.loanms.example"
 
 # Cloudflare only: onboard the exact sender subdomain, verify its managed DNS
 # records, and uncomment this environment-specific binding before enabling mail.
 # [[env.staging.send_email]]
-# name = "HYPERIONPUB_EMAIL"
-# allowed_sender_addresses = ["no-reply@mail.staging.hyperion.example"]
+# name = "LOANMSPUB_EMAIL"
+# allowed_sender_addresses = ["no-reply@mail.staging.loanms.example"]
 
 [[env.staging.kv_namespaces]]
-binding = "HYPERIONPUB_KV"
+binding = "LOANMSPUB_KV"
 id = "00000000000000000000000000000002"
 
 [[env.staging.d1_databases]]
-binding = "HYPERIONPUB_D1"
-database_name = "hyperion-staging"
+binding = "LOANMSPUB_D1"
+database_name = "loanms-staging"
 database_id = "00000000-0000-0000-0000-000000000002"
 migrations_dir = "../../packages/database/src/d1/migrations/default"
 migrations_pattern = "../../packages/database/src/d1/migrations/default/*.sql"
 
 [[env.staging.durable_objects.bindings]]
-name = "HYPERIONPUB_DO_RL"
+name = "LOANMSPUB_DO_RL"
 class_name = "RateLimit"
 
 [[env.staging.durable_objects.bindings]]
-name = "HYPERIONPUB_DO_WSB"
+name = "LOANMSPUB_DO_WSB"
 class_name = "WebSocketBroker"
 
 [[env.staging.durable_objects.bindings]]
-name = "HYPERIONPUB_DO_WSS"
+name = "LOANMSPUB_DO_WSS"
 class_name = "WebSocketServer"
 
 ##############
@@ -135,8 +135,8 @@ route = { zone_name = "", pattern = "" }
 [env.production.vars]
 ENVIRONMENT = "production"
 STATUS = "up"
-CF_R2_BUCKET_PRIVATE = "hyperion-production-prv"
-CF_R2_BUCKET_PUBLIC = "hyperion-production-pub"
+CF_R2_BUCKET_PRIVATE = "loanms-production-prv"
+CF_R2_BUCKET_PUBLIC = "loanms-production-pub"
 CF_R2_BUCKET_PUBLIC_URL = ""
 CF_R2_PRESIGN_EXPIRY = 300 # 5 minutes (seconds)
 CF_TURNSTILE_BYPASS = 0
@@ -152,38 +152,38 @@ FEATURE_API_KEY = 0
 FEATURE_MAIL = 0 # Set to 1 only after configuring one mail provider below.
 FEATURE_OBJECT_STORAGE = 0 # Configure R2 variables and secrets before enabling.
 # Required only when FEATURE_MAIL = 1. Replace the illustrative sender.
-# MAILER_ACCOUNT = "no-reply@mail.hyperion.example"
+# MAILER_ACCOUNT = "no-reply@mail.loanms.example"
 # MAILER_PROVIDER = "resend"
 SESSION_EXPIRATION = 604800 # 7 days (seconds)
 SESSION_UPDATE_AGE = 86400 # 1 day (seconds)
-URL_BACKEND = "https://api-public.hyperion.example"
-URL_FRONTEND = "https://www.hyperion.example"
+URL_BACKEND = "https://api-public.loanms.example"
+URL_FRONTEND = "https://www.loanms.example"
 
 # Cloudflare only: onboard the exact sender subdomain, verify its managed DNS
 # records, and uncomment this environment-specific binding before enabling mail.
 # [[env.production.send_email]]
-# name = "HYPERIONPUB_EMAIL"
-# allowed_sender_addresses = ["no-reply@mail.hyperion.example"]
+# name = "LOANMSPUB_EMAIL"
+# allowed_sender_addresses = ["no-reply@mail.loanms.example"]
 
 [[env.production.kv_namespaces]]
-binding = "HYPERIONPUB_KV"
+binding = "LOANMSPUB_KV"
 id = "00000000000000000000000000000003"
 
 [[env.production.d1_databases]]
-binding = "HYPERIONPUB_D1"
-database_name = "hyperion-production"
+binding = "LOANMSPUB_D1"
+database_name = "loanms-production"
 database_id = "00000000-0000-0000-0000-000000000003"
 migrations_dir = "../../packages/database/src/d1/migrations/default"
 migrations_pattern = "../../packages/database/src/d1/migrations/default/*.sql"
 
 [[env.production.durable_objects.bindings]]
-name = "HYPERIONPUB_DO_RL"
+name = "LOANMSPUB_DO_RL"
 class_name = "RateLimit"
 
 [[env.production.durable_objects.bindings]]
-name = "HYPERIONPUB_DO_WSB"
+name = "LOANMSPUB_DO_WSB"
 class_name = "WebSocketBroker"
 
 [[env.production.durable_objects.bindings]]
-name = "HYPERIONPUB_DO_WSS"
+name = "LOANMSPUB_DO_WSS"
 class_name = "WebSocketServer"

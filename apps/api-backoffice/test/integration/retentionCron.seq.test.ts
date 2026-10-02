@@ -1,4 +1,4 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { eq, inArray } from 'drizzle-orm'
@@ -16,7 +16,7 @@ import {
     TEST_PRIMARY_ORGANIZATION_ID,
 } from '../utilities.js'
 
-const db = dbClient(env.HYPERIONBOFC_D1)
+const db = dbClient(env.LOANMSBOFC_D1)
 const recordIds = {
     expiredSession: '__TEST-retention-session-expired',
     expiredVerification: '__TEST-retention-verification-expired',

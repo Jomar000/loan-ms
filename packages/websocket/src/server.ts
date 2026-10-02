@@ -3,8 +3,8 @@
  * https://developers.cloudflare.com/durable-objects/best-practices/websockets/
  */
 
-import { serializeError } from '@hyperion/errors'
-import { refinement } from '@hyperion/validator/shared'
+import { serializeError } from '@loanms/errors'
+import { refinement } from '@loanms/validator/shared'
 import { DurableObject } from 'cloudflare:workers'
 import { z } from 'zod'
 

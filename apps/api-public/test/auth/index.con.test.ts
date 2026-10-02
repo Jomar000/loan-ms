@@ -1,4 +1,4 @@
-import { AppError } from '@hyperion/errors'
+import { AppError } from '@loanms/errors'
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -123,7 +123,7 @@ describe('Auth email client initialization', () => {
                 BETTER_AUTH_SECRET: 'test-secret',
                 ENVIRONMENT: 'test',
                 FEATURE_MAIL: 1,
-                HYPERIONPUB_EMAIL: { send: cloudflareSend },
+                LOANMSPUB_EMAIL: { send: cloudflareSend },
                 MAILER_ACCOUNT: 'test@example.com',
                 MAILER_PROVIDER: 'resend',
                 RESEND_API_KEY: 'test-key',
@@ -172,7 +172,7 @@ describe('Auth email client initialization', () => {
                 BETTER_AUTH_SECRET: 'test-secret',
                 ENVIRONMENT: 'development',
                 FEATURE_MAIL: 1,
-                HYPERIONPUB_EMAIL: { send: cloudflareSend },
+                LOANMSPUB_EMAIL: { send: cloudflareSend },
                 MAILER_ACCOUNT: 'test@example.com',
                 MAILER_PROVIDER: 'cloudflare',
                 SESSION_EXPIRATION: '3600',
@@ -293,7 +293,7 @@ describe('Auth email client initialization', () => {
                 BETTER_AUTH_SECRET: 'test-secret',
                 ENVIRONMENT: 'development',
                 FEATURE_MAIL: 1,
-                HYPERIONPUB_EMAIL: { send: cloudflareSend },
+                LOANMSPUB_EMAIL: { send: cloudflareSend },
                 MAILER_ACCOUNT: 'test@example.com',
                 MAILER_PROVIDER: 'cloudflare',
                 SESSION_EXPIRATION: '3600',

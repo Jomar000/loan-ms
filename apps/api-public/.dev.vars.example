@@ -35,5 +35,5 @@ GOOGLE_CLIENT_SECRET=""
 
 # MAILER_PROVIDER and MAILER_ACCOUNT are non-secret Wrangler variables.
 # Required only when FEATURE_MAIL=1 and MAILER_PROVIDER="resend".
-# Cloudflare Email Sending uses the HYPERIONPUB_EMAIL binding instead.
+# Cloudflare Email Sending uses the LOANMSPUB_EMAIL binding instead.
 RESEND_API_KEY=""

@@ -2,11 +2,11 @@ import {
     builtInRealtimeRegistry,
     createRealtimeTargetAuthorizer,
     type TRealtimeTargetAuthorizationHandlers,
-} from '@hyperion/websocket/registry'
+} from '@loanms/websocket/registry'
 import {
     validateRealtimeTopologyCapabilities,
     type TRealtimeTopologyProfile,
-} from '@hyperion/websocket/topology'
+} from '@loanms/websocket/topology'
 
 export const BACKOFFICE_REALTIME_SURFACE = 'backoffice'
 
@@ -23,8 +23,8 @@ export const authorizeBackofficeRealtimeTarget = createRealtimeTargetAuthorizer(
 )
 
 type TBackofficeRealtimeCapabilityEnvironment = {
-    HYPERIONBOFC_DO_WSB_REMOTE_PUB?: unknown
-    HYPERIONBOFC_REALTIME_PUBLISHER_PUB?: unknown
+    LOANMSBOFC_DO_WSB_REMOTE_PUB?: unknown
+    LOANMSBOFC_REALTIME_PUBLISHER_PUB?: unknown
 }
 
 type TBackofficeRealtimeStartupEnvironment = {
@@ -35,8 +35,8 @@ export const getBackofficeRealtimeCapabilities = (environment: object) => {
     const capabilities = environment as TBackofficeRealtimeCapabilityEnvironment
 
     return {
-        realtimePublisher: capabilities.HYPERIONBOFC_REALTIME_PUBLISHER_PUB,
-        remoteBroker: capabilities.HYPERIONBOFC_DO_WSB_REMOTE_PUB,
+        realtimePublisher: capabilities.LOANMSBOFC_REALTIME_PUBLISHER_PUB,
+        remoteBroker: capabilities.LOANMSBOFC_DO_WSB_REMOTE_PUB,
     }
 }
 

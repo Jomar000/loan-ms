@@ -1,4 +1,4 @@
-import { defineRateLimitPolicy } from '@hyperion/rate-limit/policy'
+import { defineRateLimitPolicy } from '@loanms/rate-limit/policy'
 import {
     evictDurableObject,
     runDurableObjectAlarm,
@@ -20,7 +20,7 @@ const request = {
     policy,
     scope: 'test.sequential',
 }
-const createStub = () => env.HYPERIONPUB_DO_RL.getByName(crypto.randomUUID())
+const createStub = () => env.LOANMSPUB_DO_RL.getByName(crypto.randomUUID())
 
 const expectExactMaximum = (
     outcomes: readonly { allowed: boolean }[],

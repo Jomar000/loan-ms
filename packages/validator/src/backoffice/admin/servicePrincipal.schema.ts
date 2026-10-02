@@ -1,7 +1,7 @@
 import {
     hasApiKeyAudienceRootAccess,
     isApiKeyPermissionAllowedForAudience,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { z } from 'zod'
 
 import {

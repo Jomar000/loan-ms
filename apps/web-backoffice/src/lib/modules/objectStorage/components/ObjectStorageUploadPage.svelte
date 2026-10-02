@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Checkbox } from '@hyperion/ui/components/checkbox'
-    import * as Field from '@hyperion/ui/components/field'
+    import { Checkbox } from '@loanms/ui/components/checkbox'
+    import * as Field from '@loanms/ui/components/field'
 
     import MultiFileUpload from '$lib/components/upload/MultiFileUpload.svelte'
     import SingleFileUpload from '$lib/components/upload/SingleFileUpload.svelte'

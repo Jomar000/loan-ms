@@ -124,7 +124,7 @@ node ./scripts/cloudflare/configure-security-headers.mjs \
 ```
 
 The command is read-only unless `--apply` is present. It creates or patches only
-rules with its stable `hyperion_security_headers_*` references, preserves every
+rules with its stable `loanms_security_headers_*` references, preserves every
 unrelated rule, verifies all target rules, and then disables only the
 `add_security_headers` Managed Transform. That Managed Transform setting is
 zone-wide: every hostname in the zone loses Cloudflare's managed baseline, so

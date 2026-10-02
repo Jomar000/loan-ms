@@ -1,4 +1,4 @@
-import { BaseError } from '@hyperion/errors'
+import { BaseError } from '@loanms/errors'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {

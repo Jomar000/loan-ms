@@ -1,11 +1,11 @@
-# `@hyperion/database`
+# `@loanms/database`
 
-`@hyperion/database` is Hyperion's shared Drizzle and Cloudflare D1 persistence
+`@loanms/database` is LoanMS's shared Drizzle and Cloudflare D1 persistence
 package. It owns the canonical SQLite schema, the D1 binding client factory,
 flat default and test migration histories, and the compatibility record for
 the repository's PostgreSQL-to-D1 conversion.
 
-Worker code imports the runtime-safe `@hyperion/database/d1` subpath and creates
+Worker code imports the runtime-safe `@loanms/database/d1` subpath and creates
 one Drizzle client from the current invocation's `D1Database` binding. The
 public API Wrangler configuration is the sole migration owner; public and
 backoffice APIs bind the same database in each environment.
@@ -53,7 +53,7 @@ Coupled application-owned effects should keep every statement in one bounded
 batch.
 
 Better Auth uses the Drizzle SQLite adapter with `transaction: false`, so generic
-adapter operations have no implicit cross-statement rollback. Hyperion's
+adapter operations have no implicit cross-statement rollback. LoanMS's
 self-service password change and reset routes therefore own bounded D1 batches
 that couple credential, reset-token/session, and audit mutations. Fault-injection
 tests require the whole batch to roll back and preserve the prior credential,
@@ -107,9 +107,10 @@ repository only; PostgreSQL data export/import is not included.
 
 ### Table inventory
 
-All 29 current tables are present in the baseline migration. Business foreign
-keys, unique constraints, checks, and partial indexes are retained using SQLite
-equivalents.
+All 29 source-derived tables are present in the baseline migration. The
+additive formula-profile migration adds the organization-scoped calculation
+snapshot table. Business foreign keys, unique constraints, checks, and partial
+indexes are retained using SQLite equivalents.
 
 | Domain         | Tables                                                                                                       | D1 notes                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
@@ -120,6 +121,7 @@ equivalents.
 | Better Auth    | `account`, `invitation`, `member`, `organization`, `apikey`, `session`, `two_factor`, `user`, `verification` | Adapter provider is `sqlite`; sessions, verification, organizations, API keys, and reserved 2FA schema remain      |
 | Realtime       | `websocket_revocation_operation`, `websocket_revocation_delivery`                                            | Idempotent operations, composite delivery FK, recovery index, and retention fields are retained                    |
 | Authorization  | `service_principal`, `service_principal_credential_issuance`, `permission`, `role`                           | JSON permissions use JSON text; credential limits and one-time-secret replay are enforced by conditional D1 writes |
+| Loan formulas  | `loan_formula_profile`                                                                                       | Immutable organization-scoped calculation snapshots use integer minor units and basis points                       |
 
 ### Constraint and index inventory
 
@@ -136,6 +138,7 @@ explicitly named business-constraint inventory is:
   `fk_invitation_organization_id_organization_id_fk`,
   `fk_key_counter_organization_id_organization_id_fk`,
   `fk_key_value_organization_id_organization_id_fk`,
+  `loan_formula_profile_fk_organization`,
   `fk_member_organization_id_organization_id_fk`,
   `fk_member_user_id_user_id_fk`,
   `fk_notification_event_organization_id_organization_id_fk`,
@@ -168,6 +171,8 @@ explicitly named business-constraint inventory is:
   `key_counter_organization_id_public_id_unique`,
   `key_value_organization_id_key_unique`,
   `key_value_organization_id_public_id_unique`,
+  `loan_formula_profile_organization_id_name_version_unique`,
+  `loan_formula_profile_organization_id_public_id_unique`,
   `member_organization_id_user_id_unique`,
   `notification_event_unique_orgid1`,
   `notification_event_organization_id_public_id_unique`,
@@ -186,6 +191,20 @@ explicitly named business-constraint inventory is:
   `user_address_user_id_idempotency_key_unique`, and
   `websocket_revocation_operation_unique_org_id`.
 - Checks: `apikey_config_id_check`, `audit_trail_actor_type_check`,
+  `loan_formula_profile_check_name`, `loan_formula_profile_check_version`,
+  `loan_formula_profile_check_interest_method`,
+  `loan_formula_profile_check_interest`,
+  `loan_formula_profile_check_term_days`,
+  `loan_formula_profile_check_payment_frequency`,
+  `loan_formula_profile_check_installment_count`,
+  `loan_formula_profile_check_timezone`,
+  `loan_formula_profile_check_rounding_mode`,
+  `loan_formula_profile_check_final_installment_residue_policy`,
+  `loan_formula_profile_check_renewal_settlement_method`,
+  `loan_formula_profile_check_partial_credit_policy`,
+  `loan_formula_profile_check_min_completed_installments`,
+  `loan_formula_profile_check_default_active`,
+  `loan_formula_profile_check_retired_at`,
   `notification_delivery_check_read_j3f7pd`,
   `notification_event_check_action_d4p7kx`, `organization_slug_check`,
   `role_name_check`, `service_principal_audience_check`,
@@ -208,7 +227,8 @@ The documented explicit index inventory is `account_idx_1`, `apikey_idx_1`,
 `audit_trail_idx_1`, `audit_trail_idx_2`, `audit_trail_idx_3`,
 `audit_trail_idx_4`, `audit_trail_idx_5`, `audit_trail_idx_6`,
 `audit_trail_idx_7`, `invitation_idx_1`,
-`invitation_idx_2`, `invitation_idx_3`, `member_idx_1`,
+`invitation_idx_2`, `invitation_idx_3`,
+`loan_formula_profile_unique_active_default`, `member_idx_1`,
 `notification_delivery_idx_list_q4m8tz`,
 `notification_delivery_idx_unread_k6p3wx`, `object_storage_acl_idx_1`,
 `permission_idx_1`, `service_principal_idx_1`, `session_idx_1`,
@@ -280,6 +300,9 @@ runtime triggers, and requires `PRAGMA foreign_key_check` to remain empty.
 - `00000000000001_runtime_triggers.sql` installs explicit `updated_at`
   triggers.
 - `00000000000002_default_data.sql` applies dependency-ordered default seeds.
+- `00000000000003_loan_formula_profile.sql` adds immutable, organization-scoped
+  formula profile snapshots. It intentionally has no seed because organization
+  formula initialization is application-owned.
 - `99999999999999_test_data.sql` is a separate test-only migration history.
 - The public API Wrangler configuration is the single migration owner. Public
   and backoffice D1 bindings point to the same database per environment.
@@ -333,9 +356,9 @@ secrets.
 
 ## Public subpaths
 
-| Subpath                 | Purpose                                              |
-| ----------------------- | ---------------------------------------------------- |
-| `@hyperion/database/d1` | D1 client factory and canonical `dbSchema` namespace |
+| Subpath               | Purpose                                              |
+| --------------------- | ---------------------------------------------------- |
+| `@loanms/database/d1` | D1 client factory and canonical `dbSchema` namespace |
 
 The package intentionally has no root runtime export. Worker-facing consumers
 use the explicit `/d1` boundary.
@@ -345,16 +368,16 @@ use the explicit `/d1` boundary.
 Run package commands from the repository root:
 
 ```bash
-pnpm --filter=@hyperion/database check
-pnpm --filter=@hyperion/database lint
-pnpm --filter=@hyperion/database build
+pnpm --filter=@loanms/database check
+pnpm --filter=@loanms/database lint
+pnpm --filter=@loanms/database build
 ```
 
 Apply and inspect the shared local migration history through the public API
 configuration:
 
 ```bash
-pnpm --filter=@hyperion/database migrate:dev
+pnpm --filter=@loanms/database migrate:dev
 ```
 
 To prove both API configurations resolve that same local database, run the
@@ -372,7 +395,7 @@ explicit constraints and indexes in this ledger, all 21 runtime triggers,
 integer timestamp storage, and an empty `PRAGMA foreign_key_check` result:
 
 ```bash
-pnpm --filter=@hyperion/api-public test:seq test/integration/d1Migrations.seq.test.ts
+pnpm --filter=@loanms/api-public test:seq test/integration/d1Migrations.seq.test.ts
 ```
 
 ## Scope

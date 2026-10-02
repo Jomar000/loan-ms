@@ -1,4 +1,4 @@
-import type { TValidatorIssue } from '@hyperion/types/shared'
+import type { TValidatorIssue } from '@loanms/types/shared'
 import { z } from 'zod'
 
 import { vText } from './field.js'

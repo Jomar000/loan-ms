@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError } from '@loanms/types/shared'
 import { makeSignature } from 'better-auth/crypto'
 import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
@@ -53,11 +53,11 @@ export const TEST_MULTI_ROLE_USERNAME = '__test_multi_role'
 export const TEST_NO_ATTRIBUTE_USERNAME = '__test_no_attribute'
 export const TEST_PASSWORD_MUTABLE_USERNAME = '__test_password_mutable'
 
-export const TEST_OWNER_EMAIL = 'owner@test.hyperion.app'
-export const TEST_MEMBER_EMAIL = 'member@test.hyperion.app'
-export const TEST_AUTH_MUTABLE_EMAIL = 'auth.mutable@test.hyperion.app'
-export const TEST_NO_ATTRIBUTE_EMAIL = 'no.attribute@test.hyperion.app'
-export const TEST_LOCKED_EMAIL = 'locked@test.hyperion.app'
+export const TEST_OWNER_EMAIL = 'owner@test.loanms.example'
+export const TEST_MEMBER_EMAIL = 'member@test.loanms.example'
+export const TEST_AUTH_MUTABLE_EMAIL = 'auth.mutable@test.loanms.example'
+export const TEST_NO_ATTRIBUTE_EMAIL = 'no.attribute@test.loanms.example'
+export const TEST_LOCKED_EMAIL = 'locked@test.loanms.example'
 
 /**
  * @description
@@ -195,7 +195,7 @@ export const interceptPasswordResetToken = async (
 ): Promise<string> => {
     const { verification } = dbSchema
 
-    const db = dbClient(env.HYPERIONBOFC_D1)
+    const db = dbClient(env.LOANMSBOFC_D1)
 
     const records = await db
         .select({
@@ -261,7 +261,7 @@ export const seedTestingCookieForOrganization = async (
         sessionAgeSeconds?: number
     } = {},
 ): Promise<string> => {
-    const db = options.db ?? dbClient(env.HYPERIONBOFC_D1)
+    const db = options.db ?? dbClient(env.LOANMSBOFC_D1)
     const { organization, session: sessionTable, user } = dbSchema
 
     const [seededUser] = await db.select().from(user).where(eq(user.id, userId))
@@ -315,7 +315,7 @@ export const seedTestingCookies = async (): Promise<
         string,
     ]
 > => {
-    const db = dbClient(env.HYPERIONBOFC_D1)
+    const db = dbClient(env.LOANMSBOFC_D1)
     const { organization, session: sessionTable, user } = dbSchema
 
     try {

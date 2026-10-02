@@ -1,4 +1,4 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import { env } from 'cloudflare:workers'
 import { and, count, eq, inArray, like } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -54,7 +54,7 @@ const createEvent = (
     })
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
     await cleanNotifications()
 })
 

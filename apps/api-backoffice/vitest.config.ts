@@ -52,8 +52,8 @@ export default defineConfig({
                         'test-cf-do-rate-limit-secret-123456789012345678901234',
                     CF_R2_ACCESS_KEY_ID: 'test-r2-access-key-id',
                     CF_R2_SECRET_ACCESS_KEY: 'test-r2-secret-access-key',
-                    HYPERION_DEFAULT_MIGRATIONS: defaultMigrations,
-                    HYPERION_TEST_MIGRATIONS: testMigrations,
+                    LOANMS_DEFAULT_MIGRATIONS: defaultMigrations,
+                    LOANMS_TEST_MIGRATIONS: testMigrations,
                 },
             },
             wrangler: {

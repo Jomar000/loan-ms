@@ -100,7 +100,7 @@ describe('Mailer configuration', () => {
         expect(
             getMailerConfiguration({
                 FEATURE_MAIL: 1,
-                HYPERIONBOFC_EMAIL: { send: vi.fn() },
+                LOANMSBOFC_EMAIL: { send: vi.fn() },
                 MAILER_ACCOUNT: 'test@example.com',
                 MAILER_PROVIDER: 'cloudflare',
             }),
@@ -115,7 +115,7 @@ describe('Mailer configuration', () => {
                 MAILER_PROVIDER: 'cloudflare',
             }),
         ).toThrow(
-            'HYPERIONBOFC_EMAIL is required when MAILER_PROVIDER is cloudflare.',
+            'LOANMSBOFC_EMAIL is required when MAILER_PROVIDER is cloudflare.',
         )
 
         expect(

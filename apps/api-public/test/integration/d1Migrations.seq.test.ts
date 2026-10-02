@@ -9,7 +9,7 @@ import {
 } from '../fixtures/d1CompatibilityManifest.js'
 
 const listSchemaObjects = async (type: 'index' | 'table' | 'trigger') => {
-    const result = await env.HYPERIONPUB_D1.prepare(
+    const result = await env.LOANMSPUB_D1.prepare(
         `SELECT name FROM sqlite_schema WHERE type = ? AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'd1_%' AND substr(name, 1, 4) <> '_cf_' ORDER BY name`,
     )
         .bind(type)
@@ -31,7 +31,7 @@ describe('D1 baseline migration compatibility', () => {
     })
 
     it('retains every named business constraint recorded by the compatibility ledger.', async () => {
-        const schema = await env.HYPERIONPUB_D1.prepare(
+        const schema = await env.LOANMSPUB_D1.prepare(
             "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
         ).all<{ sql: string }>()
         const sql = schema.results.map(({ sql: value }) => value).join('\n')
@@ -44,12 +44,12 @@ describe('D1 baseline migration compatibility', () => {
     })
 
     it('has no foreign-key violations and stores timestamp defaults as integer milliseconds.', async () => {
-        const foreignKeyViolations = await env.HYPERIONPUB_D1.prepare(
+        const foreignKeyViolations = await env.LOANMSPUB_D1.prepare(
             'PRAGMA foreign_key_check',
         ).all()
         expect(foreignKeyViolations.results).toEqual([])
 
-        const timestampStorage = await env.HYPERIONPUB_D1.prepare(
+        const timestampStorage = await env.LOANMSPUB_D1.prepare(
             'SELECT DISTINCT typeof(created_at) AS storage_type FROM user',
         ).all<{ storage_type: string }>()
         expect(timestampStorage.results).toEqual([{ storage_type: 'integer' }])

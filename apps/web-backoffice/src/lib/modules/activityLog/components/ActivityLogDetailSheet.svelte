@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { Badge } from '@hyperion/ui/components/badge'
-    import { Button } from '@hyperion/ui/components/button'
-    import * as Sheet from '@hyperion/ui/components/sheet'
-    import { Skeleton } from '@hyperion/ui/components/skeleton'
+    import { Badge } from '@loanms/ui/components/badge'
+    import { Button } from '@loanms/ui/components/button'
+    import * as Sheet from '@loanms/ui/components/sheet'
+    import { Skeleton } from '@loanms/ui/components/skeleton'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
 
     import { useSessionContext } from '$lib/states/session'

@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponsePaginatedOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponsePaginatedOk } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
@@ -16,7 +16,7 @@ registerSequentialObjectStorageTests('download')
 
 describe('Download pagination tie-breakers', () => {
     it('orders equal timestamps by upload and object IDs across page boundaries.', async () => {
-        const db = dbClient(env.HYPERIONBOFC_D1)
+        const db = dbClient(env.LOANMSBOFC_D1)
         const uploadIds = [
             'TESTTieUpload000A',
             'TESTTieUpload000B',

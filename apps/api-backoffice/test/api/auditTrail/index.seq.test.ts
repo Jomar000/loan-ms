@@ -1,8 +1,8 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import type {
     TApiResponseOk,
     TApiResponsePaginatedOk,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { inArray } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -54,7 +54,7 @@ let isolatedOwnerCookie: string
 let seededAt: Date
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
     ;[ownerCookie] = await seedTestingCookies()
     isolatedOwnerCookie = await seedTestingCookieForOrganization(
         TEST_OWNER_USER_ID,
@@ -72,7 +72,7 @@ beforeAll(async () => {
             userId: TEST_OWNER_USER_ID,
             actorType: 'user',
             actorDisplayName: 'Test Owner',
-            actorIdentifier: 'owner@test.hyperion.app',
+            actorIdentifier: 'owner@test.loanms.example',
             actorRole: 'owner',
             component: 'user.profile',
             action: 'update',
@@ -141,7 +141,7 @@ beforeAll(async () => {
             publicId: publicIds[3],
             organizationId: TEST_PRIMARY_ORGANIZATION_ID,
             actorType: 'system',
-            actorDisplayName: 'Hyperion System',
+            actorDisplayName: 'LoanMS System',
             component: 'auth',
             action: 'verifyEmail',
             description: `${prefix} old event`,
@@ -151,7 +151,7 @@ beforeAll(async () => {
             publicId: publicIds[4],
             organizationId: TEST_ISOLATED_ORGANIZATION_ID,
             actorType: 'system',
-            actorDisplayName: 'Hyperion System',
+            actorDisplayName: 'LoanMS System',
             component: 'auth',
             action: 'verifyEmail',
             description: `${prefix} isolated event`,

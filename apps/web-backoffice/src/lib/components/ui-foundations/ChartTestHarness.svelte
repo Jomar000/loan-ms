@@ -3,7 +3,7 @@
         Chart,
         type ChartConfiguration,
         type ChartType,
-    } from '@hyperion/ui/shared/chart'
+    } from '@loanms/ui/shared/chart'
 
     ////////////////////
     // 01. Properties //

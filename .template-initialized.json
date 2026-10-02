@@ -1,0 +1,9 @@
+{
+    "author": "4thDEVisionTech",
+    "bindingPrefix": "LOANMS",
+    "displayName": "LoanMS",
+    "domain": "loanms.example",
+    "scope": "@loanms",
+    "slug": "loanms",
+    "configuredAt": "2026-10-02T12:33:46.342Z"
+}

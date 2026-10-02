@@ -53,7 +53,7 @@
 @component
 `FormFieldLabel` is normally the preferred entry point for field help. Use
 `FieldHelp` directly only when contextual guidance is not attached to a standard
-field-label row. Import it from `@hyperion/ui/shared/field-help`.
+field-label row. Import it from `@loanms/ui/shared/field-help`.
 
 Provide an accessible `label`, the help `description`, and a unique
 `descriptionId`; the related control must reference that id with
@@ -63,7 +63,7 @@ shows a tooltip for hover/focus, and opens a popover for persistent interaction.
 
 ```svelte
 <script lang="ts">
-    import { FieldHelp } from '@hyperion/ui/shared/field-help'
+    import { FieldHelp } from '@loanms/ui/shared/field-help'
 </script>
 
 <FieldHelp

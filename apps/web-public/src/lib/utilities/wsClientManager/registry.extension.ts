@@ -1,4 +1,4 @@
-import type { TRealtimeRegistry } from '@hyperion/websocket/registry'
+import type { TRealtimeRegistry } from '@loanms/websocket/registry'
 
 /**
  * @description

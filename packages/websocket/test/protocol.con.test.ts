@@ -62,7 +62,7 @@ describe('realtime wire protocol', () => {
             hasRealtimeWireVersion(`other.protocol, ${REALTIME_WIRE_VERSION}`),
         ).toBe(true)
         expect(hasRealtimeWireVersion('other.protocol')).toBe(false)
-        expect(hasRealtimeWireVersion('hyperion.realtime.v1')).toBe(false)
+        expect(hasRealtimeWireVersion('loanms.realtime.v1')).toBe(false)
         expect(hasRealtimeWireVersion(null)).toBe(false)
     })
 

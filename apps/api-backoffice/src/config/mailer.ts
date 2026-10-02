@@ -11,7 +11,7 @@ export type TMailerProvider = (typeof MAILER_PROVIDERS)[number]
 
 export type TMailerBindings = {
     FEATURE_MAIL?: 0 | 1 | '0' | '1'
-    HYPERIONBOFC_EMAIL?: SendEmail
+    LOANMSBOFC_EMAIL?: SendEmail
     MAILER_ACCOUNT?: string
     MAILER_PROVIDER?: string
     RESEND_API_KEY?: string
@@ -81,14 +81,14 @@ export const getMailerConfiguration = (
     }
 
     if (provider === 'cloudflare') {
-        if (!bindings.HYPERIONBOFC_EMAIL)
+        if (!bindings.LOANMSBOFC_EMAIL)
             throw new Error(
-                'HYPERIONBOFC_EMAIL is required when MAILER_PROVIDER is cloudflare.',
+                'LOANMSBOFC_EMAIL is required when MAILER_PROVIDER is cloudflare.',
             )
 
         return {
             account,
-            binding: bindings.HYPERIONBOFC_EMAIL,
+            binding: bindings.LOANMSBOFC_EMAIL,
             enabled: true,
             provider,
         }

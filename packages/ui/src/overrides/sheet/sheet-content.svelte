@@ -38,7 +38,7 @@ Upstream target: the `sheet/sheet-content.svelte` registry primitive.
 Defect: the generated `data-open` and `data-closed` animation variants do not match Bits UI's `data-state="open|closed"` attributes, so Sheet content does not run its entrance or exit animations.
 Composition limitation: correcting this at each call site leaves the exported primitive defective and makes every consumer repeat the complete side-specific animation workaround.
 Intentional divergence: only the open and closed selectors use Bits UI's `data-state` contract. Props, snippets, events, generated dependencies, layout, visual styling, close-button behavior, default immediate backdrop, and default 200ms ease-in-out panel fade and subtle slide otherwise mirror Vega upstream.
-Retirement condition: remove this replacement after shadcn-svelte emits Bits UI-compatible selectors, then migrate all consumers back to `@hyperion/ui/components/sheet` and verify open and close animations.
+Retirement condition: remove this replacement after shadcn-svelte emits Bits UI-compatible selectors, then migrate all consumers back to `@loanms/ui/components/sheet` and verify open and close animations.
 
 Upstream references:
 - https://shadcn-svelte.com/docs/components/sheet

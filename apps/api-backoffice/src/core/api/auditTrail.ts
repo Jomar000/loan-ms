@@ -1,5 +1,5 @@
-import type { TAuditJsonValue, TAuditRecord } from '@hyperion/database/d1'
-import { AppError, catalog } from '@hyperion/errors'
+import type { TAuditJsonValue, TAuditRecord } from '@loanms/database/d1'
+import { AppError, catalog } from '@loanms/errors'
 import {
     auditTrailActionSchema,
     auditTrailActorTypeSchema,
@@ -11,7 +11,7 @@ import {
     auditTrailSummaryInputSchema,
     type auditTrailFiltersSchema,
     type TAuditGroup,
-} from '@hyperion/validator/backoffice/auditTrail'
+} from '@loanms/validator/backoffice/auditTrail'
 import {
     and,
     asc,
@@ -69,7 +69,7 @@ type TAuditGroupDefinition = {
 }
 
 function groupMatcherCondition(
-    component: typeof import('@hyperion/database/d1').dbSchema.auditTrail.component,
+    component: typeof import('@loanms/database/d1').dbSchema.auditTrail.component,
     definition: TAuditGroupDefinition,
 ) {
     const conditions: SQL[] = []
@@ -87,7 +87,7 @@ function groupMatcherCondition(
 }
 
 function groupCondition(
-    component: typeof import('@hyperion/database/d1').dbSchema.auditTrail.component,
+    component: typeof import('@loanms/database/d1').dbSchema.auditTrail.component,
     group: TAuditFilters['group'],
 ) {
     const definition = auditTrailGroupDefinitions.find(
@@ -97,7 +97,7 @@ function groupCondition(
 }
 
 function summaryProjection(
-    component: typeof import('@hyperion/database/d1').dbSchema.auditTrail.component,
+    component: typeof import('@loanms/database/d1').dbSchema.auditTrail.component,
 ) {
     return Object.fromEntries(
         auditTrailGroupDefinitions.map((definition) => {
@@ -115,7 +115,7 @@ function summaryProjection(
 }
 
 function entityTypeMatchCondition(
-    records: typeof import('@hyperion/database/d1').dbSchema.auditTrail.records,
+    records: typeof import('@loanms/database/d1').dbSchema.auditTrail.records,
     entityType: string,
 ) {
     return sql`EXISTS (
@@ -129,7 +129,7 @@ function entityTypeMatchCondition(
 }
 
 function entityTypeCondition(
-    records: typeof import('@hyperion/database/d1').dbSchema.auditTrail.records,
+    records: typeof import('@loanms/database/d1').dbSchema.auditTrail.records,
     selection: TAuditFilters['entityTypes'],
 ) {
     if (!selection) return undefined
@@ -156,7 +156,7 @@ function caseInsensitiveContains(column: AnySQLiteColumn, search: string) {
 }
 
 function searchableRecordCondition(
-    records: typeof import('@hyperion/database/d1').dbSchema.auditTrail.records,
+    records: typeof import('@loanms/database/d1').dbSchema.auditTrail.records,
     search: string,
 ) {
     const pattern = `%${search.toLowerCase()}%`
@@ -214,7 +214,7 @@ function searchableRecordCondition(
 }
 
 function buildConditions(
-    auditTrail: typeof import('@hyperion/database/d1').dbSchema.auditTrail,
+    auditTrail: typeof import('@loanms/database/d1').dbSchema.auditTrail,
     organizationId: string,
     filters: TAuditFilters,
     includeGroup = true,
@@ -368,7 +368,7 @@ function projectDetailRecord(record: TAuditRecord) {
 }
 
 const listProjection = (
-    auditTrail: typeof import('@hyperion/database/d1').dbSchema.auditTrail,
+    auditTrail: typeof import('@loanms/database/d1').dbSchema.auditTrail,
 ) => ({
     action: auditTrail.action,
     actorDisplayName: auditTrail.actorDisplayName,

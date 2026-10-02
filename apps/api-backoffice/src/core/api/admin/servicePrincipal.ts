@@ -1,11 +1,11 @@
-import { AppError, catalog, defineError } from '@hyperion/errors'
+import { AppError, catalog, defineError } from '@loanms/errors'
 import {
     API_KEY_AUDIENCE_NAMESPACES,
     hasApiKeyAudienceRootAccess,
     isApiKeyPermissionAllowedForAudience,
     type TApiKeyAudience,
     type TApiKeyPermissionRecord,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import {
     servicePrincipalCreateInputSchema,
     servicePrincipalCredentialCreateInputSchema,
@@ -15,7 +15,7 @@ import {
     servicePrincipalReadManyInputSchema,
     servicePrincipalStatusInputSchema,
     servicePrincipalUpdateInputSchema,
-} from '@hyperion/validator/backoffice/admin/servicePrincipal'
+} from '@loanms/validator/backoffice/admin/servicePrincipal'
 import { isAPIError } from 'better-auth/api'
 import {
     and,

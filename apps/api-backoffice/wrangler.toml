@@ -1,4 +1,4 @@
-name = "hyperion-api-backoffice"
+name = "loanms-api-backoffice"
 main = "src/core/index.ts"
 compatibility_date = "2026-09-25"
 compatibility_flags = ['nodejs_compat']
@@ -63,9 +63,9 @@ port = 8080
 [vars]
 ENVIRONMENT = "development"
 STATUS = "up"
-CF_R2_BUCKET_PRIVATE = "hyperion-development-prv"
-CF_R2_BUCKET_PUBLIC = "hyperion-development-pub"
-CF_R2_BUCKET_PUBLIC_URL = "https://hyperion-dev.r2.4thdevision.tech"
+CF_R2_BUCKET_PRIVATE = "loanms-development-prv"
+CF_R2_BUCKET_PUBLIC = "loanms-development-pub"
+CF_R2_BUCKET_PUBLIC_URL = "https://loanms-dev.r2.loanms.example"
 CF_R2_PRESIGN_EXPIRY = 300 # 5 minutes (seconds)
 CF_TURNSTILE_BYPASS = 1 # (0|1)
 CF_TURNSTILE_SITE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -85,24 +85,24 @@ URL_BACKEND = "http://localhost:8080"
 URL_FRONTEND = "http://localhost:5173"
 
 [[kv_namespaces]]
-binding = "HYPERIONBOFC_KV"
+binding = "LOANMSBOFC_KV"
 id = "00000000000000000000000000000000"
 
 [[d1_databases]]
-binding = "HYPERIONBOFC_D1"
-database_name = "hyperion-development"
+binding = "LOANMSBOFC_D1"
+database_name = "loanms-development"
 database_id = "00000000-0000-0000-0000-000000000000"
 
 [[durable_objects.bindings]]
-name = "HYPERIONBOFC_DO_RL"
+name = "LOANMSBOFC_DO_RL"
 class_name = "RateLimit"
 
 [[durable_objects.bindings]]
-name = "HYPERIONBOFC_DO_WSB"
+name = "LOANMSBOFC_DO_WSB"
 class_name = "WebSocketBroker"
 
 [[durable_objects.bindings]]
-name = "HYPERIONBOFC_DO_WSS"
+name = "LOANMSBOFC_DO_WSS"
 class_name = "WebSocketServer"
 
 ########
@@ -118,9 +118,9 @@ route = { zone_name = "", pattern = "" }
 [env.test.vars]
 ENVIRONMENT = "test"
 STATUS = "up"
-CF_R2_BUCKET_PRIVATE = "hyperion-test-prv"
-CF_R2_BUCKET_PUBLIC = "hyperion-test-pub"
-CF_R2_BUCKET_PUBLIC_URL = "https://hyperion-test.r2.4thdevision.tech"
+CF_R2_BUCKET_PRIVATE = "loanms-test-prv"
+CF_R2_BUCKET_PUBLIC = "loanms-test-pub"
+CF_R2_BUCKET_PUBLIC_URL = "https://loanms-test.r2.loanms.example"
 CF_R2_PRESIGN_EXPIRY = 300 # 5 minutes (seconds)
 CF_TURNSTILE_BYPASS = 1 # (0|1)
 CF_TURNSTILE_SITE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
@@ -134,7 +134,7 @@ CORS_MAX_AGE = 7200 # 2 hours (seconds)
 FEATURE_API_KEY = 1 # Keep regression coverage enabled in tests.
 FEATURE_MAIL = 1 # Keep regression coverage enabled in tests.
 FEATURE_OBJECT_STORAGE = 1 # Keep regression coverage enabled in tests.
-MAILER_ACCOUNT = "no-reply@hyperion.app"
+MAILER_ACCOUNT = "no-reply@loanms.app"
 MAILER_PROVIDER = "cloudflare"
 SESSION_EXPIRATION = 604800 # 7 days (seconds)
 SESSION_UPDATE_AGE = 86400 # 1 day (seconds)
@@ -142,26 +142,26 @@ URL_BACKEND = "http://localhost:8080"
 URL_FRONTEND = "http://localhost:5173"
 
 [[env.test.send_email]]
-name = "HYPERIONBOFC_EMAIL"
-allowed_sender_addresses = ["no-reply@hyperion.app"]
+name = "LOANMSBOFC_EMAIL"
+allowed_sender_addresses = ["no-reply@loanms.app"]
 
 [[env.test.kv_namespaces]]
-binding = "HYPERIONBOFC_KV"
+binding = "LOANMSBOFC_KV"
 id = "00000000000000000000000000000001"
 
 [[env.test.d1_databases]]
-binding = "HYPERIONBOFC_D1"
-database_name = "hyperion-test"
+binding = "LOANMSBOFC_D1"
+database_name = "loanms-test"
 database_id = "00000000-0000-0000-0000-000000000001"
 
 [[env.test.durable_objects.bindings]]
-name = "HYPERIONBOFC_DO_RL"
+name = "LOANMSBOFC_DO_RL"
 class_name = "RateLimit"
 
 [[env.test.durable_objects.bindings]]
-name = "HYPERIONBOFC_DO_WSB"
+name = "LOANMSBOFC_DO_WSB"
 class_name = "WebSocketBroker"
 
 [[env.test.durable_objects.bindings]]
-name = "HYPERIONBOFC_DO_WSS"
+name = "LOANMSBOFC_DO_WSS"
 class_name = "WebSocketServer"

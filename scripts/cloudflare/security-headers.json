@@ -1,7 +1,7 @@
 {
     "phase": "http_response_headers_transform",
     "ruleset": {
-        "name": "Hyperion Response Header Transform Rules",
+        "name": "LoanMS Response Header Transform Rules",
         "description": "Response security headers mirrored from the repository _headers policies."
     },
     "managedTransform": {

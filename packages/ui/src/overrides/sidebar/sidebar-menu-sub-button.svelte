@@ -38,7 +38,7 @@ Upstream target: the `sidebar/sidebar-menu-sub-button.svelte` registry primitive
 Defect: the generated component emits `data-active="false"` while its `data-active:*` Tailwind variants match attribute presence, so inactive submenu links render with active styling.
 Composition limitation: call-site composition cannot remove the internally emitted attribute without replacing the component.
 Intentional divergence: inactive submenu links omit `data-active`; active links emit `data-active="true"`. Props, snippets, events, sizes, layout, styling, and exports otherwise mirror upstream.
-Retirement condition: remove this replacement after the supported shadcn-svelte Vega registry emits value-sensitive active selectors or omits `data-active` when false, then migrate consumers back to `@hyperion/ui/components/sidebar`.
+Retirement condition: remove this replacement after the supported shadcn-svelte Vega registry emits value-sensitive active selectors or omits `data-active` when false, then migrate consumers back to `@loanms/ui/components/sidebar`.
 
 Upstream references:
 - https://shadcn-svelte.com/docs/components/sidebar

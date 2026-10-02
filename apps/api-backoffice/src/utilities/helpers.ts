@@ -1,21 +1,21 @@
-import { dbSchema, type TAuditRecord } from '@hyperion/database/d1'
+import { dbSchema, type TAuditRecord } from '@loanms/database/d1'
 import {
     AppError,
     catalog,
     serializeError,
     type TErrorDefinition,
-} from '@hyperion/errors'
+} from '@loanms/errors'
 import type {
     TApiResponseCursorPaginatedOk,
     TApiResponseError,
     TApiResponseOk,
     TApiResponsePaginatedOk,
     TValidatorIssue,
-} from '@hyperion/types/shared'
+} from '@loanms/types/shared'
 import {
     auditTrailActionSchema,
     auditTrailComponentSchema,
-} from '@hyperion/validator/backoffice/auditTrail'
+} from '@loanms/validator/backoffice/auditTrail'
 import { sql } from 'drizzle-orm'
 import type { Context, TypedResponse } from 'hono'
 import { routePath } from 'hono/route'

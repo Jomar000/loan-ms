@@ -1,18 +1,18 @@
-import type { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { AppError, TErrorDefinition } from '@hyperion/errors'
+import type { dbClient, dbSchema } from '@loanms/database/d1'
+import type { AppError, TErrorDefinition } from '@loanms/errors'
 import type {
     createRateLimiter,
     TRateLimitReservation,
-} from '@hyperion/rate-limit/client'
+} from '@loanms/rate-limit/client'
 import type {
     TBaseHonoBindings,
     TBaseHonoInstance,
     TBaseHonoVariables,
     TApiResponseError,
     TApiKeyAudience,
-} from '@hyperion/types/shared'
-import type { TRealtimePublisher } from '@hyperion/websocket/publisher'
-import type { TRealtimeRevocationBroker } from '@hyperion/websocket/server'
+} from '@loanms/types/shared'
+import type { TRealtimePublisher } from '@loanms/websocket/publisher'
+import type { TRealtimeRevocationBroker } from '@loanms/websocket/server'
 import type { AwsClient } from 'aws4fetch'
 import type {
     ClientErrorStatusCode,
@@ -44,13 +44,13 @@ type TWorkerBindings = Omit<
 export type THonoBindings = TBaseHonoBindings<
     {
         CF_DO_RATE_LIMIT_SECRET: string
-        HYPERIONPUB_DO_RL: DurableObjectNamespace<RateLimit>
-        HYPERIONPUB_DO_WSB: DurableObjectNamespace<WebSocketBroker>
-        HYPERIONPUB_DO_WSB_REMOTE_BOFC?: TRealtimeRevocationBroker
-        HYPERIONPUB_DO_WSS: DurableObjectNamespace<WebSocketServer>
-        HYPERIONPUB_D1: D1Database
-        HYPERIONPUB_KV: KVNamespace
-        HYPERIONPUB_REALTIME_PUBLISHER_BOFC?: TRealtimePublisher
+        LOANMSPUB_DO_RL: DurableObjectNamespace<RateLimit>
+        LOANMSPUB_DO_WSB: DurableObjectNamespace<WebSocketBroker>
+        LOANMSPUB_DO_WSB_REMOTE_BOFC?: TRealtimeRevocationBroker
+        LOANMSPUB_DO_WSS: DurableObjectNamespace<WebSocketServer>
+        LOANMSPUB_D1: D1Database
+        LOANMSPUB_KV: KVNamespace
+        LOANMSPUB_REALTIME_PUBLISHER_BOFC?: TRealtimePublisher
     } & TWorkerBindings
 >
 

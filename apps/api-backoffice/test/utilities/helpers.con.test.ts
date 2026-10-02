@@ -1,4 +1,4 @@
-import { AppError } from '@hyperion/errors'
+import { AppError } from '@loanms/errors'
 import type { Context } from 'hono'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -223,7 +223,7 @@ describe('Audit helpers', () => {
             session: { activeOrganizationId: 'organization-id' },
             role: 'owner',
             user: {
-                email: 'user@test.hyperion.app',
+                email: 'user@test.loanms.example',
                 id: 'user-id',
                 name: 'Test User',
                 username: 'test_user',
@@ -271,7 +271,7 @@ describe('Audit helpers', () => {
         },
         {
             actor: {
-                displayName: 'Hyperion System',
+                displayName: 'LoanMS System',
                 identifier: 'daily-retention',
                 type: 'system' as const,
             },
@@ -387,7 +387,7 @@ describe('Audit helpers', () => {
         } as unknown as NonNullable<Parameters<typeof auditTrailLogger>[2]>
         const attribution = {
             actor: {
-                displayName: 'Hyperion System',
+                displayName: 'LoanMS System',
                 type: 'system' as const,
             },
             organizationId: 'organization-id',

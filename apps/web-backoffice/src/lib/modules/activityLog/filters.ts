@@ -3,7 +3,7 @@ import {
     auditTrailActorTypeSchema,
     auditTrailComponents,
     auditTrailEntityTypes,
-} from '@hyperion/validator/backoffice/auditTrail'
+} from '@loanms/validator/backoffice/auditTrail'
 
 import { normalizeFilterRules } from '$lib/components/dataWorkspace/filtering'
 import type {

@@ -1,8 +1,8 @@
 {
-    "name": "@hyperion/database",
+    "name": "@loanms/database",
     "version": "0.0.1",
     "author": "4thDEVisionTech",
-    "description": "Hyperion Database Component",
+    "description": "LoanMS Database Component",
     "type": "module",
     "private": true,
     "license": "ISC",
@@ -16,9 +16,9 @@
         "check": "drizzle-kit check --config=drizzle.config.ts",
         "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
         "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
-        "migrate:dev": "pnpm exec wrangler d1 migrations apply hyperion-development --local --config=../../apps/api-public/wrangler.toml --persist-to=../../.wrangler/state",
-        "migrate:prod": "pnpm exec wrangler d1 migrations apply hyperion-production --remote --env=production --config=../../apps/api-public/wrangler-production.toml",
-        "migrate:staging": "pnpm exec wrangler d1 migrations apply hyperion-staging --remote --env=staging --config=../../apps/api-public/wrangler-staging.toml",
+        "migrate:dev": "pnpm exec wrangler d1 migrations apply loanms-development --local --config=../../apps/api-public/wrangler.toml --persist-to=../../.wrangler/state",
+        "migrate:prod": "pnpm exec wrangler d1 migrations apply loanms-production --remote --env=production --config=../../apps/api-public/wrangler-production.toml",
+        "migrate:staging": "pnpm exec wrangler d1 migrations apply loanms-staging --remote --env=staging --config=../../apps/api-public/wrangler-staging.toml",
         "prepare": "pnpm build"
     },
     "dependencies": {

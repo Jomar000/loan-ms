@@ -25,7 +25,7 @@ variants, disabled behavior, focus indication, and exports otherwise mirror
 Vega upstream.
 Retirement condition: remove this replacement after shadcn-svelte emits Bits
 UI-compatible Tabs active-state selectors, then migrate consumers back to
-`@hyperion/ui/components/tabs` and verify both default and line variants.
+`@loanms/ui/components/tabs` and verify both default and line variants.
 
 Upstream references:
 - https://shadcn-svelte.com/docs/components/tabs

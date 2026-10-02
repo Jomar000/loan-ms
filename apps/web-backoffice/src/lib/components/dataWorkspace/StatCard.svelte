@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cn } from '@hyperion/ui/utils'
+    import { cn } from '@loanms/ui/utils'
     import type { Component } from 'svelte'
 
     ////////////////////

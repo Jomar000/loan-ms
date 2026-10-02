@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as Sidebar from '@hyperion/ui/overrides/sidebar'
+    import * as Sidebar from '@loanms/ui/overrides/sidebar'
     import type { Snippet } from 'svelte'
 
     import { page } from '$app/state'

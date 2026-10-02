@@ -1,4 +1,4 @@
-import { refinement } from '@hyperion/validator/shared'
+import { refinement } from '@loanms/validator/shared'
 import { z } from 'zod'
 
 import {

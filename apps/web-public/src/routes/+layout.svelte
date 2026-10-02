@@ -1,6 +1,6 @@
 <script lang="ts">
-    import * as Tooltip from '@hyperion/ui/components/tooltip'
-    import { InAppBrowserNotice } from '@hyperion/ui/shared/in-app-browser-notice'
+    import * as Tooltip from '@loanms/ui/components/tooltip'
+    import { InAppBrowserNotice } from '@loanms/ui/shared/in-app-browser-notice'
 
     import { inAppBrowserDetectionFeatureEnabled } from '$lib/config/inAppBrowserDetection'
     import AppRootLayout from '$lib/modules/app/components/AppRootLayout.svelte'

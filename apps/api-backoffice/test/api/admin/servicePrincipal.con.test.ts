@@ -1,4 +1,4 @@
-import type { TApiResponseError } from '@hyperion/types/shared'
+import type { TApiResponseError } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 
@@ -6,9 +6,9 @@ import app from '../../../src/core/index.js'
 
 const guardedBindings = new Set<PropertyKey>([
     'BETTER_AUTH_SECRET',
-    'HYPERIONBOFC_DO_WSS',
-    'HYPERIONBOFC_D1',
-    'HYPERIONBOFC_KV',
+    'LOANMSBOFC_DO_WSS',
+    'LOANMSBOFC_D1',
+    'LOANMSBOFC_KV',
 ])
 
 const disabledEnvironment = new Proxy(env, {

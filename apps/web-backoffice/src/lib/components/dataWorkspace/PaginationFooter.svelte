@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import * as NativeSelect from '@hyperion/ui/components/native-select'
+    import { Button } from '@loanms/ui/components/button'
+    import * as NativeSelect from '@loanms/ui/components/native-select'
     import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left'
     import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
 

@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator'
-import { catalog } from '@hyperion/errors'
+import { catalog } from '@loanms/errors'
 import type { Context, ValidationTargets } from 'hono'
 import type { ZodType } from 'zod'
 

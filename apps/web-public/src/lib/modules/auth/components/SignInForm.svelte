@@ -1,14 +1,14 @@
 <!-- https://shadcn-svelte.com/blocks/login#login-03 -->
 
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import * as Card from '@hyperion/ui/components/card'
-    import * as Field from '@hyperion/ui/components/field'
-    import { Input } from '@hyperion/ui/components/input'
-    import * as InputGroup from '@hyperion/ui/components/input-group'
-    import { Spinner } from '@hyperion/ui/components/spinner'
-    import { cn } from '@hyperion/ui/utils'
-    import { auth as authValidator } from '@hyperion/validator/public'
+    import { Button } from '@loanms/ui/components/button'
+    import * as Card from '@loanms/ui/components/card'
+    import * as Field from '@loanms/ui/components/field'
+    import { Input } from '@loanms/ui/components/input'
+    import * as InputGroup from '@loanms/ui/components/input-group'
+    import { Spinner } from '@loanms/ui/components/spinner'
+    import { cn } from '@loanms/ui/utils'
+    import { auth as authValidator } from '@loanms/validator/public'
     import EyeIcon from '@lucide/svelte/icons/eye'
     import EyeOffIcon from '@lucide/svelte/icons/eye-off'
     import { createForm } from '@tanstack/svelte-form'

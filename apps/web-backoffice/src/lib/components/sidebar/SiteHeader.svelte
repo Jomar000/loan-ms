@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as Breadcrumb from '@hyperion/ui/components/breadcrumb'
+    import * as Breadcrumb from '@loanms/ui/components/breadcrumb'
 
     import type { SessionState } from '$lib/states/session'
     import type { AppRouteMeta } from './types'

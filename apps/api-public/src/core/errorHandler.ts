@@ -4,7 +4,7 @@ import {
     catalog,
     serializeError,
     type TErrorDefinition,
-} from '@hyperion/errors'
+} from '@loanms/errors'
 import type { Context } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 

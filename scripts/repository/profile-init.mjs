@@ -47,11 +47,11 @@ const TEMPLATE_IDENTITIES = [
         ({ author }) => author,
     ],
     [
-        '@hyperion',
+        '@loanms',
         ({ scope }) => scope,
     ],
     [
-        'HYPERION',
+        'LOANMS',
         ({ bindingPrefix }) => bindingPrefix,
     ],
     [
@@ -59,19 +59,19 @@ const TEMPLATE_IDENTITIES = [
         ({ displayName }) => displayName,
     ],
     [
-        'hyperion.example',
+        'loanms.example',
         ({ domain }) => domain,
     ],
     [
-        'hyperion.app',
+        'loanms.example',
         ({ domain }) => domain,
     ],
     [
-        '4thdevision.tech',
+        'loanms.example',
         ({ domain }) => domain,
     ],
     [
-        'hyperion',
+        'loanms',
         ({ slug }) => slug,
     ],
 ]

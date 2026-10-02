@@ -100,7 +100,7 @@ describe('Mailer configuration', () => {
         expect(
             getMailerConfiguration({
                 FEATURE_MAIL: 1,
-                HYPERIONPUB_EMAIL: { send: vi.fn() },
+                LOANMSPUB_EMAIL: { send: vi.fn() },
                 MAILER_ACCOUNT: 'test@example.com',
                 MAILER_PROVIDER: 'cloudflare',
             }),
@@ -115,7 +115,7 @@ describe('Mailer configuration', () => {
                 MAILER_PROVIDER: 'cloudflare',
             }),
         ).toThrow(
-            'HYPERIONPUB_EMAIL is required when MAILER_PROVIDER is cloudflare.',
+            'LOANMSPUB_EMAIL is required when MAILER_PROVIDER is cloudflare.',
         )
 
         expect(

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { cn } from '@hyperion/ui/utils'
+    import { cn } from '@loanms/ui/utils'
     import ArchiveIcon from '@lucide/svelte/icons/archive'
     import CircleCheckIcon from '@lucide/svelte/icons/circle-check'
     import CirclePauseIcon from '@lucide/svelte/icons/circle-pause'

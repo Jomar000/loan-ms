@@ -1,6 +1,6 @@
-# `@hyperion/websocket`
+# `@loanms/websocket`
 
-`@hyperion/websocket` is Hyperion's reusable realtime transport package for
+`@loanms/websocket` is LoanMS's reusable realtime transport package for
 Cloudflare Workers and browser applications. It provides a sharded Durable
 Object WebSocket architecture, a registered server-push event protocol,
 authorization-aware fan-out, cross-surface topology contracts, and a
@@ -54,8 +54,8 @@ owned by the downstream `realtime-contracts` package.
 
 The versions are independent even though all three currently represent their
 first contract. A bump to one does not imply a bump to either of the others.
-The wire constant is exported from `@hyperion/websocket/protocol`; storage and
-transport constants are exported from `@hyperion/websocket/transport`.
+The wire constant is exported from `@loanms/websocket/protocol`; storage and
+transport constants are exported from `@loanms/websocket/transport`.
 
 ## Architectural principles
 
@@ -92,7 +92,7 @@ callbacks so each application can:
 
 ### Realtime query coordination
 
-`@hyperion/websocket/coordination` provides three browser- and Worker-safe
+`@loanms/websocket/coordination` provides three browser- and Worker-safe
 primitives. They invoke application callbacks but do not fetch data, define
 events, compare domain versions, own query keys, or depend on TanStack Query.
 
@@ -332,7 +332,7 @@ resolveRealtimeAdmission(input)
 ### Fork-owned realtime contracts
 
 A downstream fork that adds custom `APP` events or dedicated streams should
-keep those domain contracts outside `@hyperion/websocket`. When the API and
+keep those domain contracts outside `@loanms/websocket`. When the API and
 browser need the same registry, create one fork-owned workspace at
 `packages/realtime-contracts`, named `@PROJECT_NAME/realtime-contracts`.
 
@@ -818,8 +818,8 @@ business operation or HTTP response.
 
 ## Package boundaries
 
-`@hyperion/websocket` depends on `@hyperion/errors`, `@hyperion/types`,
-`@hyperion/validator/shared`, and Zod. Worker-facing modules remain
+`@loanms/websocket` depends on `@loanms/errors`, `@loanms/types`,
+`@loanms/validator/shared`, and Zod. Worker-facing modules remain
 runtime-agnostic and do not import database code, Hono applications, frontend
 state, TanStack Query, Node-only APIs, or direct environment access.
 
@@ -834,7 +834,7 @@ Integration responsibilities remain outside the package:
 | Validator package               | Shared HTTP request/response schemas and reusable field validators                                                                                                   |
 | Types package                   | Stable domain types that are not transport implementation details                                                                                                    |
 
-Hyperion provides this domain-neutral publication foundation as the base
+LoanMS provides this domain-neutral publication foundation as the base
 template. Consumer projects may freely add their own event contracts,
 projections, and domain publisher wrappers; they can use or extend the API
 schedulers without moving consumer-specific behavior into the template.
@@ -843,16 +843,16 @@ schedulers without moving consumer-specific behavior into the template.
 
 The package exposes behavior-focused subpaths:
 
-| Subpath                            | Purpose                                                           |
-| ---------------------------------- | ----------------------------------------------------------------- |
-| `@hyperion/websocket/client`       | Browser manager and `APP` session lifecycle                       |
-| `@hyperion/websocket/coordination` | Bootstrap, command, and refresh-group coordination                |
-| `@hyperion/websocket/server`       | Durable Object leaf and broker base classes                       |
-| `@hyperion/websocket/protocol`     | Frame validation, parsing, serialization, negotiation, and gaps   |
-| `@hyperion/websocket/publisher`    | Cross-surface descriptor resolution and publisher contracts       |
-| `@hyperion/websocket/registry`     | Stream/event composition, target authorization, and admission     |
-| `@hyperion/websocket/topology`     | Surface profiles, destinations, and capability validation         |
-| `@hyperion/websocket/transport`    | Object names, hashing, probing, guards, limits, and bounded tasks |
+| Subpath                          | Purpose                                                           |
+| -------------------------------- | ----------------------------------------------------------------- |
+| `@loanms/websocket/client`       | Browser manager and `APP` session lifecycle                       |
+| `@loanms/websocket/coordination` | Bootstrap, command, and refresh-group coordination                |
+| `@loanms/websocket/server`       | Durable Object leaf and broker base classes                       |
+| `@loanms/websocket/protocol`     | Frame validation, parsing, serialization, negotiation, and gaps   |
+| `@loanms/websocket/publisher`    | Cross-surface descriptor resolution and publisher contracts       |
+| `@loanms/websocket/registry`     | Stream/event composition, target authorization, and admission     |
+| `@loanms/websocket/topology`     | Surface profiles, destinations, and capability validation         |
+| `@loanms/websocket/transport`    | Object names, hashing, probing, guards, limits, and bounded tasks |
 
 Internal `constants.ts`, `schemas.ts`, and `types.ts` modules are not package
 subpaths. Their established symbols are re-exported through the relevant
@@ -889,10 +889,10 @@ connection ID, shard order, and internal object name are server-derived.
 Run package commands from the repository root:
 
 ```bash
-pnpm --filter=@hyperion/websocket check
-pnpm --filter=@hyperion/websocket lint
-pnpm --filter=@hyperion/websocket test:con
-pnpm --filter=@hyperion/websocket build
+pnpm --filter=@loanms/websocket check
+pnpm --filter=@loanms/websocket lint
+pnpm --filter=@loanms/websocket test:con
+pnpm --filter=@loanms/websocket build
 ```
 
 When public contracts change, check the API and web workspaces that directly
@@ -901,8 +901,8 @@ shared Worker runtime is covered by each API application's WebSocket SRT
 suite:
 
 ```bash
-pnpm --filter=@hyperion/api-public test:srt
-pnpm --filter=@hyperion/api-backoffice test:srt
+pnpm --filter=@loanms/api-public test:srt
+pnpm --filter=@loanms/api-backoffice test:srt
 ```
 
 ## Scope

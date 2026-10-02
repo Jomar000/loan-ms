@@ -1,5 +1,5 @@
 import type { ApiKeyConfigurationOptions } from '@better-auth/api-key'
-import { API_KEY_AUDIENCES, type TApiKeyAudience } from '@hyperion/types/shared'
+import { API_KEY_AUDIENCES, type TApiKeyAudience } from '@loanms/types/shared'
 import { customAlphabet } from 'nanoid'
 
 const generateApiKeyCharacters = customAlphabet(

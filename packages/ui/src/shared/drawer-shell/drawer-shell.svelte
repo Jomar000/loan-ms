@@ -69,7 +69,7 @@
 <!--
 @component
 Use `DrawerShell` for record profile, detail, and edit side panels. Import it
-from `@hyperion/ui/shared/drawer-shell`.
+from `@loanms/ui/shared/drawer-shell`.
 
 Bind `open`, render the body as the default snippet, and optionally provide
 `headerActions` beside the truncating header text or `actions` for the fixed
@@ -84,7 +84,7 @@ panel entrance animation has completed.
 
 ```svelte
 <script lang="ts">
-    import { DrawerShell } from '@hyperion/ui/shared/drawer-shell'
+    import { DrawerShell } from '@loanms/ui/shared/drawer-shell'
 
     let open = $state(false)
 </script>

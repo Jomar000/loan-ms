@@ -1,5 +1,5 @@
 <script lang="ts">
-    import * as Sidebar from '@hyperion/ui/overrides/sidebar'
+    import * as Sidebar from '@loanms/ui/overrides/sidebar'
 
     const sidebar = Sidebar.useSidebar()
 </script>

@@ -8,18 +8,18 @@ type TD1Migration = {
 }
 
 const testEnv = env as Env & {
-    HYPERION_DEFAULT_MIGRATIONS: TD1Migration[]
-    HYPERION_TEST_MIGRATIONS: TD1Migration[]
+    LOANMS_DEFAULT_MIGRATIONS: TD1Migration[]
+    LOANMS_TEST_MIGRATIONS: TD1Migration[]
 }
 
 beforeAll(async () => {
     await applyD1Migrations(
-        testEnv.HYPERIONBOFC_D1,
-        testEnv.HYPERION_DEFAULT_MIGRATIONS,
+        testEnv.LOANMSBOFC_D1,
+        testEnv.LOANMS_DEFAULT_MIGRATIONS,
     )
     await applyD1Migrations(
-        testEnv.HYPERIONBOFC_D1,
-        testEnv.HYPERION_TEST_MIGRATIONS,
+        testEnv.LOANMSBOFC_D1,
+        testEnv.LOANMS_TEST_MIGRATIONS,
         'd1_test_migrations',
     )
 })

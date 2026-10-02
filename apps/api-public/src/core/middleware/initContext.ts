@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import { AppError, catalog } from '@hyperion/errors'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import { AppError, catalog } from '@loanms/errors'
 import { AwsClient } from 'aws4fetch'
 import { createMiddleware } from 'hono/factory'
 
@@ -18,7 +18,7 @@ export const initRequestContext = () => {
         ctx.set('authRateLimitDecision', null)
         ctx.set('apiKeyActor', null)
         ctx.set('apiKeyPermissions', null)
-        ctx.set('doWssClient', ctx.env.HYPERIONPUB_DO_WSS)
+        ctx.set('doWssClient', ctx.env.LOANMSPUB_DO_WSS)
         ctx.set(
             'ipAddress',
             resolveTrustedClientIpAddress(
@@ -27,7 +27,7 @@ export const initRequestContext = () => {
             ),
         )
         ctx.set('isPrivilegedRole', false)
-        ctx.set('kvClient', ctx.env.HYPERIONPUB_KV)
+        ctx.set('kvClient', ctx.env.LOANMSPUB_KV)
         ctx.set('passwordResetEmailError', null)
         ctx.set('passwordResetEmailSent', false)
         ctx.set('presentedApiKey', null)
@@ -45,7 +45,7 @@ export const initRequestContext = () => {
 
 export const initDatabaseContext = () => {
     return createMiddleware<THonoInstance>(async (ctx, next) => {
-        const initDbClient = dbClient(ctx.env.HYPERIONPUB_D1)
+        const initDbClient = dbClient(ctx.env.LOANMSPUB_D1)
 
         ctx.set('dbClient', initDbClient)
         ctx.set('dbSchema', dbSchema)

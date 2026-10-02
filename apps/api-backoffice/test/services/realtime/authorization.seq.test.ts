@@ -10,7 +10,7 @@ describe('Backoffice realtime authorization', () => {
 
         await expect(
             deliverBackofficeRealtimeRevocationLocally(
-                { getByName } as unknown as typeof env.HYPERIONBOFC_DO_WSB,
+                { getByName } as unknown as typeof env.LOANMSBOFC_DO_WSB,
                 {
                     authorizationVersion: uuidv7(),
                     expiresAt: Date.now() - 1,
@@ -41,7 +41,7 @@ describe('Backoffice realtime authorization', () => {
 
         try {
             await deliverBackofficeRealtimeRevocationLocally(
-                { getByName } as unknown as typeof env.HYPERIONBOFC_DO_WSB,
+                { getByName } as unknown as typeof env.LOANMSBOFC_DO_WSB,
                 {
                     authorizationVersion: uuidv7(),
                     expiresAt: Date.now() + 60_000,
@@ -81,7 +81,7 @@ describe('Backoffice realtime authorization', () => {
 
         await expect(
             deliverBackofficeRealtimeRevocationLocally(
-                { getByName } as unknown as typeof env.HYPERIONBOFC_DO_WSB,
+                { getByName } as unknown as typeof env.LOANMSBOFC_DO_WSB,
                 {
                     authorizationVersion: uuidv7(),
                     expiresAt: Date.now() + 60_000,

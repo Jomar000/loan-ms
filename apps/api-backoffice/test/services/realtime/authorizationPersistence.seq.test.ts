@@ -1,6 +1,6 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import { catalog } from '@hyperion/errors'
-import { getRealtimeRevocationDestinations } from '@hyperion/websocket/topology'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import { catalog } from '@loanms/errors'
+import { getRealtimeRevocationDestinations } from '@loanms/websocket/topology'
 import { env } from 'cloudflare:workers'
 import { and, eq } from 'drizzle-orm'
 import { v4 as uuidv4, v7 as uuidv7 } from 'uuid'
@@ -54,7 +54,7 @@ const expectD1ForeignKeyViolation = async (operation: PromiseLike<unknown>) => {
 }
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
 
     await db.insert(dbSchema.organization).values({
         id: organizationId,
@@ -63,7 +63,7 @@ beforeAll(async () => {
     })
     await db.insert(dbSchema.user).values({
         id: userId,
-        email: 'ws.revocation@test.hyperion.app',
+        email: 'ws.revocation@test.loanms.example',
         name: 'WebSocket Revocation Test',
         username: '__test_ws_revocation',
     })
@@ -427,7 +427,7 @@ describe('Membership WebSocket authorization revocation', () => {
             })
             await db.insert(dbSchema.user).values({
                 id: testUserId,
-                email: `ws.history.${testSuffix}@test.hyperion.app`,
+                email: `ws.history.${testSuffix}@test.loanms.example`,
                 name: 'WebSocket Historical Attribution Test',
                 username: `__test_ws_history_${testSuffix}`,
             })
@@ -715,7 +715,7 @@ describe('Membership WebSocket authorization revocation', () => {
 
         const created = await createAndDeliverMembershipRealtimeRevocation({
             client: db,
-            database: env.HYPERIONBOFC_D1,
+            database: env.LOANMSBOFC_D1,
             mutation: { kind: 'rotate' },
             namespace: {
                 getByName: () => ({
@@ -726,7 +726,7 @@ describe('Membership WebSocket authorization revocation', () => {
                         successfulLeafCount: 64,
                     }),
                 }),
-            } as unknown as typeof env.HYPERIONBOFC_DO_WSB,
+            } as unknown as typeof env.LOANMSBOFC_DO_WSB,
             operationId,
             organizationId,
             profile: { kind: 'shared-auth-security-only' },
@@ -784,7 +784,7 @@ describe('Membership WebSocket authorization revocation', () => {
         try {
             await createAndDeliverMembershipRealtimeRevocation({
                 client: db,
-                database: env.HYPERIONBOFC_D1,
+                database: env.LOANMSBOFC_D1,
                 mutation: { kind: 'rotate' },
                 namespace: {
                     getByName: () => ({
@@ -792,7 +792,7 @@ describe('Membership WebSocket authorization revocation', () => {
                             throw new Error(`local broker down ${secret}`)
                         },
                     }),
-                } as unknown as typeof env.HYPERIONBOFC_DO_WSB,
+                } as unknown as typeof env.LOANMSBOFC_DO_WSB,
                 operationId,
                 organizationId,
                 profile: { kind: 'shared-auth-security-only' },
@@ -889,7 +889,7 @@ describe('Membership WebSocket authorization revocation', () => {
                             successfulLeafCount: 64,
                         }),
                     }),
-                } as unknown as typeof env.HYPERIONBOFC_DO_WSB,
+                } as unknown as typeof env.LOANMSBOFC_DO_WSB,
                 operationId,
                 organizationId,
                 profile: { kind: 'independent-surfaces' },

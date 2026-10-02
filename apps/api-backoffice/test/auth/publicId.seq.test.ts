@@ -1,4 +1,4 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
+import { dbClient, dbSchema } from '@loanms/database/d1'
 import { env } from 'cloudflare:workers'
 import { eq, inArray } from 'drizzle-orm'
 import { validate as validateUuid, version as uuidVersion } from 'uuid'
@@ -12,7 +12,7 @@ let db: ReturnType<typeof dbClient>
 const createdIds: string[] = []
 
 beforeAll(() => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
 })
 
 afterAll(async () => {
@@ -46,7 +46,7 @@ describe('Canonical public user identifiers', () => {
             .values({
                 id,
                 name: 'Public ID test',
-                email: 'publicid.drizzle@test.hyperion.app',
+                email: 'publicid.drizzle@test.loanms.example',
                 username: '__test_publicid_drizzle',
             })
             .returning({ publicId: dbSchema.user.publicId })
@@ -57,12 +57,12 @@ describe('Canonical public user identifiers', () => {
             db,
             dbSchema,
             env,
-            acl: await aclBuilder(db, dbSchema, env.HYPERIONBOFC_KV),
+            acl: await aclBuilder(db, dbSchema, env.LOANMSBOFC_KV),
         })
         const created = await instance.api.signUpEmail({
             body: {
                 name: 'Better Auth public ID test',
-                email: 'publicid.betterauth@test.hyperion.app',
+                email: 'publicid.betterauth@test.loanms.example',
                 username: '__test_publicid_betterauth',
                 password: 'Safe-Test-Password123!',
             },
@@ -86,9 +86,9 @@ describe('Canonical public user identifiers', () => {
     it('rejects writes that bypass the application-generated public UUID.', async () => {
         const id = '__TEST-PUBLIC-ID-SQL'
         await expect(
-            env.HYPERIONBOFC_D1.prepare(
+            env.LOANMSBOFC_D1.prepare(
                 `INSERT INTO "user" (id, name, email, username)
-                 VALUES (?, 'SQL public ID test', 'publicid.sql@test.hyperion.app', '__test_publicid_sql')`,
+                 VALUES (?, 'SQL public ID test', 'publicid.sql@test.loanms.example', '__test_publicid_sql')`,
             )
                 .bind(id)
                 .run(),

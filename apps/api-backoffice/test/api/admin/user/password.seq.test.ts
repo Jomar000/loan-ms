@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, desc, eq } from 'drizzle-orm'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -21,7 +21,7 @@ let privilegedCookie: string
 let db: ReturnType<typeof dbClient>
 
 beforeAll(async () => {
-    db = dbClient(env.HYPERIONBOFC_D1)
+    db = dbClient(env.LOANMSBOFC_D1)
     ;[privilegedCookie] = await seedTestingCookies()
 })
 

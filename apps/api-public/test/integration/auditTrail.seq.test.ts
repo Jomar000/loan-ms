@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import { AppError } from '@hyperion/errors'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import { AppError } from '@loanms/errors'
 import { env } from 'cloudflare:workers'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { Context } from 'hono'
@@ -21,7 +21,7 @@ let db: ReturnType<typeof dbClient>
 const counterKeys: string[] = []
 
 beforeAll(() => {
-    db = dbClient(env.HYPERIONPUB_D1)
+    db = dbClient(env.LOANMSPUB_D1)
 })
 
 afterAll(async () => {
@@ -63,7 +63,7 @@ function createAuditedMutation() {
         get: (key: string) => values[key],
         header: vi.fn(),
     } as unknown as Context<THonoInstance>
-    const database = env.HYPERIONPUB_D1
+    const database = env.LOANMSPUB_D1
     const batch = vi.fn((statements: D1PreparedStatement[]) =>
         database.batch(statements),
     )

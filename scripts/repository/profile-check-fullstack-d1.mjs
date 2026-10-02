@@ -84,9 +84,9 @@ export function verifyFullstackD1Profile({
         workspaceManifestPattern.test(file),
     )
     const initialization = readTemplateInitialization(repository, errors)
-    const scope = initialization.configuration?.scope ?? '@hyperion'
+    const scope = initialization.configuration?.scope ?? '@loanms'
     const bindingPrefix =
-        initialization.configuration?.bindingPrefix ?? 'HYPERION'
+        initialization.configuration?.bindingPrefix ?? 'LOANMS'
 
     verifyWorkspaceProfile()
     verifySkillMirrors()

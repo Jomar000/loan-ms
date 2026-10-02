@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import * as Card from '@hyperion/ui/components/card'
+    import { Button } from '@loanms/ui/components/button'
+    import * as Card from '@loanms/ui/components/card'
     import CircleCheckIcon from '@lucide/svelte/icons/circle-check'
     import CircleXIcon from '@lucide/svelte/icons/circle-x'
     import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle'

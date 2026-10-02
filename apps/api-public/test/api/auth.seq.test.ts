@@ -1,5 +1,5 @@
-import { dbClient, dbSchema } from '@hyperion/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@hyperion/types/shared'
+import { dbClient, dbSchema } from '@loanms/database/d1'
+import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
 import { createEmailVerificationToken } from 'better-auth/api'
 import { env } from 'cloudflare:workers'
 import { and, count, desc, eq, sql } from 'drizzle-orm'
@@ -27,7 +27,7 @@ import {
 
 const AUTH_RATE_LIMIT_IP = '198.51.100.201'
 const mailBindings = new Set<PropertyKey>([
-    'HYPERIONPUB_EMAIL',
+    'LOANMSPUB_EMAIL',
     'MAILER_ACCOUNT',
     'MAILER_PROVIDER',
     'RESEND_API_KEY',
@@ -62,7 +62,7 @@ type TSessionResponseData = {
 }
 
 beforeAll(() => {
-    db = dbClient(env.HYPERIONPUB_D1)
+    db = dbClient(env.LOANMSPUB_D1)
 })
 
 afterAll(async () => {})
@@ -165,7 +165,7 @@ const withMutableIsolatedMembership = async (
 const verificationUser = {
     id: '__TEST-USER_EMAIL_VERIFICATION_PUBLIC',
     name: '__TEST-EMAIL VERIFICATION PUBLIC',
-    email: 'email.verification.public@test.hyperion.app',
+    email: 'email.verification.public@test.loanms.example',
     username: '__test_email_verification_public',
 }
 
@@ -1156,7 +1156,7 @@ describe('Auth Endpoint', () => {
                             newPassword: 'N3wP@ssw0rd1234',
                         }),
                     },
-                    { ...env, HYPERIONPUB_D1: failD1Batch(env.HYPERIONPUB_D1) },
+                    { ...env, LOANMSPUB_D1: failD1Batch(env.LOANMSPUB_D1) },
                 )
                 const [
                     credentialAfter,
@@ -1454,7 +1454,7 @@ describe('Auth Endpoint', () => {
                 )
                 expect(interceptedToken).toBeTruthy()
                 expect(
-                    await env.HYPERIONPUB_KV.list({ prefix: 'verification:' }),
+                    await env.LOANMSPUB_KV.list({ prefix: 'verification:' }),
                 ).toMatchObject({ keys: [] })
             })
 
@@ -1489,7 +1489,7 @@ describe('Auth Endpoint', () => {
                             newPassword: 'R3set@P@ssw0rd5678',
                         }),
                     },
-                    { ...env, HYPERIONPUB_D1: failD1Batch(env.HYPERIONPUB_D1) },
+                    { ...env, LOANMSPUB_D1: failD1Batch(env.LOANMSPUB_D1) },
                 )
                 const [
                     tokensAfter,

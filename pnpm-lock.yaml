@@ -278,10 +278,10 @@ importers:
 
   apps/api-backoffice:
     dependencies:
-      '@hyperion/types':
+      '@loanms/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@hyperion/validator':
+      '@loanms/validator':
         specifier: workspace:*
         version: link:../../packages/validator
       hono:
@@ -300,16 +300,16 @@ importers:
       '@hono/zod-validator':
         specifier: 'catalog:'
         version: 0.9.1(hono@4.13.12)(zod@4.6.5)
-      '@hyperion/database':
+      '@loanms/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@hyperion/errors':
+      '@loanms/errors':
         specifier: workspace:*
         version: link:../../packages/errors
-      '@hyperion/rate-limit':
+      '@loanms/rate-limit':
         specifier: workspace:*
         version: link:../../packages/rate-limit
-      '@hyperion/websocket':
+      '@loanms/websocket':
         specifier: workspace:*
         version: link:../../packages/websocket
       '@noble/hashes':
@@ -357,10 +357,10 @@ importers:
 
   apps/api-public:
     dependencies:
-      '@hyperion/types':
+      '@loanms/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@hyperion/validator':
+      '@loanms/validator':
         specifier: workspace:*
         version: link:../../packages/validator
       hono:
@@ -379,16 +379,16 @@ importers:
       '@hono/zod-validator':
         specifier: 'catalog:'
         version: 0.9.1(hono@4.13.12)(zod@4.6.5)
-      '@hyperion/database':
+      '@loanms/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@hyperion/errors':
+      '@loanms/errors':
         specifier: workspace:*
         version: link:../../packages/errors
-      '@hyperion/rate-limit':
+      '@loanms/rate-limit':
         specifier: workspace:*
         version: link:../../packages/rate-limit
-      '@hyperion/websocket':
+      '@loanms/websocket':
         specifier: workspace:*
         version: link:../../packages/websocket
       '@noble/hashes':
@@ -436,19 +436,19 @@ importers:
 
   apps/web-backoffice:
     devDependencies:
-      '@hyperion/api-backoffice':
+      '@loanms/api-backoffice':
         specifier: workspace:*
         version: link:../api-backoffice
-      '@hyperion/types':
+      '@loanms/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@hyperion/ui':
+      '@loanms/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@hyperion/validator':
+      '@loanms/validator':
         specifier: workspace:*
         version: link:../../packages/validator
-      '@hyperion/websocket':
+      '@loanms/websocket':
         specifier: workspace:*
         version: link:../../packages/websocket
       '@lucide/svelte':
@@ -553,19 +553,19 @@ importers:
 
   apps/web-public:
     devDependencies:
-      '@hyperion/api-public':
+      '@loanms/api-public':
         specifier: workspace:*
         version: link:../api-public
-      '@hyperion/types':
+      '@loanms/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@hyperion/ui':
+      '@loanms/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@hyperion/validator':
+      '@loanms/validator':
         specifier: workspace:*
         version: link:../../packages/validator
-      '@hyperion/websocket':
+      '@loanms/websocket':
         specifier: workspace:*
         version: link:../../packages/websocket
       '@lucide/svelte':
@@ -689,7 +689,7 @@ importers:
 
   packages/rate-limit:
     dependencies:
-      '@hyperion/errors':
+      '@loanms/errors':
         specifier: workspace:*
         version: link:../errors
     devDependencies:
@@ -702,7 +702,7 @@ importers:
 
   packages/types:
     dependencies:
-      '@hyperion/errors':
+      '@loanms/errors':
         specifier: workspace:*
         version: link:../errors
 
@@ -783,7 +783,7 @@ importers:
 
   packages/validator:
     dependencies:
-      '@hyperion/types':
+      '@loanms/types':
         specifier: workspace:*
         version: link:../types
       zod:
@@ -792,13 +792,13 @@ importers:
 
   packages/websocket:
     dependencies:
-      '@hyperion/errors':
+      '@loanms/errors':
         specifier: workspace:*
         version: link:../errors
-      '@hyperion/types':
+      '@loanms/types':
         specifier: workspace:*
         version: link:../types
-      '@hyperion/validator':
+      '@loanms/validator':
         specifier: workspace:*
         version: link:../validator
       zod:

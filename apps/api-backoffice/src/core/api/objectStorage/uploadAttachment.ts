@@ -1,9 +1,9 @@
-import { AppError, catalog } from '@hyperion/errors'
+import { AppError, catalog } from '@loanms/errors'
 import {
     uploadAttachmentCommitInputSchema,
     uploadAttachmentCreateInputSchema,
     uploadAttachmentRetryInputSchema,
-} from '@hyperion/validator/backoffice/objectStorage'
+} from '@loanms/validator/backoffice/objectStorage'
 import { hexToBytes } from '@noble/hashes/utils.js'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { Hono } from 'hono'

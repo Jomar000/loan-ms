@@ -44,7 +44,7 @@ vi.mock('$app/state', () => ({
     },
 }))
 vi.mock('$env/static/public', () => ({
-    PUBLIC_NAME: 'Hyperion',
+    PUBLIC_NAME: 'LoanMS',
 }))
 vi.mock('$lib/clients', () => ({
     authClient: {

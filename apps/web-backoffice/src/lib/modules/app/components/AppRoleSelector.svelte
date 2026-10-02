@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { Button } from '@hyperion/ui/components/button'
-    import * as Card from '@hyperion/ui/components/card'
-    import * as Field from '@hyperion/ui/components/field'
-    import * as Select from '@hyperion/ui/components/select'
+    import { Button } from '@loanms/ui/components/button'
+    import * as Card from '@loanms/ui/components/card'
+    import * as Field from '@loanms/ui/components/field'
+    import * as Select from '@loanms/ui/components/select'
     import GalleryVerticalEndIcon from '@lucide/svelte/icons/gallery-vertical-end'
     import UserStarIcon from '@lucide/svelte/icons/user-star'
 
