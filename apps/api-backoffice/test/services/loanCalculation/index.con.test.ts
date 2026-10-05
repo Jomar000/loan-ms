@@ -8,6 +8,26 @@ import {
 } from '../../../src/services/loanCalculation/index.js'
 
 describe('loan calculation service', () => {
+    it('calculates a ₱5,000 loan with the locked 20% 60-day daily profile', () => {
+        const calculation = calculateLoan({
+            principalAmountCents: 500_000,
+            interestMethod: 'FLAT_PERCENTAGE',
+            interestRateBasisPoints: 2_000,
+            termDays: 60,
+            installmentCount: 60,
+            paymentFrequency: 'DAILY',
+            roundingMode: 'HALF_UP',
+        })
+
+        expect(calculation).toMatchObject({
+            interestAmountCents: 100_000,
+            totalPayableAmountCents: 600_000,
+            baseInstallmentAmountCents: 10_000,
+            installmentResidueCents: 0,
+            dailyPaymentAmountCents: 10_000,
+        })
+    })
+
     it('calculates the locked 20% 60-day daily profile in centavos', () => {
         const calculation = calculateLoan({
             principalAmountCents: 700_000,
@@ -123,6 +143,7 @@ describe('loan calculation service', () => {
                     },
                 ],
                 renewalPrincipalAmountCents: 100,
+                minimumRenewalCompletedInstallments: 0,
                 partialCreditPolicy: 'IGNORE' as never,
                 renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
             }),
@@ -235,6 +256,7 @@ describe('loan calculation service', () => {
         const renewal = calculateRenewalQuote({
             installments: allocation.installments,
             renewalPrincipalAmountCents: 700_000,
+            minimumRenewalCompletedInstallments: 0,
             partialCreditPolicy: 'CARRY_FORWARD',
             renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
         })
@@ -253,6 +275,7 @@ describe('loan calculation service', () => {
             carriedForwardCreditCents: 8_000,
             cashReleaseAmountCents: 252_000,
             additionalSettlementDueCents: 0,
+            isEligibleForRenewal: true,
         })
     })
 
@@ -267,6 +290,7 @@ describe('loan calculation service', () => {
                 },
             ],
             renewalPrincipalAmountCents: 400,
+            minimumRenewalCompletedInstallments: 0,
             partialCreditPolicy: 'CARRY_FORWARD',
             renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
         })
@@ -296,12 +320,14 @@ describe('loan calculation service', () => {
         const exactOutstanding = calculateRenewalQuote({
             installments,
             renewalPrincipalAmountCents: 200,
+            minimumRenewalCompletedInstallments: 1,
             partialCreditPolicy: 'CARRY_FORWARD',
             renewalSettlementMethod: 'EXACT_OUTSTANDING_BALANCE',
         })
         const manualReview = calculateRenewalQuote({
             installments,
             renewalPrincipalAmountCents: 200,
+            minimumRenewalCompletedInstallments: 1,
             partialCreditPolicy: 'MANUAL_REVIEW',
             renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
         })
@@ -310,11 +336,13 @@ describe('loan calculation service', () => {
             actualOutstandingBalanceCents: 160,
             renewalSettlementBalanceCents: 160,
             cashReleaseAmountCents: 40,
+            isEligibleForRenewal: false,
         })
         expect(manualReview).toMatchObject({
             renewalSettlementBalanceCents: 200,
             manualReviewCreditCents: 40,
             requiresManualReview: true,
+            isEligibleForRenewal: false,
         })
     })
 })

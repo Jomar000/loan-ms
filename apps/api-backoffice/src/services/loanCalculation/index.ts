@@ -84,6 +84,7 @@ export type TPaymentAllocationResult = {
 export type TRenewalQuoteInput = {
     installments: readonly TInstallmentPaymentState[]
     renewalPrincipalAmountCents: number
+    minimumRenewalCompletedInstallments: number
     partialCreditPolicy: TPartialCreditPolicy
     renewalSettlementMethod: TRenewalSettlementMethod
 }
@@ -91,6 +92,7 @@ export type TRenewalQuoteInput = {
 export type TRenewalQuote = {
     completedInstallmentCount: number
     remainingInstallmentCount: number
+    isEligibleForRenewal: boolean
     partialPaymentCreditCents: number
     totalPayableAmountCents: number
     totalPaidAmountCents: number
@@ -472,6 +474,10 @@ export function calculateRenewalQuote(
     )
     assertPartialCreditPolicy(input.partialCreditPolicy)
     assertRenewalSettlementMethod(input.renewalSettlementMethod)
+    assertSafeNonNegativeInteger(
+        input.minimumRenewalCompletedInstallments,
+        'Minimum renewal completed installments',
+    )
 
     const completed = completedInstallmentCount(input.installments)
     const firstIncomplete = input.installments[completed]
@@ -504,6 +510,8 @@ export function calculateRenewalQuote(
     return {
         completedInstallmentCount: completed,
         remainingInstallmentCount: input.installments.length - completed,
+        isEligibleForRenewal:
+            completed >= input.minimumRenewalCompletedInstallments,
         partialPaymentCreditCents,
         totalPayableAmountCents,
         totalPaidAmountCents,

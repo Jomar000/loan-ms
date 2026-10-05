@@ -9,9 +9,9 @@ ON CONFLICT DO NOTHING;
 INSERT INTO "user"
     (id, public_id, name, email, username)
 VALUES
-    ('USER_001', '019936e2-b837-7000-8000-000000000001', 'SUPER ADMINISTRATOR', 'superadministrator@hyperion.app', 'superadministrator'),
-    ('USER_002', '019936e2-b837-7000-8000-000000000002', 'ADMINISTRATOR', 'administrator@hyperion.app', 'administrator'),
-    ('USER_003', '019936e2-b837-7000-8000-000000000003', 'MEMBER', 'member@hyperion.app', 'member')
+    ('USER_001', '019936e2-b837-7000-8000-000000000001', 'SUPER ADMINISTRATOR', 'superadministrator@loanms.app', 'superadministrator'),
+    ('USER_002', '019936e2-b837-7000-8000-000000000002', 'ADMINISTRATOR', 'administrator@loanms.app', 'administrator'),
+    ('USER_003', '019936e2-b837-7000-8000-000000000003', 'MEMBER', 'member@loanms.app', 'member')
 ON CONFLICT DO NOTHING;
 --> statement-breakpoint
 

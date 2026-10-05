@@ -14,18 +14,17 @@
     import { apiKeyFeatureEnabled } from '$lib/config/apiKey'
     import { objectStorageFeatureEnabled } from '$lib/config/objectStorage'
     import { useSessionContext } from '$lib/states/session'
+    import type { AppRole } from '../utilities/navigation'
 
     ////////////////////
     // 01. Properties //
     ////////////////////
 
-    type Role = 'admin' | 'member' | 'owner'
-
     let {
         role,
         children,
     }: {
-        role: Role
+        role: AppRole
         children: Snippet
     } = $props()
 

@@ -9,6 +9,7 @@
     import { goto } from '$app/navigation'
     import { PUBLIC_NAME } from '$env/static/public'
     import { useSessionContext } from '$lib/states/session'
+    import { getRoleDefaultRoute } from '../utilities/navigation'
 
     ///////////////////
     // 02. Constants //
@@ -30,7 +31,7 @@
         event.preventDefault()
         if (!selectedRole) return
 
-        void goto(`/app/${selectedRole}/dashboard`)
+        void goto(getRoleDefaultRoute(selectedRole))
     }
 </script>
 
@@ -105,7 +106,7 @@
                     <Button
                         class="w-full"
                         disabled={selectedRole === ''}
-                        type="submit">Proceed to Dashboard</Button
+                        type="submit">Proceed</Button
                     >
                 </Card.Footer>
             </form>

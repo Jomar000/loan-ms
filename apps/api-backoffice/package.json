@@ -74,9 +74,45 @@
             "types": "./dist/core/api/auditTrail.d.ts",
             "default": "./dist/core/api/auditTrail.js"
         },
+        "./api/borrower": {
+            "types": "./dist/core/api/borrowers.d.ts",
+            "default": "./dist/core/api/borrowers.js"
+        },
+        "./api/loan": {
+            "types": "./dist/core/api/loans.d.ts",
+            "default": "./dist/core/api/loans.js"
+        },
         "./api/objectStorage": {
             "types": "./dist/core/api/objectStorage/index.d.ts",
             "default": "./dist/core/api/objectStorage/index.js"
+        },
+        "./api/payment": {
+            "types": "./dist/core/api/payments.d.ts",
+            "default": "./dist/core/api/payments.js"
+        },
+        "./api/overdue": {
+            "types": "./dist/core/api/overdue.d.ts",
+            "default": "./dist/core/api/overdue.js"
+        },
+        "./api/renewal": {
+            "types": "./dist/core/api/renewals.d.ts",
+            "default": "./dist/core/api/renewals.js"
+        },
+        "./api/report": {
+            "types": "./dist/core/api/reports.d.ts",
+            "default": "./dist/core/api/reports.js"
+        },
+        "./api/settings": {
+            "types": "./dist/core/api/settings.d.ts",
+            "default": "./dist/core/api/settings.js"
+        },
+        "./api/collection": {
+            "types": "./dist/core/api/collections.d.ts",
+            "default": "./dist/core/api/collections.js"
+        },
+        "./api/companyFund": {
+            "types": "./dist/core/api/companyFund.d.ts",
+            "default": "./dist/core/api/companyFund.js"
         },
         "./api/user": {
             "types": "./dist/core/api/user/index.d.ts",

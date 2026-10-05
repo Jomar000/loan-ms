@@ -35,6 +35,22 @@
             "types": "./dist/backoffice/auditTrail.schema.d.ts",
             "default": "./dist/backoffice/auditTrail.schema.js"
         },
+        "./backoffice/borrower": {
+            "types": "./dist/backoffice/borrower.schema.d.ts",
+            "default": "./dist/backoffice/borrower.schema.js"
+        },
+        "./backoffice/companyFund": {
+            "types": "./dist/backoffice/companyFund.schema.d.ts",
+            "default": "./dist/backoffice/companyFund.schema.js"
+        },
+        "./backoffice/loan": {
+            "types": "./dist/backoffice/loan.schema.d.ts",
+            "default": "./dist/backoffice/loan.schema.js"
+        },
+        "./backoffice/loanCalculation": {
+            "types": "./dist/backoffice/loanCalculation.schema.d.ts",
+            "default": "./dist/backoffice/loanCalculation.schema.js"
+        },
         "./backoffice/admin/servicePrincipal": {
             "types": "./dist/backoffice/admin/servicePrincipal.schema.d.ts",
             "default": "./dist/backoffice/admin/servicePrincipal.schema.js"
@@ -46,6 +62,22 @@
         "./backoffice/objectStorage": {
             "types": "./dist/backoffice/objectStorage.schema.d.ts",
             "default": "./dist/backoffice/objectStorage.schema.js"
+        },
+        "./backoffice/payment": {
+            "types": "./dist/backoffice/payment.schema.d.ts",
+            "default": "./dist/backoffice/payment.schema.js"
+        },
+        "./backoffice/renewal": {
+            "types": "./dist/backoffice/renewal.schema.d.ts",
+            "default": "./dist/backoffice/renewal.schema.js"
+        },
+        "./backoffice/report": {
+            "types": "./dist/backoffice/report.schema.d.ts",
+            "default": "./dist/backoffice/report.schema.js"
+        },
+        "./backoffice/settings": {
+            "types": "./dist/backoffice/settings.schema.d.ts",
+            "default": "./dist/backoffice/settings.schema.js"
         },
         "./backoffice/user": {
             "types": "./dist/backoffice/user/index.d.ts",

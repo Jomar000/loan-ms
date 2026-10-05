@@ -11,15 +11,15 @@ ON CONFLICT DO NOTHING;
 INSERT INTO "user"
     (id, public_id, name, email, username)
 VALUES
-    ('__TEST-USER_OWNER', '019936e2-b837-7000-8000-000000000101', '__TEST-OWNER', 'owner@test.hyperion.app', '__test_owner'),
-    ('__TEST-USER_ADMIN', '019936e2-b837-7000-8000-000000000102', '__TEST-ADMINISTRATOR', 'administrator@test.hyperion.app', '__test_admin'),
-    ('__TEST-USER_MEMBER', '019936e2-b837-7000-8000-000000000103', '__TEST-MEMBER', 'member@test.hyperion.app', '__test_member'),
-    ('__TEST-USER_MULTI_ROLE', '019936e2-b837-7000-8000-000000000104', '__TEST-MULTI ROLE MEMBER', 'multi.role@test.hyperion.app', '__test_multi_role'),
-    ('__TEST-USER_AUTH_MUTABLE', '019936e2-b837-7000-8000-000000000105', '__TEST-AUTH MUTABLE', 'auth.mutable@test.hyperion.app', '__test_auth_mutable'),
-    ('__TEST-USER_PASSWORD_MUTABLE', '019936e2-b837-7000-8000-000000000106', '__TEST-PASSWORD MUTABLE', 'password.mutable@test.hyperion.app', '__test_password_mutable'),
-    ('__TEST-USER_NO_ATTRIBUTE', '019936e2-b837-7000-8000-000000000107', '__TEST-NO ATTRIBUTE', 'no.attribute@test.hyperion.app', '__test_no_attribute'),
-    ('__TEST-USER_NO_CREDENTIAL', '019936e2-b837-7000-8000-000000000108', '__TEST-NO CREDENTIAL', 'no.credential@test.hyperion.app', '__test_no_credential'),
-    ('__TEST-USER_LOCKED', '019936e2-b837-7000-8000-000000000109', '__TEST-LOCKED', 'locked@test.hyperion.app', '__test_locked')
+    ('__TEST-USER_OWNER', '019936e2-b837-7000-8000-000000000101', '__TEST-OWNER', 'owner@test.loanms.example', '__test_owner'),
+    ('__TEST-USER_ADMIN', '019936e2-b837-7000-8000-000000000102', '__TEST-ADMINISTRATOR', 'administrator@test.loanms.example', '__test_admin'),
+    ('__TEST-USER_MEMBER', '019936e2-b837-7000-8000-000000000103', '__TEST-MEMBER', 'member@test.loanms.example', '__test_member'),
+    ('__TEST-USER_MULTI_ROLE', '019936e2-b837-7000-8000-000000000104', '__TEST-MULTI ROLE MEMBER', 'multi.role@test.loanms.example', '__test_multi_role'),
+    ('__TEST-USER_AUTH_MUTABLE', '019936e2-b837-7000-8000-000000000105', '__TEST-AUTH MUTABLE', 'auth.mutable@test.loanms.example', '__test_auth_mutable'),
+    ('__TEST-USER_PASSWORD_MUTABLE', '019936e2-b837-7000-8000-000000000106', '__TEST-PASSWORD MUTABLE', 'password.mutable@test.loanms.example', '__test_password_mutable'),
+    ('__TEST-USER_NO_ATTRIBUTE', '019936e2-b837-7000-8000-000000000107', '__TEST-NO ATTRIBUTE', 'no.attribute@test.loanms.example', '__test_no_attribute'),
+    ('__TEST-USER_NO_CREDENTIAL', '019936e2-b837-7000-8000-000000000108', '__TEST-NO CREDENTIAL', 'no.credential@test.loanms.example', '__test_no_credential'),
+    ('__TEST-USER_LOCKED', '019936e2-b837-7000-8000-000000000109', '__TEST-LOCKED', 'locked@test.loanms.example', '__test_locked')
 ON CONFLICT DO NOTHING;
 --> statement-breakpoint
 

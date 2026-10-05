@@ -1,1 +1,5 @@
-<div class="flex flex-1 flex-col gap-4 p-4 pt-0">OWNER DASHBOARD</div>
+<script lang="ts">
+    import FinancialDashboardPage from '$lib/modules/companyFund/components/FinancialDashboardPage.svelte'
+</script>
+
+<FinancialDashboardPage title="Owner dashboard" />

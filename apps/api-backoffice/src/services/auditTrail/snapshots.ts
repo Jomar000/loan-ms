@@ -436,10 +436,10 @@ function validateSnapshotPolicy(
 export function createAuditRecordProjector<TContext>(
     extensionPolicy: TAuditSnapshotPolicy<TAuditEntityType>,
 ) {
-    const snapshotFields: Record<TAuditEntityType, readonly string[]> = {
+    const snapshotFields = {
         ...baseSnapshotFields,
         ...extensionPolicy.snapshotFields,
-    }
+    } as Record<TAuditEntityType, readonly string[]>
     validateSnapshotPolicy(extensionPolicy, snapshotFields)
 
     function toFieldValue(

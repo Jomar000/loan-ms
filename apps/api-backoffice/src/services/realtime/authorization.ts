@@ -159,6 +159,7 @@ type TRealtimeRevocationDeliveryClientInput =
 
 export const createAndDeliverMembershipRealtimeRevocation = async (
     input: {
+        additionalStatements?: readonly D1PreparedStatement[]
         client: ReturnType<typeof dbClient>
         mutation: TMembershipAuthorizationMutation
         namespace: DurableObjectNamespace<WebSocketBroker>
@@ -183,6 +184,7 @@ export const createAndDeliverMembershipRealtimeRevocation = async (
     })
 
     const created = await createMembershipWebSocketRevocation({
+        additionalStatements: input.additionalStatements,
         client: input.client,
         destinations: getRealtimeRevocationDestinations(
             profile,

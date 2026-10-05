@@ -228,7 +228,8 @@ The documented explicit index inventory is `account_idx_1`, `apikey_idx_1`,
 `audit_trail_idx_4`, `audit_trail_idx_5`, `audit_trail_idx_6`,
 `audit_trail_idx_7`, `invitation_idx_1`,
 `invitation_idx_2`, `invitation_idx_3`,
-`loan_formula_profile_unique_active_default`, `member_idx_1`,
+`loan_formula_profile_unique_active_default`,
+`loan_formula_profile_organization_id_idempotency_key_unique`, `member_idx_1`,
 `notification_delivery_idx_list_q4m8tz`,
 `notification_delivery_idx_unread_k6p3wx`, `object_storage_acl_idx_1`,
 `permission_idx_1`, `service_principal_idx_1`, `session_idx_1`,
@@ -303,6 +304,8 @@ runtime triggers, and requires `PRAGMA foreign_key_check` to remain empty.
 - `00000000000003_loan_formula_profile.sql` adds immutable, organization-scoped
   formula profile snapshots. It intentionally has no seed because organization
   formula initialization is application-owned.
+- `00000000000014_formula_profile_management.sql` adds tenant-scoped retry
+  identity and request fingerprints for formula-profile creation/versioning.
 - `99999999999999_test_data.sql` is a separate test-only migration history.
 - The public API Wrangler configuration is the single migration owner. Public
   and backoffice D1 bindings point to the same database per environment.

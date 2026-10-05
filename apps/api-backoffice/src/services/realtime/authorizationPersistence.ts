@@ -31,6 +31,7 @@ export type TMembershipAuthorizationMutation =
       }
 
 export type TCreateWebSocketRevocationInput = {
+    additionalStatements?: readonly D1PreparedStatement[]
     client: ReturnType<typeof dbClient>
     destinations: readonly TWebSocketRevocationDestination[]
     mutation: TMembershipAuthorizationMutation
@@ -294,6 +295,7 @@ export const createMembershipWebSocketRevocation = async (
     const [insertResult] = await database.batch([
         operationInsert,
         membershipMutation,
+        ...(input.additionalStatements ?? []),
         ...deliveryStatements,
     ])
     const operation = await findOperation()

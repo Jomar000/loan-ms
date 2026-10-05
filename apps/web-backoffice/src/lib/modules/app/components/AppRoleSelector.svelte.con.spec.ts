@@ -12,6 +12,7 @@ vi.mock('$lib/states/session', () => ({
     useSessionContext: () => ({
         getRoles: () => [
             'admin',
+            'cashier',
             'member',
         ],
     }),
@@ -34,13 +35,20 @@ describe('AppRoleSelector', () => {
             adminOption.element().closest('[data-slot="select-group"]'),
         ).not.toBeNull()
         await adminOption.click()
-        screen
-            .getByRole('button', { name: 'Proceed to Dashboard' })
-            .element()
-            .focus()
+        screen.getByRole('button', { name: 'Proceed' }).element().focus()
         await userEvent.keyboard('{Enter}')
 
         expect(mocks.goto).toHaveBeenCalledWith('/app/admin/dashboard')
+    })
+
+    it('submits an operational role to its workflow landing route', async () => {
+        const screen = await render(AppRoleSelector)
+
+        await screen.getByRole('button', { name: 'Role' }).click()
+        await screen.getByRole('option', { name: 'CASHIER' }).click()
+        await screen.getByRole('button', { name: 'Proceed' }).click()
+
+        expect(mocks.goto).toHaveBeenCalledWith('/app/cashier/loans')
     })
 })
 

@@ -1,5 +1,6 @@
 import ActivitySquareIcon from '@lucide/svelte/icons/activity-square'
 import BellRingIcon from '@lucide/svelte/icons/bell-ring'
+import LandmarkIcon from '@lucide/svelte/icons/landmark'
 import ShieldCheckIcon from '@lucide/svelte/icons/shield-check'
 import UserRoundIcon from '@lucide/svelte/icons/user-round'
 
@@ -12,6 +13,20 @@ export const EXTENSION_ACTIVITY_LOG_STAT_CARDS = [
         key: 'all',
         label: 'All Activity',
         tone: 'neutral',
+    },
+    {
+        description: 'Borrower profiles, documents, and payment tags',
+        icon: UserRoundIcon,
+        key: 'borrowerManagement',
+        label: 'Borrower Management',
+        tone: 'success',
+    },
+    {
+        description: 'Loans, payments, renewals, and company funds',
+        icon: LandmarkIcon,
+        key: 'loanManagement',
+        label: 'Loan Management',
+        tone: 'warning',
     },
     {
         description: 'Authentication and access',

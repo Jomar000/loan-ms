@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+    getRoleDefaultRoute,
     isRouteFeatureEnabled,
     resolveCanonicalDestination,
 } from './navigation'
@@ -92,3 +93,94 @@ describe('service-principal navigation policy', () => {
 // =============================================================================
 // END OF BASE TEMPLATE TESTS - FORK-SPECIFIC TESTS MUST BE ADDED BELOW
 // =============================================================================
+
+describe('operational role navigation policy', () => {
+    it.each([
+        [
+            'cashier',
+            '/app/cashier/loans',
+        ],
+        [
+            'collector',
+            '/app/collector/collections',
+        ],
+        [
+            'viewer',
+            '/app/viewer/reports',
+        ],
+        [
+            'auditor',
+            '/app/auditor/reports',
+        ],
+    ])('uses the %s workflow as its default route', (role, destination) => {
+        expect(getRoleDefaultRoute(role)).toBe(destination)
+    })
+
+    it.each([
+        [
+            'cashier',
+            '/app/cashier/settings',
+            '/app/cashier/loans',
+        ],
+        [
+            'cashier',
+            '/app/cashier/loans/new',
+            '/app/cashier/loans',
+        ],
+        [
+            'collector',
+            '/app/collector/loans',
+            '/app/collector/collections',
+        ],
+        [
+            'viewer',
+            '/app/viewer/users',
+            '/app/viewer/reports',
+        ],
+        [
+            'auditor',
+            '/app/auditor/settings',
+            '/app/auditor/reports',
+        ],
+    ])(
+        'redirects unauthorized %s routes to the role default',
+        (role, pathname, destination) => {
+            expect(
+                resolveCanonicalDestination(
+                    pathname,
+                    { isAuthenticated: true, userRoles: [role] },
+                    true,
+                    true,
+                ),
+            ).toBe(destination)
+        },
+    )
+
+    it.each([
+        [
+            'cashier',
+            '/app/cashier/loans',
+        ],
+        [
+            'collector',
+            '/app/collector/collections',
+        ],
+        [
+            'viewer',
+            '/app/viewer/loans/loan-public-id',
+        ],
+        [
+            'auditor',
+            '/app/auditor/overdue',
+        ],
+    ])('allows an authorized %s route', (role, pathname) => {
+        expect(
+            resolveCanonicalDestination(
+                pathname,
+                { isAuthenticated: true, userRoles: [role] },
+                true,
+                true,
+            ),
+        ).toBeNull()
+    })
+})
