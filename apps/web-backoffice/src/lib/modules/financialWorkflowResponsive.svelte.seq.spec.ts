@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 import { page } from 'vitest/browser'
 
+import '../../app.css'
 import BorrowerManagementPage from './borrower/components/BorrowerManagementPage.svelte'
 import CompanyFundPage from './companyFund/components/CompanyFundPage.svelte'
 import OverduePage from './companyFund/components/OverduePage.svelte'
@@ -207,6 +208,10 @@ describe('financial workflow responsive verification', () => {
                 .getByRole('dialog', { name: /create new borrower/i })
                 .element(),
         )
+        const cancel = screen.getByRole('button', { name: 'Cancel' }).element()
+        expect(cancel.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+            window.innerHeight,
+        )
         await expect
             .element(screen.getByLabelText('Mobile number'))
             .toBeVisible()
@@ -379,6 +384,8 @@ function expectDialogFitsViewport(dialog: Element) {
 
     expect(bounds.left).toBeGreaterThanOrEqual(0)
     expect(bounds.right).toBeLessThanOrEqual(window.innerWidth)
+    expect(bounds.top).toBeGreaterThanOrEqual(0)
+    expect(bounds.bottom).toBeLessThanOrEqual(window.innerHeight)
 }
 
 function expectStacksVertically(first: Element, second: Element) {

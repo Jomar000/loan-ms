@@ -169,7 +169,7 @@ only for simple non-form content that does not need this shell contract.
         bind:ref={dialogContent}
         aria-busy={locked}
         class={cn(
-            'flex size-full max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-auto sm:max-h-[calc(100svh-2rem)] sm:rounded-xl',
+            'flex size-full max-w-none flex-col gap-0 overflow-hidden rounded-none border-amber-200/70 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[calc(100svh-2rem)] sm:rounded-xl dark:border-amber-500/20 dark:bg-[#202020]',
             sizeClasses[size],
         )}
         data-locked={locked}
@@ -181,7 +181,7 @@ only for simple non-form content that does not need this shell contract.
         showCloseButton={!locked}
     >
         <Dialog.Header
-            class="shrink-0 border-b px-6 py-4 pr-14"
+            class="shrink-0 border-b border-zinc-100 p-4 pr-14 sm:px-5 dark:border-zinc-800"
             data-slot="form-dialog-shell-header"
         >
             <Dialog.Title>{title}</Dialog.Title>
@@ -190,14 +190,14 @@ only for simple non-form content that does not need this shell contract.
             {/if}
         </Dialog.Header>
         <div
-            class="min-h-0 flex-1 overflow-y-auto p-6"
+            class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5"
             data-slot="form-dialog-shell-body"
         >
             {@render children()}
         </div>
         {#if footer}
             <Dialog.Footer
-                class="shrink-0 flex-col border-t p-6 *:data-[slot=button]:w-full sm:flex-row sm:*:data-[slot=button]:w-auto"
+                class="shrink-0 flex-col border-t border-zinc-100 bg-zinc-50/70 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] *:data-[slot=button]:w-full sm:flex-row sm:px-5 sm:*:data-[slot=button]:w-auto dark:border-zinc-800 dark:bg-zinc-900/40"
                 data-slot="form-dialog-shell-footer"
             >
                 {@render footer()}

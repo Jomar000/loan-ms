@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 
 import FormulaProfilesPanel from './FormulaProfilesPanel.svelte'
 
 const mocks = vi.hoisted(() => ({
+    create: vi.fn(async () => ({ version: 1 })),
     profile: {
         allowRenewalPrincipalChange: false,
         createdAt: '2026-10-05T00:00:00.000Z',
@@ -59,7 +60,7 @@ vi.mock('svelte-sonner', () => ({
 }))
 vi.mock('../queries', () => ({
     createFormulaProfileActivateMutation: () => ({ mutateAsync: vi.fn() }),
-    createFormulaProfileCreateMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfileCreateMutation: () => ({ mutateAsync: mocks.create }),
     createFormulaProfilePreviewMutation: () => ({
         mutateAsync: mocks.preview,
     }),
@@ -76,6 +77,12 @@ vi.mock('../queries', () => ({
 }))
 
 describe('Formula profiles panel', () => {
+    beforeEach(() => {
+        mocks.create.mockClear()
+        mocks.version.mockClear()
+        mocks.profile.roundingMode = 'HALF_UP'
+    })
+
     it('provides an editable valid example for a new profile', async () => {
         const screen = await render(FormulaProfilesPanel)
 
@@ -99,6 +106,7 @@ describe('Formula profiles panel', () => {
     })
 
     it('previews and creates the next immutable profile version', async () => {
+        mocks.profile.roundingMode = 'DOWN'
         const screen = await render(FormulaProfilesPanel)
 
         await screen.getByRole('button', { name: 'New version' }).click()
@@ -119,11 +127,53 @@ describe('Formula profiles panel', () => {
                 input: expect.objectContaining({
                     formulaProfile: expect.objectContaining({
                         name: '__TEST-Standard Formula',
+                        roundingMode: 'DOWN',
                         version: 2,
                     }),
                     idempotencyKey: '019936e2-b837-7000-8000-000000000602',
                 }),
                 publicId: '019936e2-b837-7000-8000-000000000601',
+            })
+    })
+
+    it('explains the renewal choices and uses standard rounding for new profiles', async () => {
+        const screen = await render(FormulaProfilesPanel)
+
+        await screen.getByRole('button', { name: 'New profile' }).click()
+        await expect
+            .element(screen.getByLabelText('Rounding'))
+            .not.toBeInTheDocument()
+        await expect
+            .element(screen.getByLabelText('Old loan balance to settle'))
+            .toHaveValue('COMPLETED_INSTALLMENT_BALANCE')
+        await expect
+            .element(
+                screen.getByRole('option', { name: 'Actual unpaid balance' }),
+            )
+            .toBeInTheDocument()
+        await expect
+            .element(
+                screen.getByRole('option', { name: 'Refund to the borrower' }),
+            )
+            .toBeInTheDocument()
+        await expect
+            .element(
+                screen.getByText(/Counts the full amount of each installment/),
+            )
+            .toBeInTheDocument()
+
+        await screen
+            .getByRole('button', { name: 'Save immutable version' })
+            .click()
+
+        await expect
+            .poll(() => mocks.create)
+            .toHaveBeenCalledWith({
+                formulaProfile: expect.objectContaining({
+                    roundingMode: 'HALF_UP',
+                    roundingPrecision: 0,
+                }),
+                idempotencyKey: '019936e2-b837-7000-8000-000000000602',
             })
     })
 })

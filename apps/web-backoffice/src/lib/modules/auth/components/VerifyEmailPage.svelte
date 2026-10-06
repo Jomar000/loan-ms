@@ -65,7 +65,9 @@
     <title>Email verification | {PUBLIC_NAME}</title>
 </svelte:head>
 
-<main class="flex min-h-svh items-center justify-center bg-muted p-6">
+<main
+    class="flex min-h-svh items-center justify-center overflow-x-hidden overflow-y-auto bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+>
     <Card.Root class="w-full max-w-md">
         <Card.Header
             aria-busy={token !== '' &&

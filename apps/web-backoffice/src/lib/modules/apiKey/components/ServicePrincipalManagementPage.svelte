@@ -644,15 +644,17 @@
     }
 </script>
 
-<div class="grid gap-6">
+<div
+    class="grid min-h-0 flex-1 content-start gap-3 overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+>
     <div
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        class="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-[#202020]"
     >
         <div>
-            <h2 class="text-2xl font-semibold tracking-tight">
+            <h2 class="text-lg font-semibold tracking-tight md:text-xl">
                 Service principals
             </h2>
-            <p class="text-sm text-muted-foreground">
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
                 Manage non-human organization identities and their API
                 credentials.
             </p>
@@ -666,7 +668,9 @@
         </Button>
     </div>
 
-    <Card.Root>
+    <Card.Root
+        class="min-h-0 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+    >
         <Card.Header class="gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <Card.Title>Organization service principals</Card.Title>
@@ -694,7 +698,9 @@
                 </NativeSelect.Root>
             </Field.Field>
         </Card.Header>
-        <Card.Content>
+        <Card.Content
+            class="max-h-[min(60vh,40rem)] min-h-0 overflow-auto **:data-[slot=table-container]:overflow-visible"
+        >
             {#if principalListQuery.isPending}
                 <div
                     class="flex min-h-48 items-center justify-center gap-2 text-sm"
@@ -735,7 +741,9 @@
                 </Empty.Root>
             {:else}
                 <Table.Root>
-                    <Table.Header>
+                    <Table.Header
+                        class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
+                    >
                         <Table.Row>
                             <Table.Head>Principal</Table.Head>
                             <Table.Head>Status</Table.Head>
@@ -745,7 +753,9 @@
                             <Table.Head class="text-right">Actions</Table.Head>
                         </Table.Row>
                     </Table.Header>
-                    <Table.Body>
+                    <Table.Body
+                        class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                    >
                         {#each principalListQuery.data?.data ?? [] as principal (principal.publicId)}
                             <Table.Row>
                                 <Table.Cell>
@@ -850,7 +860,9 @@
             {/if}
         </Card.Content>
         {#if (principalListQuery.data?.count ?? 0) > PAGE_SIZE}
-            <Card.Footer>
+            <Card.Footer
+                class="shrink-0 border-t border-zinc-100 bg-zinc-50/70 px-2 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/35"
+            >
                 <Pagination.Root
                     count={principalListQuery.data?.count ?? 0}
                     perPage={PAGE_SIZE}
@@ -895,7 +907,9 @@
 <Dialog.Root
     bind:open={() => createPrincipalOpen, handleCreatePrincipalOpenChange}
 >
-    <Dialog.Content>
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain"
+    >
         <form
             class="grid gap-4"
             onsubmit={handleCreatePrincipal}
@@ -964,7 +978,9 @@
 </Dialog.Root>
 
 <Dialog.Root bind:open={() => editPrincipalOpen, handleEditPrincipalOpenChange}>
-    <Dialog.Content>
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain"
+    >
         <form
             class="grid gap-4"
             onsubmit={handleUpdatePrincipal}
@@ -1036,7 +1052,9 @@
 <AlertDialog.Root
     bind:open={() => principalActionOpen, handlePrincipalActionOpenChange}
 >
-    <AlertDialog.Content>
+    <AlertDialog.Content
+        class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain"
+    >
         <AlertDialog.Header>
             <AlertDialog.Title>{principalActionTitle()}</AlertDialog.Title>
             <AlertDialog.Description>
@@ -1064,7 +1082,9 @@
 <Dialog.Root
     bind:open={() => credentialManagerOpen, handleCredentialManagerOpenChange}
 >
-    <Dialog.Content class="sm:max-w-3xl">
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain sm:max-w-3xl"
+    >
         <Dialog.Header>
             <Dialog.Title>
                 Credentials for {selectedPrincipal?.name ?? 'service principal'}
@@ -1134,7 +1154,9 @@
             </Empty.Root>
         {:else}
             <Table.Root>
-                <Table.Header>
+                <Table.Header
+                    class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
+                >
                     <Table.Row>
                         <Table.Head>Name</Table.Head>
                         <Table.Head>Key start</Table.Head>
@@ -1143,7 +1165,9 @@
                         <Table.Head class="text-right">Action</Table.Head>
                     </Table.Row>
                 </Table.Header>
-                <Table.Body>
+                <Table.Body
+                    class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                >
                     {#each credentialListQuery.data?.data ?? [] as credential (credential.id)}
                         <Table.Row>
                             <Table.Cell class="font-medium">
@@ -1183,7 +1207,9 @@
 <Dialog.Root
     bind:open={() => createCredentialOpen, handleCreateCredentialOpenChange}
 >
-    <Dialog.Content>
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain"
+    >
         <form
             class="grid gap-4"
             onsubmit={handleCreateCredential}
@@ -1328,7 +1354,9 @@
 <AlertDialog.Root
     bind:open={() => credentialRecoveryOpen, handleCredentialRecoveryOpenChange}
 >
-    <AlertDialog.Content>
+    <AlertDialog.Content
+        class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain"
+    >
         <AlertDialog.Header>
             <AlertDialog.Title>
                 Start a new credential attempt?
@@ -1357,7 +1385,9 @@
 <AlertDialog.Root
     bind:open={() => revokeCredentialOpen, handleRevokeCredentialOpenChange}
 >
-    <AlertDialog.Content>
+    <AlertDialog.Content
+        class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain"
+    >
         <AlertDialog.Header>
             <AlertDialog.Title>Revoke credential?</AlertDialog.Title>
             <AlertDialog.Description>
@@ -1387,7 +1417,9 @@
     open={secretOpen}
     onOpenChange={handleSecretOpenChange}
 >
-    <Dialog.Content>
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain"
+    >
         <Dialog.Header>
             <Dialog.Title>Copy this credential now</Dialog.Title>
             <Dialog.Description>

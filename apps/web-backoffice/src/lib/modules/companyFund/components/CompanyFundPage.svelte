@@ -17,7 +17,6 @@
     import ReceiptTextIcon from '@lucide/svelte/icons/receipt-text'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { toast } from 'svelte-sonner'
-
     import {
         formatCurrency,
         formatDate,
@@ -40,17 +39,13 @@
         createCompanyFundSummaryQuery,
         createManualFundTransactionMutation,
     } from '../queries'
-
     ////////////////////
     // 01. Properties //
     ////////////////////
-
     let { role }: { role: 'admin' | 'owner' } = $props()
-
     ///////////////////
     // 02. Constants //
     ///////////////////
-
     const session = useSessionContext()
     const transactionRequest = {
         filters: {},
@@ -62,11 +57,9 @@
     const injectionIdempotencyKey = createIdempotencyKeyLifecycle()
     const withdrawalIdempotencyKey = createIdempotencyKeyLifecycle()
     const manualIdempotencyKey = createIdempotencyKeyLifecycle()
-
     ///////////////
     // 03. State //
     ///////////////
-
     let setupOpen = $state(false)
     let injectionOpen = $state(false)
     let withdrawalOpen = $state(false)
@@ -79,11 +72,9 @@
     let isInjecting = $state(false)
     let isWithdrawing = $state(false)
     let isPostingManual = $state(false)
-
     /////////////////
     // 05. Queries //
     /////////////////
-
     const summaryQuery = createCompanyFundSummaryQuery({
         get organizationSlug() {
             return session.data.organizationSlug
@@ -97,11 +88,9 @@
         },
         { request: transactionRequest },
     )
-
     ///////////////////
     // 06. Mutations //
     ///////////////////
-
     const setupMutation = createCompanyFundSetupMutation({
         get organizationSlug() {
             return session.data.organizationSlug
@@ -122,18 +111,14 @@
             return session.data.organizationSlug
         },
     })
-
     /////////////////
     // 04. Derived //
     /////////////////
-
     const summary = $derived(summaryQuery.data ?? null)
     const transactions = $derived(transactionsQuery.data?.data ?? [])
-
     //////////////////
     // 09. Handlers //
     //////////////////
-
     function handleSetupOpenChange(open: boolean) {
         if (isSettingUp) return
         setupOpen = open
@@ -142,7 +127,6 @@
             setupDraft = createSetupDraft()
         }
     }
-
     function handleInjectionOpenChange(open: boolean) {
         if (isInjecting) return
         injectionOpen = open
@@ -151,7 +135,6 @@
             injectionDraft = createMovementDraft()
         }
     }
-
     function handleWithdrawalOpenChange(open: boolean) {
         if (isWithdrawing) return
         withdrawalOpen = open
@@ -160,7 +143,6 @@
             withdrawalDraft = createMovementDraft()
         }
     }
-
     function handleManualOpenChange(open: boolean) {
         if (isPostingManual) return
         manualOpen = open
@@ -169,7 +151,6 @@
             manualDraft = createManualDraft()
         }
     }
-
     async function handleSetup(event: SubmitEvent) {
         event.preventDefault()
         if (isSettingUp) return
@@ -206,7 +187,6 @@
             isSettingUp = false
         }
     }
-
     async function handleInjection(event: SubmitEvent) {
         event.preventDefault()
         if (isInjecting) return
@@ -239,7 +219,6 @@
             isInjecting = false
         }
     }
-
     async function handleWithdrawal(event: SubmitEvent) {
         event.preventDefault()
         if (isWithdrawing) return
@@ -272,7 +251,6 @@
             isWithdrawing = false
         }
     }
-
     async function handleManualTransaction(event: SubmitEvent) {
         event.preventDefault()
         if (isPostingManual) return
@@ -307,11 +285,9 @@
             isPostingManual = false
         }
     }
-
     /////////////////
     // 10. Helpers //
     /////////////////
-
     function createSetupDraft() {
         return {
             currency: 'PHP',
@@ -320,7 +296,6 @@
             transactionDate: todayInManila(),
         }
     }
-
     function createMovementDraft() {
         return {
             amount: '',
@@ -329,7 +304,6 @@
             transactionDate: todayInManila(),
         }
     }
-
     function createManualDraft() {
         return {
             ...createMovementDraft(),
@@ -338,7 +312,6 @@
                 'ADJUSTMENT' | 'EXPENSE' | 'WRITE_OFF',
         }
     }
-
     function toSetupInput(
         value: ReturnType<typeof createSetupDraft>,
     ): Omit<CompanyFundSetupInput, 'idempotencyKey'> | null {
@@ -359,7 +332,6 @@
             transactionDate: value.transactionDate,
         }
     }
-
     function toMovementInput(
         value: ReturnType<typeof createMovementDraft>,
     ): Omit<
@@ -383,7 +355,6 @@
             transactionDate: value.transactionDate,
         }
     }
-
     function todayInManila() {
         return new Intl.DateTimeFormat('en-CA', {
             day: '2-digit',
@@ -396,7 +367,6 @@
             .reverse()
             .join('-')
     }
-
     function toManualInput(
         value: ReturnType<typeof createManualDraft>,
     ): Omit<ManualFundTransactionInput, 'idempotencyKey'> | null {
@@ -413,221 +383,424 @@
     }
 </script>
 
-<section class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4 md:p-6">
-    <header class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-            <h2 class="text-xl font-semibold text-foreground">Company fund</h2>
-            <p class="text-sm text-muted-foreground">
-                Cash, capital, principal recovery, and earnings are derived from
-                the immutable capital ledger.
-            </p>
-        </div>
-        {#if summary?.fundPublicId}
-            <div class="flex flex-wrap gap-2">
-                <Button onclick={() => (injectionOpen = true)}>
-                    <BanknoteArrowUpIcon data-icon="inline-start" />Inject
-                    capital
-                </Button>
-                <Button
-                    onclick={() => (manualOpen = true)}
-                    variant="outline"
-                >
-                    <ReceiptTextIcon data-icon="inline-start" />Record fund
-                    entry
-                </Button>
-                {#if role === 'owner'}
-                    <Button
-                        onclick={() => (withdrawalOpen = true)}
-                        variant="destructive"
-                    >
-                        <BanknoteArrowDownIcon
-                            data-icon="inline-start"
-                        />Withdraw capital
-                    </Button>
-                {/if}
-            </div>
-        {/if}
-    </header>
-
-    {#if summaryQuery.isPending}
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {#each [0, 1, 2, 3] as item (item)}<Skeleton class="h-28" />{/each}
-        </div>
-    {:else if summaryQuery.isError}
-        <Alert.Root variant="destructive">
-            <AlertCircleIcon />
-            <Alert.Title>Company fund could not be loaded</Alert.Title>
-            <Alert.Description class="flex flex-wrap items-center gap-3">
-                <span>Refresh to try again.</span>
-                <Button
-                    onclick={() => void summaryQuery.refetch()}
-                    size="sm"
-                    variant="outline"
-                >
-                    <RefreshCwIcon data-icon="inline-start" />Refresh
-                </Button>
-            </Alert.Description>
-        </Alert.Root>
-    {:else if !summary?.fundPublicId}
-        <Empty.Root class="border"
-            ><Empty.Header
-                ><Empty.Title>Opening capital is not configured</Empty.Title
-                ><Empty.Description
-                    >Set up the primary company fund before posting loan
-                    releases, payments, reversals, renewals, or refunds.</Empty.Description
-                ></Empty.Header
-            ><Empty.Content
-                ><Button onclick={() => (setupOpen = true)}
-                    >Configure opening capital</Button
-                ></Empty.Content
-            ></Empty.Root
+<section
+    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+>
+    <div
+        class="mb-3 overflow-hidden rounded-xl border border-amber-200/70 bg-white shadow-sm dark:border-amber-500/15 dark:bg-[#202020]"
+    >
+        <div
+            class="h-1 bg-linear-to-r from-amber-500 via-yellow-400 to-amber-600"
+        ></div>
+        <header
+            class="flex flex-col gap-3 p-3 lg:flex-row lg:items-center lg:justify-between"
         >
-    {:else}
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Card.Root
-                ><Card.Header
-                    ><Card.Description>Available cash</Card.Description
-                    ><Card.Title class="tabular-nums"
-                        >{formatCurrency(
-                            summary.availableCashMinor,
-                        )}</Card.Title
-                    ></Card.Header
-                ></Card.Root
-            >
-            <Card.Root
-                ><Card.Header
-                    ><Card.Description>Outstanding principal</Card.Description
-                    ><Card.Title class="tabular-nums"
-                        >{formatCurrency(
-                            summary.outstandingPrincipalMinor,
-                        )}</Card.Title
-                    ></Card.Header
-                ></Card.Root
-            >
-            <Card.Root
-                ><Card.Header
-                    ><Card.Description>Interest collected</Card.Description
-                    ><Card.Title class="tabular-nums"
-                        >{formatCurrency(
-                            summary.interestCollectedMinor,
-                        )}</Card.Title
-                    ></Card.Header
-                ></Card.Root
-            >
-            <Card.Root
-                ><Card.Header
-                    ><Card.Description>Net earnings</Card.Description
-                    ><Card.Title class="tabular-nums"
-                        >{formatCurrency(summary.netEarningsMinor)}</Card.Title
-                    ></Card.Header
-                ></Card.Root
-            >
-        </div>
-        <div class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-            <p>
-                Opening capital: <span class="font-medium tabular-nums"
-                    >{formatCurrency(summary.openingCapitalMinor)}</span
+            <div class="min-w-0">
+                <h1
+                    class="truncate text-lg font-semibold tracking-tight text-zinc-950 md:text-xl dark:text-zinc-50"
                 >
-            </p>
-            <p>
-                Additional capital: <span class="font-medium tabular-nums"
-                    >{formatCurrency(summary.additionalCapitalMinor)}</span
-                >
-            </p>
-            <p>
-                Principal recovered: <span class="font-medium tabular-nums"
-                    >{formatCurrency(summary.principalCollectedMinor)}</span
-                >
-            </p>
-            <p>
-                Principal released: <span class="font-medium tabular-nums"
-                    >{formatCurrency(summary.principalReleasedMinor)}</span
-                >
-            </p>
-            <p>
-                Expenses: <span class="font-medium tabular-nums"
-                    >{formatCurrency(summary.expensesMinor)}</span
-                >
-            </p>
-            <p>
-                Write-offs: <span class="font-medium tabular-nums"
-                    >{formatCurrency(summary.writeOffsMinor)}</span
-                >
-            </p>
-        </div>
-    {/if}
-
-    <section class="min-h-0">
-        <h3 class="mb-2 text-base font-semibold">Capital ledger</h3>
-        {#if transactionsQuery.isPending}
-            <div
-                class="grid gap-2"
-                aria-label="Loading capital ledger"
-            >
-                {#each [0, 1, 2] as item (item)}<Skeleton class="h-11" />{/each}
+                    Company fund
+                </h1>
+                <p class="mt-1 text-xs/5 text-zinc-500 dark:text-zinc-400">
+                    Cash, capital, principal recovery, and earnings are derived
+                    from the immutable capital ledger.
+                </p>
             </div>
-        {:else if transactionsQuery.isError}<Alert.Root variant="destructive"
-                ><AlertCircleIcon /><Alert.Title
-                    >Capital ledger could not be loaded</Alert.Title
-                ><Alert.Description class="flex flex-wrap items-center gap-3"
-                    ><span>Refresh to try again.</span><Button
-                        onclick={() => void transactionsQuery.refetch()}
+            {#if summary?.fundPublicId}
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <Button
+                        class="h-8 bg-amber-500 px-2.5 text-xs font-semibold text-zinc-950 shadow-sm hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
+                        onclick={() => (injectionOpen = true)}
+                        size="sm"
+                    >
+                        <BanknoteArrowUpIcon
+                            class="size-3.5"
+                            data-icon="inline-start"
+                        />
+                        Inject capital
+                    </Button>
+                    <Button
+                        class="h-8 border-zinc-200 bg-white px-2.5 text-xs shadow-none hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
+                        onclick={() => (manualOpen = true)}
                         size="sm"
                         variant="outline"
-                        ><RefreshCwIcon
+                    >
+                        <ReceiptTextIcon
+                            class="size-3.5"
                             data-icon="inline-start"
-                        />Refresh</Button
-                    ></Alert.Description
-                ></Alert.Root
+                        />
+                        Record fund entry
+                    </Button>
+                    {#if role === 'owner'}
+                        <Button
+                            class="h-8 px-2.5 text-xs"
+                            onclick={() => (withdrawalOpen = true)}
+                            size="sm"
+                            variant="destructive"
+                        >
+                            <BanknoteArrowDownIcon
+                                class="size-3.5"
+                                data-icon="inline-start"
+                            />
+                            Withdraw capital
+                        </Button>
+                    {/if}
+                </div>
+            {/if}
+        </header>
+    </div>
+    {#if summaryQuery.isPending}
+        <div class="mb-3 grid shrink-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {#each [0, 1, 2, 3] as item (item)}
+                <Skeleton class="h-20 rounded-xl" />
+            {/each}
+        </div>
+    {:else if summaryQuery.isError}
+        <div class="mb-3 shrink-0">
+            <Alert.Root
+                class="rounded-xl border-red-200 bg-red-50/70 dark:border-red-500/20 dark:bg-red-500/5"
+                variant="destructive"
             >
-        {:else if transactions.length === 0}<Empty.Root class="border"
-                ><Empty.Header
-                    ><Empty.Title>No capital transactions yet</Empty.Title
-                    ><Empty.Description
-                        >Opening capital and later financial postings will
-                        appear here.</Empty.Description
-                    ></Empty.Header
-                ></Empty.Root
+                <AlertCircleIcon />
+                <Alert.Title>Company fund could not be loaded</Alert.Title>
+                <Alert.Description class="flex flex-wrap items-center gap-2">
+                    <span>Refresh to try again.</span>
+                    <Button
+                        class="h-8 border-red-200 bg-white px-2.5 text-xs hover:bg-red-50 dark:border-red-500/20 dark:bg-zinc-900 dark:hover:bg-red-500/10"
+                        onclick={() => void summaryQuery.refetch()}
+                        size="sm"
+                        variant="outline"
+                    >
+                        <RefreshCwIcon
+                            class="size-3.5"
+                            data-icon="inline-start"
+                        />
+                        Refresh
+                    </Button>
+                </Alert.Description>
+            </Alert.Root>
+        </div>
+    {:else if !summary?.fundPublicId}
+        <div class="mb-3 shrink-0">
+            <Empty.Root
+                class="rounded-xl border border-dashed border-amber-200 bg-amber-50/30 py-8 dark:border-amber-500/20 dark:bg-amber-500/5"
             >
-        {:else}<div class="overflow-x-auto rounded-md border">
-                <Table.Root
-                    ><Table.Header
-                        ><Table.Row
-                            ><Table.Head>Date</Table.Head><Table.Head
-                                >Type</Table.Head
-                            ><Table.Head>Reference</Table.Head><Table.Head
-                                >Direction</Table.Head
-                            ><Table.Head class="text-right">Amount</Table.Head
-                            ></Table.Row
-                        ></Table.Header
-                    ><Table.Body
-                        >{#each transactions as transaction (transaction.publicId)}<Table.Row
-                                ><Table.Cell
-                                    >{formatDate(
-                                        transaction.transactionAt,
-                                    )}</Table.Cell
-                                ><Table.Cell
-                                    >{transaction.transactionType}</Table.Cell
-                                ><Table.Cell
-                                    >{transaction.referenceNumber ??
-                                        transaction.transactionNumber}</Table.Cell
-                                ><Table.Cell>{transaction.direction}</Table.Cell
-                                ><Table.Cell class="text-right tabular-nums"
-                                    >{formatCurrency(
-                                        transaction.amountMinor,
-                                    )}</Table.Cell
-                                ></Table.Row
-                            >{/each}</Table.Body
-                    ></Table.Root
+                <Empty.Header>
+                    <Empty.Title>Opening capital is not configured</Empty.Title>
+                    <Empty.Description>
+                        Set up the primary company fund before posting loan
+                        releases, payments, reversals, renewals, or refunds.
+                    </Empty.Description>
+                </Empty.Header>
+                <Empty.Content>
+                    <Button
+                        class="h-8 bg-amber-500 px-3 text-xs font-semibold text-zinc-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
+                        onclick={() => (setupOpen = true)}
+                        size="sm"
+                    >
+                        Configure opening capital
+                    </Button>
+                </Empty.Content>
+            </Empty.Root>
+        </div>
+    {:else}
+        <div class="mb-3 grid shrink-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <Card.Root
+                class="overflow-hidden border-amber-200/70 bg-amber-50/60 shadow-sm dark:border-amber-500/15 dark:bg-amber-500/5"
+            >
+                <Card.Header class="px-3 py-2.5">
+                    <Card.Description
+                        class="text-[10px] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-300"
+                    >
+                        Available cash
+                    </Card.Description>
+                    <Card.Title
+                        class="font-mono text-base font-bold text-zinc-950 tabular-nums dark:text-zinc-50"
+                    >
+                        {formatCurrency(summary.availableCashMinor)}
+                    </Card.Title>
+                </Card.Header>
+            </Card.Root>
+            <Card.Root
+                class="overflow-hidden border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+            >
+                <Card.Header class="px-3 py-2.5">
+                    <Card.Description
+                        class="text-[10px] font-semibold tracking-wider uppercase"
+                    >
+                        Outstanding principal
+                    </Card.Description>
+                    <Card.Title
+                        class="font-mono text-base font-semibold tabular-nums"
+                    >
+                        {formatCurrency(summary.outstandingPrincipalMinor)}
+                    </Card.Title>
+                </Card.Header>
+            </Card.Root>
+            <Card.Root
+                class="overflow-hidden border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+            >
+                <Card.Header class="px-3 py-2.5">
+                    <Card.Description
+                        class="text-[10px] font-semibold tracking-wider uppercase"
+                    >
+                        Interest collected
+                    </Card.Description>
+                    <Card.Title
+                        class="font-mono text-base font-semibold tabular-nums"
+                    >
+                        {formatCurrency(summary.interestCollectedMinor)}
+                    </Card.Title>
+                </Card.Header>
+            </Card.Root>
+            <Card.Root
+                class="overflow-hidden border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+            >
+                <Card.Header class="px-3 py-2.5">
+                    <Card.Description
+                        class="text-[10px] font-semibold tracking-wider uppercase"
+                    >
+                        Net earnings
+                    </Card.Description>
+                    <Card.Title
+                        class="font-mono text-base font-semibold tabular-nums"
+                    >
+                        {formatCurrency(summary.netEarningsMinor)}
+                    </Card.Title>
+                </Card.Header>
+            </Card.Root>
+        </div>
+        <div
+            class="mb-3 grid shrink-0 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 shadow-sm sm:grid-cols-2 xl:grid-cols-6 dark:border-zinc-800 dark:bg-zinc-800"
+        >
+            <div class="bg-white px-3 py-2.5 dark:bg-[#202020]">
+                <p
+                    class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                 >
-            </div>{/if}
+                    Opening capital
+                </p>
+                <p
+                    class="mt-1 font-mono text-xs font-semibold text-zinc-900 tabular-nums dark:text-zinc-100"
+                >
+                    {formatCurrency(summary.openingCapitalMinor)}
+                </p>
+            </div>
+            <div class="bg-white px-3 py-2.5 dark:bg-[#202020]">
+                <p
+                    class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    Additional capital
+                </p>
+                <p
+                    class="mt-1 font-mono text-xs font-semibold text-zinc-900 tabular-nums dark:text-zinc-100"
+                >
+                    {formatCurrency(summary.additionalCapitalMinor)}
+                </p>
+            </div>
+            <div class="bg-white px-3 py-2.5 dark:bg-[#202020]">
+                <p
+                    class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    Principal recovered
+                </p>
+                <p
+                    class="mt-1 font-mono text-xs font-semibold text-zinc-900 tabular-nums dark:text-zinc-100"
+                >
+                    {formatCurrency(summary.principalCollectedMinor)}
+                </p>
+            </div>
+            <div class="bg-white px-3 py-2.5 dark:bg-[#202020]">
+                <p
+                    class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    Principal released
+                </p>
+                <p
+                    class="mt-1 font-mono text-xs font-semibold text-zinc-900 tabular-nums dark:text-zinc-100"
+                >
+                    {formatCurrency(summary.principalReleasedMinor)}
+                </p>
+            </div>
+            <div class="bg-white px-3 py-2.5 dark:bg-[#202020]">
+                <p
+                    class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    Expenses
+                </p>
+                <p
+                    class="mt-1 font-mono text-xs font-semibold text-zinc-900 tabular-nums dark:text-zinc-100"
+                >
+                    {formatCurrency(summary.expensesMinor)}
+                </p>
+            </div>
+            <div class="bg-white px-3 py-2.5 dark:bg-[#202020]">
+                <p
+                    class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    Write-offs
+                </p>
+                <p
+                    class="mt-1 font-mono text-xs font-semibold text-zinc-900 tabular-nums dark:text-zinc-100"
+                >
+                    {formatCurrency(summary.writeOffsMinor)}
+                </p>
+            </div>
+        </div>
+    {/if}
+    <section
+        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+    >
+        <div
+            class="shrink-0 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800"
+        >
+            <h2 class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                Capital ledger
+            </h2>
+            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                Immutable fund movements and audited capital activity.
+            </p>
+        </div>
+        {#if transactionsQuery.isPending}
+            <div
+                class="flex min-h-0 flex-1 flex-col gap-2 p-3"
+                aria-label="Loading capital ledger"
+            >
+                <div
+                    class="grid shrink-0 grid-cols-5 gap-3 border-b border-zinc-100 px-3 pb-2 dark:border-zinc-800"
+                >
+                    {#each [0, 1, 2, 3, 4] as item (item)}
+                        <Skeleton class="h-4 w-full rounded-sm" />
+                    {/each}
+                </div>
+                {#each [0, 1, 2] as item (item)}
+                    <Skeleton class="h-10 w-full rounded-lg" />
+                {/each}
+            </div>
+        {:else if transactionsQuery.isError}
+            <div class="flex min-h-0 flex-1 items-start p-3">
+                <Alert.Root
+                    class="w-full rounded-xl border-red-200 bg-red-50/70 dark:border-red-500/20 dark:bg-red-500/5"
+                    variant="destructive"
+                >
+                    <AlertCircleIcon />
+                    <Alert.Title>Capital ledger could not be loaded</Alert.Title
+                    >
+                    <Alert.Description
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <span>Refresh to try again.</span>
+                        <Button
+                            class="h-8 border-red-200 bg-white px-2.5 text-xs hover:bg-red-50 dark:border-red-500/20 dark:bg-zinc-900 dark:hover:bg-red-500/10"
+                            onclick={() => void transactionsQuery.refetch()}
+                            size="sm"
+                            variant="outline"
+                        >
+                            <RefreshCwIcon
+                                class="size-3.5"
+                                data-icon="inline-start"
+                            />
+                            Refresh
+                        </Button>
+                    </Alert.Description>
+                </Alert.Root>
+            </div>
+        {:else if transactions.length === 0}
+            <div class="flex min-h-0 flex-1 p-3">
+                <Empty.Root
+                    class="min-h-full w-full rounded-xl border border-dashed border-amber-200 bg-amber-50/30 py-8 dark:border-amber-500/20 dark:bg-amber-500/5"
+                >
+                    <Empty.Header>
+                        <Empty.Title>No capital transactions yet</Empty.Title>
+                        <Empty.Description>
+                            Opening capital and later financial postings will
+                            appear here.
+                        </Empty.Description>
+                    </Empty.Header>
+                </Empty.Root>
+            </div>
+        {:else}
+            <div class="max-h-[min(60vh,40rem)] min-h-48 flex-1 overflow-auto">
+                <Table.Root class="min-w-[760px] text-xs">
+                    <Table.Caption class="sr-only"
+                        >Capital ledger transactions</Table.Caption
+                    >
+                    <Table.Header
+                        class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95"
+                    >
+                        <Table.Row
+                            class="border-b border-zinc-200 hover:bg-transparent dark:border-zinc-800"
+                        >
+                            <Table.Head
+                                class="h-9 px-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                >Date</Table.Head
+                            >
+                            <Table.Head
+                                class="h-9 px-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                >Type</Table.Head
+                            >
+                            <Table.Head
+                                class="h-9 px-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                >Reference</Table.Head
+                            >
+                            <Table.Head
+                                class="h-9 px-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                >Direction</Table.Head
+                            >
+                            <Table.Head
+                                class="h-9 px-3 text-right text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                >Amount</Table.Head
+                            >
+                        </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                        {#each transactions as transaction (transaction.publicId)}
+                            <Table.Row
+                                class="border-b border-zinc-100 transition-colors hover:bg-amber-50/60 dark:border-zinc-800/80 dark:hover:bg-amber-500/5"
+                            >
+                                <Table.Cell
+                                    class="h-11 px-3 py-1.5 text-xs whitespace-nowrap text-zinc-600 dark:text-zinc-400"
+                                >
+                                    {formatDate(transaction.transactionAt)}
+                                </Table.Cell>
+                                <Table.Cell class="h-11 px-3 py-1.5">
+                                    <span
+                                        class="inline-flex h-6 items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                                    >
+                                        {transaction.transactionType}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell
+                                    class="h-11 max-w-64 truncate px-3 py-1.5 font-mono text-[11px] text-zinc-600 dark:text-zinc-400"
+                                >
+                                    {transaction.referenceNumber ??
+                                        transaction.transactionNumber}
+                                </Table.Cell>
+                                <Table.Cell class="h-11 px-3 py-1.5">
+                                    <span
+                                        class="inline-flex h-6 items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                                    >
+                                        {transaction.direction}
+                                    </span>
+                                </Table.Cell>
+                                <Table.Cell
+                                    class="h-11 px-3 py-1.5 text-right font-mono text-xs font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                >
+                                    {formatCurrency(transaction.amountMinor)}
+                                </Table.Cell>
+                            </Table.Row>
+                        {/each}
+                    </Table.Body>
+                </Table.Root>
+            </div>
+        {/if}
     </section>
 </section>
-
 <Dialog.Root bind:open={() => setupOpen, handleSetupOpenChange}>
-    <Dialog.Content class="max-w-xl">
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain border-amber-200/70 bg-white shadow-2xl sm:max-w-xl dark:border-amber-500/20 dark:bg-[#202020]"
+    >
         <form
-            class="grid gap-5"
+            class="grid gap-4"
             onsubmit={handleSetup}
         >
             <Dialog.Header>
@@ -641,6 +814,7 @@
                 <Field.Field>
                     <Field.Label for="company-fund-name">Fund name</Field.Label>
                     <Input
+                        class="h-9"
                         id="company-fund-name"
                         bind:value={setupDraft.fundName}
                         disabled={isSettingUp}
@@ -654,6 +828,7 @@
                             >Currency</Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="company-fund-currency"
                             bind:value={setupDraft.currency}
                             disabled={isSettingUp}
@@ -666,6 +841,7 @@
                             >Opening capital (PHP)</Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="company-fund-opening-capital"
                             bind:value={setupDraft.openingCapital}
                             disabled={isSettingUp}
@@ -682,6 +858,7 @@
                         >Transaction date</Field.Label
                     >
                     <Input
+                        class="h-9"
                         id="company-fund-opening-date"
                         bind:value={setupDraft.transactionDate}
                         disabled={isSettingUp}
@@ -708,11 +885,12 @@
         </form>
     </Dialog.Content>
 </Dialog.Root>
-
 <Dialog.Root bind:open={() => injectionOpen, handleInjectionOpenChange}>
-    <Dialog.Content class="max-w-xl">
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain border-amber-200/70 bg-white shadow-2xl sm:max-w-xl dark:border-amber-500/20 dark:bg-[#202020]"
+    >
         <form
-            class="grid gap-5"
+            class="grid gap-4"
             onsubmit={handleInjection}
         >
             <Dialog.Header>
@@ -728,6 +906,7 @@
                         >Capital amount (PHP)</Field.Label
                     >
                     <Input
+                        class="h-9"
                         id="capital-injection-amount"
                         bind:value={injectionDraft.amount}
                         disabled={isInjecting}
@@ -743,6 +922,7 @@
                         >Transaction date</Field.Label
                     >
                     <Input
+                        class="h-9"
                         id="capital-injection-date"
                         bind:value={injectionDraft.transactionDate}
                         disabled={isInjecting}
@@ -757,6 +937,7 @@
                         ></Field.Label
                     >
                     <Input
+                        class="h-9"
                         id="capital-injection-reference"
                         bind:value={injectionDraft.referenceNumber}
                         disabled={isInjecting}
@@ -768,6 +949,7 @@
                         >Reason</Field.Label
                     >
                     <Textarea
+                        class="min-h-24 text-sm"
                         id="capital-injection-reason"
                         bind:value={injectionDraft.reason}
                         disabled={isInjecting}
@@ -799,14 +981,15 @@
         </form>
     </Dialog.Content>
 </Dialog.Root>
-
 {#if role === 'owner'}
     <AlertDialog.Root
         bind:open={() => withdrawalOpen, handleWithdrawalOpenChange}
     >
-        <AlertDialog.Content>
+        <AlertDialog.Content
+            class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain border-red-200 bg-white shadow-2xl dark:border-red-500/20 dark:bg-[#202020]"
+        >
             <form
-                class="grid gap-5"
+                class="grid gap-4"
                 onsubmit={handleWithdrawal}
             >
                 <AlertDialog.Header>
@@ -824,6 +1007,7 @@
                             >Withdrawal amount (PHP)</Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="capital-withdrawal-amount"
                             bind:value={withdrawalDraft.amount}
                             disabled={isWithdrawing}
@@ -839,6 +1023,7 @@
                             >Transaction date</Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="capital-withdrawal-date"
                             bind:value={withdrawalDraft.transactionDate}
                             disabled={isWithdrawing}
@@ -853,6 +1038,7 @@
                             ></Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="capital-withdrawal-reference"
                             bind:value={withdrawalDraft.referenceNumber}
                             disabled={isWithdrawing}
@@ -864,6 +1050,7 @@
                             >Reason</Field.Label
                         >
                         <Textarea
+                            class="min-h-24 text-sm"
                             id="capital-withdrawal-reason"
                             bind:value={withdrawalDraft.reason}
                             disabled={isWithdrawing}
@@ -897,11 +1084,12 @@
         </AlertDialog.Content>
     </AlertDialog.Root>
 {/if}
-
 <AlertDialog.Root bind:open={() => manualOpen, handleManualOpenChange}>
-    <AlertDialog.Content class="max-w-xl">
+    <AlertDialog.Content
+        class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain border-amber-200/70 bg-white shadow-2xl data-[size=default]:sm:max-w-xl dark:border-amber-500/20 dark:bg-[#202020]"
+    >
         <form
-            class="grid gap-5"
+            class="grid gap-4"
             onsubmit={handleManualTransaction}
         >
             <AlertDialog.Header>
@@ -919,7 +1107,7 @@
                             >Transaction type</Field.Label
                         >
                         <select
-                            class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                            class="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                             id="manual-fund-type"
                             bind:value={manualDraft.transactionType}
                             disabled={isPostingManual}
@@ -934,7 +1122,7 @@
                             >Direction</Field.Label
                         >
                         <select
-                            class="h-9 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50"
+                            class="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                             id="manual-fund-direction"
                             bind:value={manualDraft.direction}
                             disabled={isPostingManual ||
@@ -954,6 +1142,7 @@
                             >Amount (PHP)</Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="manual-fund-amount"
                             bind:value={manualDraft.amount}
                             disabled={isPostingManual}
@@ -969,6 +1158,7 @@
                             >Transaction date</Field.Label
                         >
                         <Input
+                            class="h-9"
                             id="manual-fund-date"
                             bind:value={manualDraft.transactionDate}
                             disabled={isPostingManual}
@@ -984,6 +1174,7 @@
                         ></Field.Label
                     >
                     <Input
+                        class="h-9"
                         id="manual-fund-reference"
                         bind:value={manualDraft.referenceNumber}
                         disabled={isPostingManual}
@@ -993,6 +1184,7 @@
                 <Field.Field>
                     <Field.Label for="manual-fund-reason">Reason</Field.Label>
                     <Textarea
+                        class="min-h-24 text-sm"
                         id="manual-fund-reason"
                         bind:value={manualDraft.reason}
                         disabled={isPostingManual}

@@ -67,7 +67,7 @@
 
 <ModeWatcher defaultMode="dark" />
 
-<div class="size-full bg-muted">
+<div class="size-full bg-zinc-50/80 dark:bg-[#171717]">
     <QueryClientProvider client={queryClient}>
         <SessionProvider>
             <AppNavigationGuard

@@ -19,7 +19,7 @@
     } = $props()
 </script>
 
-<div class="grid gap-6">
+<div class="grid gap-3 xl:grid-cols-2">
     <Field.Set>
         <Field.Legend variant="label">Personal information</Field.Legend>
         <Field.Group class="grid gap-4 md:grid-cols-2">
@@ -146,7 +146,7 @@
         </Field.Group>
     </Field.Set>
 
-    <Field.Field>
+    <Field.Field class="xl:col-span-2">
         <Field.Label for="borrower-notes">Internal notes</Field.Label>
         <Textarea
             id="borrower-notes"

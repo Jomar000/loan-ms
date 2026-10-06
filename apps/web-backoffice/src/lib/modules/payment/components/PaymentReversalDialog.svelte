@@ -85,7 +85,9 @@
 </script>
 
 <Dialog.Root bind:open={() => open, handleOpenChange}>
-    <Dialog.Content>
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain"
+    >
         <form
             class="grid gap-5"
             onsubmit={handleReverse}

@@ -132,10 +132,12 @@
 </script>
 
 <div
-    class={cn('flex flex-col gap-6', className)}
+    class={cn('flex flex-col gap-3', className)}
     {...restProps}
 >
-    <Card.Root>
+    <Card.Root
+        class="rounded-xl border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+    >
         <Card.Header class="text-center">
             <Card.Title><h1>Welcome back</h1></Card.Title>
             <Card.Description>Sign-in with your credentials</Card.Description>

@@ -58,6 +58,27 @@
     ///////////////////
     const createKey = createIdempotencyKeyLifecycle()
     const session = useSessionContext()
+    const settlementDescriptions: Record<
+        TFormulaDraft['renewalSettlementMethod'],
+        string
+    > = {
+        COMPLETED_INSTALLMENT_BALANCE:
+            'Counts the full amount of each installment that is not yet complete. The choice below decides what happens to any partial payment.',
+        EXACT_OUTSTANDING_BALANCE:
+            'Uses the amount still unpaid after all recorded payments, including partial payments.',
+    }
+    const partialCreditDescriptions: Record<
+        TFormulaDraft['partialCreditPolicy'],
+        string
+    > = {
+        APPLY_TO_SETTLEMENT:
+            'Counts the partial payment toward settling the old loan. With actual unpaid balance, it is already included.',
+        CARRY_FORWARD:
+            'Applies the partial payment to installments on the new loan.',
+        MANUAL_REVIEW:
+            'Blocks renewal posting for manual handling, even when there is no partial payment.',
+        REFUND: 'Returns the partial payment to the borrower as a separate refund.',
+    }
     ///////////////
     // 03. State //
     ///////////////
@@ -419,9 +440,12 @@
                 </Empty.Header>
             </Empty.Root>
         {:else}
-            <div class="overflow-x-auto">
+            <div
+                class="max-h-[min(60vh,40rem)] min-h-48 overflow-auto **:data-[slot=table-container]:overflow-visible"
+            >
                 <Table.Root>
                     <Table.Header
+                        class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
                         ><Table.Row
                             ><Table.Head>Profile</Table.Head><Table.Head
                                 >Terms</Table.Head
@@ -430,10 +454,12 @@
                             ></Table.Row
                         ></Table.Header
                     >
-                    <Table.Body>
+                    <Table.Body
+                        class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                    >
                         {#each profiles as profile (profile.publicId)}
                             <Table.Row
-                                class="transition-colors hover:bg-muted/20"
+                                class="transition-colors hover:bg-amber-50/60 dark:hover:bg-amber-500/5"
                             >
                                 <Table.Cell
                                     ><span class="font-medium"
@@ -496,367 +522,642 @@
 </Card.Root>
 <Dialog.Root bind:open={() => profileDialogOpen, handleDialogOpenChange}>
     <Dialog.Content
-        class="max-h-[94vh] max-w-5xl overflow-y-auto border-border/70 p-0 shadow-2xl"
+        class="flex max-h-[calc(100svh-1rem)] w-[calc(100vw-1rem)] max-w-7xl flex-col gap-0 overflow-hidden border-amber-200/70 bg-white p-0 shadow-2xl sm:max-h-[calc(100svh-2rem)] sm:w-[calc(100vw-2rem)] dark:border-amber-500/20 dark:bg-[#202020]"
     >
         <form
-            class="grid gap-0"
+            class="flex min-h-0 flex-1 flex-col overflow-hidden"
             onsubmit={handleSave}
         >
-            <div class="border-b border-border/60 bg-muted/20 p-6">
-                <Dialog.Header
-                    ><Dialog.Title
-                        >{editingSource
-                            ? 'Create formula version'
-                            : 'Create formula profile'}</Dialog.Title
-                    ><Dialog.Description
-                        >Saved rules are immutable. Changes create another
-                        version.</Dialog.Description
-                    ></Dialog.Header
-                >
-            </div>
-            <div class="grid gap-6 p-6">
-                {#if !editingSource}<div
-                        class="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between"
+            <div
+                class="shrink-0 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 pr-12 sm:px-5 sm:py-4 sm:pr-14 dark:border-zinc-800 dark:bg-[#1b1b1b]"
+            >
+                <Dialog.Header class="gap-1.5 text-left">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Dialog.Title
+                            class="text-base font-semibold tracking-tight text-zinc-950 sm:text-lg dark:text-zinc-50"
+                        >
+                            {editingSource
+                                ? 'Create formula version'
+                                : 'Create formula profile'}
+                        </Dialog.Title>
+                        <span
+                            class="inline-flex h-6 items-center rounded-full border border-amber-200 bg-amber-50 px-2 text-[10px] font-semibold tracking-wider text-amber-800 uppercase dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+                        >
+                            Immutable rules
+                        </span>
+                    </div>
+                    <Dialog.Description
+                        class="max-w-3xl text-xs/5  text-zinc-500 dark:text-zinc-400"
                     >
-                        <div class="grid gap-1">
-                            <p class="text-sm font-medium">
-                                Default example: 60-day daily loan
-                            </p>
-                            <p class="text-sm text-muted-foreground">
-                                20% flat interest, 60 payments, and renewal
-                                after 30 completed payments. Edit these values
-                                to match your policy before saving.
+                        Saved rules are immutable. Changes create another
+                        version.
+                    </Dialog.Description>
+                </Dialog.Header>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <div class="grid gap-3 p-3 sm:p-4">
+                    {#if !editingSource}
+                        <section
+                            class="flex flex-col gap-3 rounded-xl border border-amber-200/70 bg-amber-50/50 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/15 dark:bg-amber-500/5"
+                        >
+                            <div class="min-w-0">
+                                <p
+                                    class="text-xs font-semibold text-zinc-900 dark:text-zinc-100"
+                                >
+                                    Default example: 60-day daily loan
+                                </p>
+                                <p
+                                    class="mt-1 max-w-3xl text-xs/5 text-zinc-500 dark:text-zinc-400"
+                                >
+                                    20% flat interest, 60 payments, and renewal
+                                    after 30 completed payments. Edit these
+                                    values to match your policy before saving.
+                                </p>
+                            </div>
+
+                            <Button
+                                class="h-8 shrink-0 border-amber-300 bg-white px-2.5 text-xs font-semibold text-amber-800 hover:bg-amber-50 dark:border-amber-500/30 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-amber-500/10"
+                                disabled={isActing}
+                                onclick={handleUseDefaultExample}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Use default example
+                            </Button>
+                        </section>
+                    {/if}
+
+                    <section
+                        class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+                    >
+                        <div
+                            class="border-b border-zinc-100 bg-zinc-50/60 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30"
+                        >
+                            <h3
+                                class="text-xs font-semibold text-zinc-900 dark:text-zinc-100"
+                            >
+                                Profile basics
+                            </h3>
+                            <p
+                                class="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400"
+                            >
+                                Identify this formula version and define when it
+                                becomes effective.
                             </p>
                         </div>
-                        <Button
-                            disabled={isActing}
-                            onclick={handleUseDefaultExample}
-                            type="button"
-                            variant="outline">Use default example</Button
+
+                        <div
+                            class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3"
                         >
-                    </div>{/if}
-                <div
-                    class="grid gap-4 rounded-2xl border border-border/60 bg-background p-4 sm:grid-cols-2 lg:grid-cols-3"
-                >
-                    <Field.Field
-                        ><Field.Label for="formula-name"
-                            >Profile name</Field.Label
-                        ><Input
-                            id="formula-name"
-                            bind:value={draft.name}
-                            disabled={isActing || Boolean(editingSource)}
-                            required
-                        /></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-version">Version</Field.Label
-                        ><Input
-                            id="formula-version"
-                            bind:value={draft.version}
-                            disabled
-                            min="1"
-                            type="number"
-                        /></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-effective"
-                            >Effective date</Field.Label
-                        ><Input
-                            id="formula-effective"
-                            bind:value={draft.effectiveDate}
-                            disabled={isActing}
-                            required
-                            type="date"
-                        /></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-interest-method"
-                            >Interest method</Field.Label
-                        ><NativeSelect.Root
-                            id="formula-interest-method"
-                            bind:value={draft.interestMethod}
-                            disabled={isActing}
-                            ><NativeSelect.Option value="FLAT_PERCENTAGE"
-                                >Flat percentage</NativeSelect.Option
-                            ><NativeSelect.Option value="FIXED_AMOUNT"
-                                >Fixed amount</NativeSelect.Option
-                            ></NativeSelect.Root
-                        ></Field.Field
-                    >
-                    {#if draft.interestMethod === 'FLAT_PERCENTAGE'}<Field.Field
-                            ><Field.Label for="formula-rate"
-                                >Interest rate (%)</Field.Label
-                            ><Input
-                                id="formula-rate"
-                                bind:value={draft.interestRatePercent}
-                                disabled={isActing}
-                                min="0"
-                                required
-                                step="0.01"
-                                type="number"
-                            /></Field.Field
-                        >{:else}<Field.Field
-                            ><Field.Label for="formula-fixed-interest"
-                                >Fixed interest (PHP)</Field.Label
-                            ><Input
-                                id="formula-fixed-interest"
-                                bind:value={draft.fixedInterestAmount}
-                                disabled={isActing}
-                                min="0.01"
-                                required
-                                step="0.01"
-                                type="number"
-                            /></Field.Field
-                        >{/if}
-                    <Field.Field
-                        ><Field.Label for="formula-term">Term days</Field.Label
-                        ><Input
-                            id="formula-term"
-                            bind:value={draft.termDays}
-                            disabled={isActing}
-                            min="1"
-                            required
-                            type="number"
-                        /></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-frequency"
-                            >Payment frequency</Field.Label
-                        ><NativeSelect.Root
-                            id="formula-frequency"
-                            bind:value={draft.paymentFrequency}
-                            disabled={isActing}
-                            ><NativeSelect.Option value="DAILY"
-                                >Daily</NativeSelect.Option
-                            ><NativeSelect.Option value="WEEKLY"
-                                >Weekly</NativeSelect.Option
-                            ><NativeSelect.Option value="MONTHLY"
-                                >Monthly</NativeSelect.Option
-                            ></NativeSelect.Root
-                        ></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-installments"
-                            >Installment count</Field.Label
-                        ><Input
-                            id="formula-installments"
-                            bind:value={draft.installmentCount}
-                            disabled={isActing}
-                            min="1"
-                            oninput={handleInstallmentCountInput}
-                            required
-                            type="number"
-                        /></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-min-renewal"
-                            >Minimum payments before renewal</Field.Label
-                        ><Input
-                            aria-invalid={hasInvalidRenewalMinimum}
-                            id="formula-min-renewal"
-                            bind:value={
-                                draft.minimumRenewalCompletedInstallments
-                            }
-                            disabled={isActing}
-                            min="0"
-                            max={renewalInstallmentMaximum}
-                            required
-                            type="number"
-                        /><Field.Description
-                            >Enter 0–{renewalInstallmentMaximum}. Example: 30
-                            means 30 of {renewalInstallmentMaximum} payments must
-                            be completed before renewal.</Field.Description
-                        >{#if hasInvalidRenewalMinimum}<Field.Error
-                                >Cannot be higher than the installment count.</Field.Error
-                            >{/if}</Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-settlement"
-                            >Renewal settlement</Field.Label
-                        ><NativeSelect.Root
-                            id="formula-settlement"
-                            bind:value={draft.renewalSettlementMethod}
-                            disabled={isActing}
-                            ><NativeSelect.Option
-                                value="COMPLETED_INSTALLMENT_BALANCE"
-                                >Completed-installment balance</NativeSelect.Option
-                            ><NativeSelect.Option
-                                value="EXACT_OUTSTANDING_BALANCE"
-                                >Exact outstanding balance</NativeSelect.Option
-                            ></NativeSelect.Root
-                        ></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-credit"
-                            >Partial credit policy</Field.Label
-                        ><NativeSelect.Root
-                            id="formula-credit"
-                            bind:value={draft.partialCreditPolicy}
-                            disabled={isActing}
-                            ><NativeSelect.Option value="CARRY_FORWARD"
-                                >Carry forward</NativeSelect.Option
-                            ><NativeSelect.Option value="APPLY_TO_SETTLEMENT"
-                                >Apply to settlement</NativeSelect.Option
-                            ><NativeSelect.Option value="REFUND"
-                                >Refund</NativeSelect.Option
-                            ><NativeSelect.Option value="MANUAL_REVIEW"
-                                >Manual review</NativeSelect.Option
-                            ></NativeSelect.Root
-                        ></Field.Field
-                    >
-                    <Field.Field
-                        ><Field.Label for="formula-rounding"
-                            >Rounding</Field.Label
-                        ><NativeSelect.Root
-                            id="formula-rounding"
-                            bind:value={draft.roundingMode}
-                            disabled={isActing}
-                            ><NativeSelect.Option value="HALF_UP"
-                                >Half up</NativeSelect.Option
-                            ><NativeSelect.Option value="DOWN"
-                                >Down</NativeSelect.Option
-                            ><NativeSelect.Option value="UP"
-                                >Up</NativeSelect.Option
-                            ></NativeSelect.Root
-                        ></Field.Field
-                    >
-                </div>
-                <label
-                    class="flex min-h-12 items-center justify-between gap-4 rounded-xl border border-border/70 bg-muted/20 px-4 text-sm font-medium"
-                    >Allow renewal principal changes<input
-                        bind:checked={draft.allowRenewalPrincipalChange}
-                        disabled={isActing}
-                        type="checkbox"
-                    /></label
-                >
-                <Card.Root class="overflow-hidden border-border/60 shadow-none"
-                    ><Card.Header class="border-b border-border/50 bg-muted/20"
-                        ><Card.Title>Formula preview</Card.Title
-                        ><Card.Description
-                            >Uses the same server calculation engine as loan
-                            origination.</Card.Description
-                        ></Card.Header
-                    ><Card.Content class="grid gap-4"
-                        ><div class="grid gap-4 sm:grid-cols-2">
-                            <Field.Field
-                                ><Field.Label for="preview-principal"
-                                    >Principal (PHP)</Field.Label
-                                ><Input
-                                    id="preview-principal"
-                                    bind:value={previewPrincipal}
-                                    disabled={isActing}
-                                    min="0.01"
-                                    step="0.01"
+                            <Field.Field>
+                                <Field.Label for="formula-name">
+                                    Profile name
+                                </Field.Label>
+                                <Input
+                                    class="h-9"
+                                    id="formula-name"
+                                    bind:value={draft.name}
+                                    disabled={isActing ||
+                                        Boolean(editingSource)}
+                                    required
+                                />
+                            </Field.Field>
+
+                            <Field.Field>
+                                <Field.Label for="formula-version">
+                                    Version
+                                </Field.Label>
+                                <Input
+                                    class="h-9 bg-zinc-50 font-mono tabular-nums dark:bg-zinc-900"
+                                    id="formula-version"
+                                    bind:value={draft.version}
+                                    disabled
+                                    min="1"
                                     type="number"
-                                /></Field.Field
-                            ><Field.Field
-                                ><Field.Label for="preview-paid"
-                                    >Total paid (PHP)</Field.Label
-                                ><Input
-                                    id="preview-paid"
-                                    bind:value={previewTotalPaid}
+                                />
+                            </Field.Field>
+
+                            <Field.Field class="sm:col-span-2 lg:col-span-1">
+                                <Field.Label for="formula-effective">
+                                    Effective date
+                                </Field.Label>
+                                <Input
+                                    class="h-9"
+                                    id="formula-effective"
+                                    bind:value={draft.effectiveDate}
+                                    disabled={isActing}
+                                    required
+                                    type="date"
+                                />
+                            </Field.Field>
+                        </div>
+                    </section>
+
+                    <section
+                        class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+                    >
+                        <div
+                            class="border-b border-zinc-100 bg-zinc-50/60 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30"
+                        >
+                            <h3
+                                class="text-xs font-semibold text-zinc-900 dark:text-zinc-100"
+                            >
+                                Interest and payment schedule
+                            </h3>
+                            <p
+                                class="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400"
+                            >
+                                Configure how interest is calculated and how
+                                repayment is scheduled.
+                            </p>
+                        </div>
+
+                        <div
+                            class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3"
+                        >
+                            <Field.Field>
+                                <Field.Label for="formula-interest-method">
+                                    Interest method
+                                </Field.Label>
+                                <NativeSelect.Root
+                                    class="h-9 text-sm"
+                                    id="formula-interest-method"
+                                    bind:value={draft.interestMethod}
+                                    disabled={isActing}
+                                >
+                                    <NativeSelect.Option
+                                        value="FLAT_PERCENTAGE"
+                                    >
+                                        Flat percentage
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option value="FIXED_AMOUNT">
+                                        Fixed amount
+                                    </NativeSelect.Option>
+                                </NativeSelect.Root>
+                            </Field.Field>
+
+                            {#if draft.interestMethod === 'FLAT_PERCENTAGE'}
+                                <Field.Field>
+                                    <Field.Label for="formula-rate">
+                                        Interest rate (%)
+                                    </Field.Label>
+                                    <Input
+                                        class="h-9 font-mono tabular-nums"
+                                        id="formula-rate"
+                                        bind:value={draft.interestRatePercent}
+                                        disabled={isActing}
+                                        min="0"
+                                        required
+                                        step="0.01"
+                                        type="number"
+                                    />
+                                </Field.Field>
+                            {:else}
+                                <Field.Field>
+                                    <Field.Label for="formula-fixed-interest">
+                                        Fixed interest (PHP)
+                                    </Field.Label>
+                                    <Input
+                                        class="h-9 font-mono tabular-nums"
+                                        id="formula-fixed-interest"
+                                        bind:value={draft.fixedInterestAmount}
+                                        disabled={isActing}
+                                        min="0.01"
+                                        required
+                                        step="0.01"
+                                        type="number"
+                                    />
+                                </Field.Field>
+                            {/if}
+
+                            <Field.Field>
+                                <Field.Label for="formula-term">
+                                    Term days
+                                </Field.Label>
+                                <Input
+                                    class="h-9 font-mono tabular-nums"
+                                    id="formula-term"
+                                    bind:value={draft.termDays}
+                                    disabled={isActing}
+                                    min="1"
+                                    required
+                                    type="number"
+                                />
+                            </Field.Field>
+
+                            <Field.Field>
+                                <Field.Label for="formula-frequency">
+                                    Payment frequency
+                                </Field.Label>
+                                <NativeSelect.Root
+                                    class="h-9 text-sm"
+                                    id="formula-frequency"
+                                    bind:value={draft.paymentFrequency}
+                                    disabled={isActing}
+                                >
+                                    <NativeSelect.Option value="DAILY">
+                                        Daily
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option value="WEEKLY">
+                                        Weekly
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option value="MONTHLY">
+                                        Monthly
+                                    </NativeSelect.Option>
+                                </NativeSelect.Root>
+                            </Field.Field>
+
+                            <Field.Field>
+                                <Field.Label for="formula-installments">
+                                    Installment count
+                                </Field.Label>
+                                <Input
+                                    class="h-9 font-mono tabular-nums"
+                                    id="formula-installments"
+                                    bind:value={draft.installmentCount}
+                                    disabled={isActing}
+                                    min="1"
+                                    oninput={handleInstallmentCountInput}
+                                    required
+                                    type="number"
+                                />
+                            </Field.Field>
+                        </div>
+                    </section>
+
+                    <section
+                        class="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+                    >
+                        <div
+                            class="border-b border-zinc-100 bg-zinc-50/60 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30"
+                        >
+                            <h3
+                                class="text-xs font-semibold text-zinc-900 dark:text-zinc-100"
+                            >
+                                Renewal policy
+                            </h3>
+                            <p
+                                class="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400"
+                            >
+                                Define renewal eligibility, settlement behavior,
+                                and partial-payment handling.
+                            </p>
+                        </div>
+
+                        <div class="grid gap-3 p-4 lg:grid-cols-2">
+                            <Field.Field>
+                                <Field.Label for="formula-min-renewal">
+                                    Minimum payments before renewal
+                                </Field.Label>
+                                <Input
+                                    aria-invalid={hasInvalidRenewalMinimum}
+                                    class="h-9 font-mono tabular-nums"
+                                    id="formula-min-renewal"
+                                    bind:value={
+                                        draft.minimumRenewalCompletedInstallments
+                                    }
                                     disabled={isActing}
                                     min="0"
-                                    step="0.01"
+                                    max={renewalInstallmentMaximum}
+                                    required
                                     type="number"
-                                /></Field.Field
+                                />
+                                <Field.Description class="text-[11px]/4 ">
+                                    Enter 0–{renewalInstallmentMaximum}.
+                                    Example: 30 means 30 of {renewalInstallmentMaximum}
+                                    payments must be completed before renewal.
+                                </Field.Description>
+
+                                {#if hasInvalidRenewalMinimum}
+                                    <Field.Error>
+                                        Cannot be higher than the installment
+                                        count.
+                                    </Field.Error>
+                                {/if}
+                            </Field.Field>
+
+                            <Field.Field>
+                                <Field.Label for="formula-settlement">
+                                    Old loan balance to settle
+                                </Field.Label>
+                                <NativeSelect.Root
+                                    class="h-9 text-sm"
+                                    id="formula-settlement"
+                                    bind:value={draft.renewalSettlementMethod}
+                                    disabled={isActing}
+                                >
+                                    <NativeSelect.Option
+                                        value="COMPLETED_INSTALLMENT_BALANCE"
+                                    >
+                                        Full remaining installments
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option
+                                        value="EXACT_OUTSTANDING_BALANCE"
+                                    >
+                                        Actual unpaid balance
+                                    </NativeSelect.Option>
+                                </NativeSelect.Root>
+
+                                <Field.Description class="text-[11px]/4 ">
+                                    This is paid from the new loan before cash
+                                    is released. {settlementDescriptions[
+                                        draft.renewalSettlementMethod
+                                    ]}
+                                </Field.Description>
+                            </Field.Field>
+
+                            <Field.Field class="lg:col-span-2">
+                                <Field.Label for="formula-credit">
+                                    What to do with a partial payment
+                                </Field.Label>
+                                <NativeSelect.Root
+                                    class="h-9 text-sm"
+                                    id="formula-credit"
+                                    bind:value={draft.partialCreditPolicy}
+                                    disabled={isActing}
+                                >
+                                    <NativeSelect.Option value="CARRY_FORWARD">
+                                        Use on the new loan
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option
+                                        value="APPLY_TO_SETTLEMENT"
+                                    >
+                                        Deduct from the old loan balance
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option value="REFUND">
+                                        Refund to the borrower
+                                    </NativeSelect.Option>
+                                    <NativeSelect.Option value="MANUAL_REVIEW">
+                                        Pause for manual review
+                                    </NativeSelect.Option>
+                                </NativeSelect.Root>
+
+                                <Field.Description class="text-[11px]/4 ">
+                                    A partial payment is money paid toward an
+                                    installment that is not yet complete. {partialCreditDescriptions[
+                                        draft.partialCreditPolicy
+                                    ]}
+                                </Field.Description>
+
+                                {#if draft.renewalSettlementMethod === 'EXACT_OUTSTANDING_BALANCE' && (draft.partialCreditPolicy === 'CARRY_FORWARD' || draft.partialCreditPolicy === 'REFUND')}
+                                    <Field.Description
+                                        class="rounded-lg border border-amber-200 bg-amber-50/70 p-2 text-[11px]/4  text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-300"
+                                    >
+                                        The actual unpaid balance already
+                                        deducts this payment. This choice also {draft.partialCreditPolicy ===
+                                        'REFUND'
+                                            ? 'refunds it'
+                                            : 'applies it to the new loan'} separately.
+                                    </Field.Description>
+                                {/if}
+                            </Field.Field>
+
+                            <label
+                                class="flex min-h-12 items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 text-xs font-medium text-zinc-800 lg:col-span-2 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-200"
                             >
+                                <span>
+                                    <span class="block font-semibold">
+                                        Allow renewal principal changes
+                                    </span>
+                                    <span
+                                        class="mt-0.5 block text-[11px] font-normal text-zinc-500 dark:text-zinc-400"
+                                    >
+                                        Permit the renewed loan principal to
+                                        differ from the previous loan.
+                                    </span>
+                                </span>
+
+                                <input
+                                    class="size-4 shrink-0 accent-amber-500"
+                                    bind:checked={
+                                        draft.allowRenewalPrincipalChange
+                                    }
+                                    disabled={isActing}
+                                    type="checkbox"
+                                />
+                            </label>
                         </div>
-                        <Button
-                            disabled={isActing}
-                            onclick={handlePreview}
-                            type="button"
-                            variant="outline"
-                            ><FlaskConicalIcon data-icon="inline-start" /> Run preview</Button
-                        >{#if preview}<dl
-                                class="grid gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 text-sm sm:grid-cols-2 lg:grid-cols-3"
+                    </section>
+
+                    <Card.Root
+                        class="overflow-hidden border-amber-200/70 bg-white shadow-sm dark:border-amber-500/15 dark:bg-[#202020]"
+                    >
+                        <Card.Header
+                            class="border-b border-zinc-100 bg-amber-50/40 px-4 py-3 dark:border-zinc-800 dark:bg-amber-500/5"
+                        >
+                            <Card.Title class="text-sm font-semibold">
+                                Formula preview
+                            </Card.Title>
+                            <Card.Description class="text-xs">
+                                Uses the same server calculation engine as loan
+                                origination.
+                            </Card.Description>
+                        </Card.Header>
+
+                        <Card.Content class="grid gap-3 p-4">
+                            <div
+                                class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
                             >
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Interest
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {formatCurrency(
-                                            preview.interestAmountMinor,
-                                        )}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Total payable
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {formatCurrency(
-                                            preview.totalPayableMinor,
-                                        )}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Installment
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {formatCurrency(
-                                            preview.installmentAmountMinor,
-                                        )}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Completed
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {preview.completedInstallmentCount}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Partial credit
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {formatCurrency(
-                                            preview.partialPaymentCreditMinor,
-                                        )}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Renewal settlement
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {formatCurrency(
-                                            preview.renewalSettlementBalanceMinor,
-                                        )}
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground">
-                                        Renewal cash release
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {formatCurrency(
-                                            preview.renewalCashReleaseMinor,
-                                        )}
-                                    </dd>
-                                </div>
-                            </dl>{/if}</Card.Content
-                    ></Card.Root
-                >
+                                <Field.Field>
+                                    <Field.Label for="preview-principal">
+                                        Principal (PHP)
+                                    </Field.Label>
+                                    <Input
+                                        class="h-9 font-mono tabular-nums"
+                                        id="preview-principal"
+                                        bind:value={previewPrincipal}
+                                        disabled={isActing}
+                                        min="0.01"
+                                        step="0.01"
+                                        type="number"
+                                    />
+                                </Field.Field>
+
+                                <Field.Field>
+                                    <Field.Label for="preview-paid">
+                                        Total paid (PHP)
+                                    </Field.Label>
+                                    <Input
+                                        class="h-9 font-mono tabular-nums"
+                                        id="preview-paid"
+                                        bind:value={previewTotalPaid}
+                                        disabled={isActing}
+                                        min="0"
+                                        step="0.01"
+                                        type="number"
+                                    />
+                                </Field.Field>
+
+                                <Button
+                                    class="h-9 w-full border-amber-300 bg-white px-3 text-xs font-semibold text-amber-800 hover:bg-amber-50 sm:col-span-2 lg:col-span-1 lg:w-auto dark:border-amber-500/30 dark:bg-zinc-900 dark:text-amber-300 dark:hover:bg-amber-500/10"
+                                    disabled={isActing}
+                                    onclick={handlePreview}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <FlaskConicalIcon
+                                        class="size-3.5"
+                                        data-icon="inline-start"
+                                    />
+                                    Run preview
+                                </Button>
+                            </div>
+
+                            {#if preview}
+                                <dl
+                                    class="grid overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 text-xs sm:grid-cols-2 lg:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-800"
+                                >
+                                    <div class="bg-white p-3 dark:bg-[#202020]">
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                        >
+                                            Interest
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                        >
+                                            {formatCurrency(
+                                                preview.interestAmountMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+
+                                    <div
+                                        class="border-t border-zinc-200 bg-white p-3 sm:border-t-0 sm:border-l dark:border-zinc-800 dark:bg-[#202020]"
+                                    >
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                        >
+                                            Total payable
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                        >
+                                            {formatCurrency(
+                                                preview.totalPayableMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+
+                                    <div
+                                        class="border-t border-zinc-200 bg-white p-3 lg:border-t-0 lg:border-l dark:border-zinc-800 dark:bg-[#202020]"
+                                    >
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                        >
+                                            Installment
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                        >
+                                            {formatCurrency(
+                                                preview.installmentAmountMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+
+                                    <div
+                                        class="border-t border-zinc-200 bg-white p-3 sm:border-l lg:border-t-0 dark:border-zinc-800 dark:bg-[#202020]"
+                                    >
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                        >
+                                            Completed
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                        >
+                                            {preview.completedInstallmentCount}
+                                        </dd>
+                                    </div>
+
+                                    <div
+                                        class="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-[#202020]"
+                                    >
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                        >
+                                            Partial credit
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                        >
+                                            {formatCurrency(
+                                                preview.partialPaymentCreditMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+
+                                    <div
+                                        class="border-t border-zinc-200 bg-white p-3 sm:border-l dark:border-zinc-800 dark:bg-[#202020]"
+                                    >
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                        >
+                                            Renewal settlement
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
+                                        >
+                                            {formatCurrency(
+                                                preview.renewalSettlementBalanceMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+
+                                    <div
+                                        class="border-t border-amber-200 bg-amber-50/70 p-3 lg:border-l dark:border-amber-500/20 dark:bg-amber-500/5"
+                                    >
+                                        <dt
+                                            class="text-[10px] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-300"
+                                        >
+                                            Renewal cash release
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-mono font-bold text-zinc-950 tabular-nums dark:text-zinc-50"
+                                        >
+                                            {formatCurrency(
+                                                preview.renewalCashReleaseMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            {/if}
+                        </Card.Content>
+                    </Card.Root>
+                </div>
             </div>
+
             <Dialog.Footer
-                class="border-t border-border/60 bg-muted/20 p-5 sm:px-6"
-                ><Button
-                    disabled={isActing}
-                    onclick={() => handleDialogOpenChange(false)}
-                    type="button"
-                    variant="outline">Cancel</Button
-                ><Button
-                    disabled={isActing}
-                    type="submit"
-                    >{#if isActing}<Spinner data-icon="inline-start" />{/if}Save
-                    immutable version</Button
-                ></Dialog.Footer
+                class="shrink-0 border-t border-zinc-200 bg-zinc-50/95 p-3 sm:flex-row sm:px-5 dark:border-zinc-800 dark:bg-[#1b1b1b]"
             >
+                <div
+                    class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end"
+                >
+                    <Button
+                        class="h-9 w-full sm:w-auto"
+                        disabled={isActing}
+                        onclick={() => handleDialogOpenChange(false)}
+                        type="button"
+                        variant="outline"
+                    >
+                        Cancel
+                    </Button>
+
+                    <Button
+                        class="h-9 w-full bg-amber-500 px-4 text-xs font-semibold text-zinc-950 hover:bg-amber-400 sm:w-auto dark:bg-amber-400 dark:hover:bg-amber-300"
+                        disabled={isActing}
+                        type="submit"
+                    >
+                        {#if isActing}
+                            <Spinner data-icon="inline-start" />
+                        {/if}
+                        Save immutable version
+                    </Button>
+                </div>
+            </Dialog.Footer>
         </form>
     </Dialog.Content>
 </Dialog.Root>

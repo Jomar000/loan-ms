@@ -189,10 +189,18 @@
     }
 </script>
 
-<section class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4 md:p-6">
-    <header class="flex flex-col gap-1">
-        <h2 class="text-xl font-semibold text-foreground">Users and roles</h2>
-        <p class="text-sm text-muted-foreground">
+<section
+    class="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 lg:overflow-hidden dark:bg-[#171717]"
+>
+    <header
+        class="flex flex-col gap-1 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+    >
+        <h2
+            class="text-lg font-semibold tracking-tight text-zinc-950 md:text-xl dark:text-zinc-50"
+        >
+            Users and roles
+        </h2>
+        <p class="text-xs text-zinc-500 dark:text-zinc-400">
             Review staff access for this organization. Role and sign-in changes
             are restricted to owners and recorded in Activity Logs.
         </p>
@@ -246,9 +254,13 @@
             </Empty.Header>
         </Empty.Root>
     {:else}
-        <div class="overflow-x-auto rounded-md border border-border">
+        <div
+            class="min-h-48 overflow-auto rounded-xl border border-zinc-200 bg-white shadow-sm **:data-[slot=table-container]:overflow-visible lg:min-h-0 lg:flex-1 dark:border-zinc-800 dark:bg-[#202020]"
+        >
             <Table.Root class="min-w-190">
-                <Table.Header>
+                <Table.Header
+                    class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
+                >
                     <Table.Row>
                         <Table.Head>User</Table.Head>
                         <Table.Head>Contact</Table.Head>
@@ -257,7 +269,9 @@
                         <Table.Head class="text-right">Actions</Table.Head>
                     </Table.Row>
                 </Table.Header>
-                <Table.Body>
+                <Table.Body
+                    class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                >
                     {#each staffQuery.data?.data ?? [] as member (member.userPublicId)}
                         <Table.Row>
                             <Table.Cell class="font-medium"
@@ -318,10 +332,10 @@
         </div>
 
         <Pagination.Root
-            class="justify-between"
+            class="shrink-0 justify-between rounded-xl border border-zinc-200 bg-zinc-50/70 px-2 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/35"
             count={getTotalPages()}
         >
-            <p class="text-sm text-muted-foreground">
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
                 Page {currentPage} of {getTotalPages()} · {staffQuery.data
                     ?.count ?? 0} users
             </p>
@@ -347,7 +361,9 @@
 <AlertDialog.Root
     bind:open={() => confirmationOpen, handleConfirmationOpenChange}
 >
-    <AlertDialog.Content>
+    <AlertDialog.Content
+        class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain"
+    >
         <AlertDialog.Header>
             <AlertDialog.Title>{actionTitle()}</AlertDialog.Title>
             <AlertDialog.Description

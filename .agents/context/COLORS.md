@@ -7,7 +7,7 @@ description: Color palette, design tokens, semantic states, and usage rules.
 
 ## Authoritative Guidance
 
-This document is the human-authoritative source for the project's color system. Keep it synchronized with `packages/ui/src/styles/globals.css` whenever a token or value changes. Any mismatch between this contract and the shared CSS is merge-blocking.
+`DESIGN.md` is the source of truth for the project's visual system. This document inventories the implemented color tokens and must stay synchronized with `packages/ui/src/styles/globals.css`. Any mismatch between this inventory and the shared CSS is merge-blocking.
 
 Downstream forks must preserve this section. They must replace `Template-Specific Context` with `Fork-Specific Context` and record the fork's token inventory, values, roles, and component exceptions there.
 
@@ -36,55 +36,55 @@ Light values map to `:root`; dark values map to `.dark`. Documented token values
 
 ### Global token
 
-| Token      | Value      | Role                         |
-| ---------- | ---------- | ---------------------------- |
-| `--radius` | `0.625rem` | Base component corner radius |
+| Token      | Value    | Role                         |
+| ---------- | -------- | ---------------------------- |
+| `--radius` | `0.5rem` | Base component corner radius |
 
 ### Core theme tokens
 
 | Token                    | Light                        | Dark                         | Role                           |
 | ------------------------ | ---------------------------- | ---------------------------- | ------------------------------ |
-| `--accent`               | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Hover and accent surface       |
-| `--accent-foreground`    | `oklch(0.21 0.006 285.885)`  | `oklch(0.985 0 0)`           | Accent text                    |
-| `--background`           | `oklch(1 0 0)`               | `oklch(0.141 0.005 285.823)` | Application canvas             |
-| `--border`               | `oklch(0.92 0.004 286.32)`   | `oklch(1 0 0 / 10%)`         | Standard border                |
-| `--card`                 | `oklch(1 0 0)`               | `oklch(0.21 0.006 285.885)`  | Card surface                   |
+| `--accent`               | `#fffbeb`                    | `#302714`                    | Hover and accent surface       |
+| `--accent-foreground`    | `#713f12`                    | `#fcd34d`                    | Accent text                    |
+| `--background`           | `#fafafa`                    | `#171717`                    | Application canvas             |
+| `--border`               | `#e4e4e7`                    | `#3f3f46`                    | Standard border                |
+| `--card`                 | `oklch(1 0 0)`               | `#202020`                    | Card surface                   |
 | `--card-foreground`      | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Card text                      |
 | `--destructive`          | `oklch(0.577 0.245 27.325)`  | `oklch(0.704 0.191 22.216)`  | Destructive actions and errors |
 | `--foreground`           | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Default text                   |
-| `--input`                | `oklch(0.92 0.004 286.32)`   | `oklch(1 0 0 / 15%)`         | Input border                   |
-| `--muted`                | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Muted surface                  |
+| `--input`                | `#d4d4d8`                    | `#52525b`                    | Input border                   |
+| `--muted`                | `#f4f4f5`                    | `#27272a`                    | Muted surface                  |
 | `--muted-foreground`     | `oklch(0.552 0.016 285.938)` | `oklch(0.705 0.015 286.067)` | Muted text                     |
-| `--popover`              | `oklch(1 0 0)`               | `oklch(0.21 0.006 285.885)`  | Popover surface                |
+| `--popover`              | `oklch(1 0 0)`               | `#202020`                    | Popover surface                |
 | `--popover-foreground`   | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Popover text                   |
-| `--primary`              | `oklch(0.21 0.006 285.885)`  | `oklch(0.92 0.004 286.32)`   | Primary actions                |
-| `--primary-foreground`   | `oklch(0.985 0 0)`           | `oklch(0.21 0.006 285.885)`  | Primary-action text            |
-| `--ring`                 | `oklch(0.705 0.015 286.067)` | `oklch(0.552 0.016 285.938)` | Focus ring                     |
-| `--secondary`            | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Secondary surface              |
+| `--primary`              | `#f59e0b`                    | `#fbbf24`                    | Primary actions                |
+| `--primary-foreground`   | `#09090b`                    | `#09090b`                    | Primary-action text            |
+| `--ring`                 | `#d97706`                    | `#fbbf24`                    | Focus ring                     |
+| `--secondary`            | `#f4f4f5`                    | `#27272a`                    | Secondary surface              |
 | `--secondary-foreground` | `oklch(0.21 0.006 285.885)`  | `oklch(0.985 0 0)`           | Secondary text                 |
 
 ### Chart tokens
 
-| Token       | Light                       | Dark                         | Role           |
-| ----------- | --------------------------- | ---------------------------- | -------------- |
-| `--chart-1` | `oklch(0.646 0.222 41.116)` | `oklch(0.488 0.243 264.376)` | Chart series 1 |
-| `--chart-2` | `oklch(0.6 0.118 184.704)`  | `oklch(0.696 0.17 162.48)`   | Chart series 2 |
-| `--chart-3` | `oklch(0.398 0.07 227.392)` | `oklch(0.769 0.188 70.08)`   | Chart series 3 |
-| `--chart-4` | `oklch(0.828 0.189 84.429)` | `oklch(0.627 0.265 303.9)`   | Chart series 4 |
-| `--chart-5` | `oklch(0.769 0.188 70.08)`  | `oklch(0.645 0.246 16.439)`  | Chart series 5 |
+| Token       | Light     | Dark      | Role           |
+| ----------- | --------- | --------- | -------------- |
+| `--chart-1` | `#d97706` | `#fbbf24` | Chart series 1 |
+| `--chart-2` | `#71717a` | `#a1a1aa` | Chart series 2 |
+| `--chart-3` | `#f59e0b` | `#d97706` | Chart series 3 |
+| `--chart-4` | `#a1a1aa` | `#71717a` | Chart series 4 |
+| `--chart-5` | `#92400e` | `#fcd34d` | Chart series 5 |
 
 ### Sidebar tokens
 
-| Token                          | Light                        | Dark                         | Role                             |
-| ------------------------------ | ---------------------------- | ---------------------------- | -------------------------------- |
-| `--sidebar`                    | `oklch(0.985 0 0)`           | `oklch(0.21 0.006 285.885)`  | Sidebar surface                  |
-| `--sidebar-accent`             | `oklch(0.967 0.001 286.375)` | `oklch(0.274 0.006 286.033)` | Sidebar hover and active surface |
-| `--sidebar-accent-foreground`  | `oklch(0.21 0.006 285.885)`  | `oklch(0.985 0 0)`           | Sidebar accent text              |
-| `--sidebar-border`             | `oklch(0.92 0.004 286.32)`   | `oklch(1 0 0 / 10%)`         | Sidebar border                   |
-| `--sidebar-foreground`         | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`           | Sidebar text                     |
-| `--sidebar-primary`            | `oklch(0.21 0.006 285.885)`  | `oklch(0.488 0.243 264.376)` | Sidebar primary action           |
-| `--sidebar-primary-foreground` | `oklch(0.985 0 0)`           | `oklch(0.985 0 0)`           | Sidebar primary-action text      |
-| `--sidebar-ring`               | `oklch(0.705 0.015 286.067)` | `oklch(0.552 0.016 285.938)` | Sidebar focus ring               |
+| Token                          | Light                        | Dark                        | Role                             |
+| ------------------------------ | ---------------------------- | --------------------------- | -------------------------------- |
+| `--sidebar`                    | `oklch(0.985 0 0)`           | `oklch(0.21 0.006 285.885)` | Sidebar surface                  |
+| `--sidebar-accent`             | `#fffbeb`                    | `#302714`                   | Sidebar hover and active surface |
+| `--sidebar-accent-foreground`  | `#713f12`                    | `#fcd34d`                   | Sidebar accent text              |
+| `--sidebar-border`             | `#e4e4e7`                    | `#3f3f46`                   | Sidebar border                   |
+| `--sidebar-foreground`         | `oklch(0.141 0.005 285.823)` | `oklch(0.985 0 0)`          | Sidebar text                     |
+| `--sidebar-primary`            | `#f59e0b`                    | `#fbbf24`                   | Sidebar primary action           |
+| `--sidebar-primary-foreground` | `#09090b`                    | `#09090b`                   | Sidebar primary-action text      |
+| `--sidebar-ring`               | `#d97706`                    | `#fbbf24`                   | Sidebar focus ring               |
 
 ### Implemented semantic tokens
 

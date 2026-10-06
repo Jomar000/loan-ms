@@ -216,7 +216,9 @@
 </script>
 
 <Dialog.Root bind:open={() => open, handleOpenChange}>
-    <Dialog.Content class="max-h-[90vh] max-w-4xl overflow-y-auto">
+    <Dialog.Content
+        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain sm:max-w-4xl"
+    >
         {#if receipt}
             <Dialog.Header>
                 <Dialog.Title>Payment receipt</Dialog.Title>

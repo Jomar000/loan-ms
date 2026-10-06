@@ -215,11 +215,11 @@
 </script>
 
 <section
-    class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/70 p-3 text-zinc-950 md:p-4 dark:bg-[#121212] dark:text-zinc-100"
+    class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/70 p-3 text-zinc-950 md:p-4 dark:bg-[#171717] dark:text-zinc-100"
 >
     <div class="flex min-h-0 flex-1 flex-col gap-3">
         <header
-            class="relative shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#1a1a1a]"
+            class="relative shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
         >
             <div
                 class="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-amber-300 via-amber-500 to-amber-600"
@@ -303,7 +303,7 @@
             </div>
         </header>
         <div
-            class="grid shrink-0 gap-2 rounded-xl border border-zinc-200/80 bg-white p-2.5 shadow-sm md:grid-cols-12 dark:border-zinc-800 dark:bg-[#1a1a1a]"
+            class="grid shrink-0 gap-2 rounded-xl border border-zinc-200/80 bg-white p-2.5 shadow-sm md:grid-cols-12 dark:border-zinc-800 dark:bg-[#202020]"
         >
             <label class="relative block md:col-span-6">
                 <span
@@ -396,7 +396,7 @@
             </Alert.Root>
         {/if}
         <div
-            class="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#1a1a1a]"
+            class="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
         >
             <div
                 class="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200/80 bg-zinc-50/80 px-3 py-2 dark:border-zinc-800 dark:bg-[#171717]"
@@ -421,7 +421,7 @@
                 {/if}
             </div>
             <div
-                class="min-h-0 flex-1 overflow-auto [&_table]:min-w-[760px] [&_tbody_tr]:border-zinc-200/70 [&_tbody_tr]:transition-colors hover:[&_tbody_tr]:bg-amber-50/40 dark:[&_tbody_tr]:border-zinc-800 dark:hover:[&_tbody_tr]:bg-amber-500/4 [&_td]:px-3 [&_td]:py-2 [&_th]:h-9 [&_th]:border-b [&_th]:border-zinc-200 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-bold [&_th]:tracking-widest [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:border-zinc-800 dark:[&_th]:text-zinc-400 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead]:bg-zinc-100/95 [&_thead]:backdrop-blur-sm dark:[&_thead]:bg-[#202020]/95"
+                class="min-h-0 flex-1 overflow-auto **:data-[slot=table-container]:overflow-visible [&_table]:min-w-[760px] [&_tbody_tr]:border-zinc-200/70 [&_tbody_tr]:transition-colors hover:[&_tbody_tr]:bg-amber-50/40 dark:[&_tbody_tr]:border-zinc-800 dark:hover:[&_tbody_tr]:bg-amber-500/4 [&_td]:px-3 [&_td]:py-2 [&_th]:h-9 [&_th]:border-b [&_th]:border-zinc-200 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-bold [&_th]:tracking-widest [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:border-zinc-800 dark:[&_th]:text-zinc-400 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead]:bg-zinc-100/95 [&_thead]:backdrop-blur-sm dark:[&_thead]:bg-[#202020]/95"
             >
                 <Table.Root>
                     <Table.Header>
@@ -543,7 +543,7 @@
             </div>
         </div>
         <div
-            class="shrink-0 rounded-xl border border-zinc-200/80 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-800 dark:bg-[#1a1a1a]"
+            class="shrink-0 rounded-xl border border-zinc-200/80 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
         >
             <PaginationFooter
                 count={listQuery.data?.count ?? 0}
@@ -561,17 +561,17 @@
 </section>
 <Dialog.Root bind:open={() => createOpen, handleCreateOpenChange}>
     <Dialog.Content
-        class="max-h-[92vh] max-w-3xl overflow-y-auto border-zinc-200 bg-white p-0 shadow-2xl dark:border-zinc-800 dark:bg-[#1a1a1a]"
+        class="flex max-h-[calc(100svh-2rem)] flex-col gap-0 overflow-hidden border-zinc-200 bg-white p-0 shadow-2xl sm:max-w-3xl dark:border-zinc-800 dark:bg-[#202020]"
     >
         <form
-            class="grid gap-0"
+            class="flex min-h-0 flex-col"
             onsubmit={handleCreate}
         >
             <div
-                class="h-0.5 bg-linear-to-r from-amber-300 via-amber-500 to-amber-600"
+                class="h-0.5 shrink-0 bg-linear-to-r from-amber-300 via-amber-500 to-amber-600"
             ></div>
             <Dialog.Header
-                class="border-b border-zinc-200/80 bg-zinc-50/70 px-5 py-4 text-left dark:border-zinc-800 dark:bg-[#171717]"
+                class="shrink-0 border-b border-zinc-200/80 bg-zinc-50/70 p-4 pr-14 text-left sm:px-5 sm:pr-14 dark:border-zinc-800 dark:bg-[#171717]"
             >
                 <div class="mb-1.5 flex items-center gap-2">
                     <span
@@ -586,7 +586,9 @@
                     >A borrower record can be created before any loan is issued.</Dialog.Description
                 >
             </Dialog.Header>
-            <div class="grid gap-3 px-5 py-4">
+            <div
+                class="grid min-h-0 gap-3 overflow-y-auto overscroll-contain p-4 sm:px-5"
+            >
                 <div
                     class="rounded-xl border border-zinc-200/80 bg-white p-3 dark:border-zinc-800 dark:bg-[#181818]"
                 >
@@ -627,7 +629,7 @@
                 {/if}
             </div>
             <Dialog.Footer
-                class="border-t border-zinc-200/80 bg-zinc-50/70 px-5 py-3 dark:border-zinc-800 dark:bg-[#171717]"
+                class="shrink-0 border-t border-zinc-200/80 bg-zinc-50/70 px-4 py-3 sm:px-5 dark:border-zinc-800 dark:bg-[#171717]"
             >
                 <Button
                     type="button"

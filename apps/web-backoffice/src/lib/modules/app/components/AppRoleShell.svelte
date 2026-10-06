@@ -108,7 +108,9 @@
         {session}
     />
 
-    <div class="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
+    <div
+        class="flex min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 dark:bg-[#171717]"
+    >
         <div
             class="flex h-15 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:hidden"
         >
@@ -129,7 +131,9 @@
             />
         </div>
 
-        <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main
+            class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain"
+        >
             {@render children()}
         </main>
     </div>

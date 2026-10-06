@@ -166,25 +166,27 @@
     }
 </script>
 
-<section class="flex min-h-0 flex-1 flex-col overflow-auto bg-muted/20">
+<section
+    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 dark:bg-[#171717]"
+>
     <header
-        class="border-b border-border/60 bg-background/95 px-4 py-6 backdrop-blur-sm md:px-6 lg:px-8"
+        class="border-b border-zinc-200 bg-white p-3 md:px-4 dark:border-zinc-800 dark:bg-[#202020]"
     >
         <div
-            class="mx-auto flex w-full max-w-[1600px] flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"
+            class="mx-auto flex w-full max-w-[1600px] flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
         >
-            <div class="max-w-3xl space-y-2">
+            <div class="max-w-3xl space-y-1">
                 <div
                     class="flex items-center gap-2 text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase"
                 >
                     <LandmarkIcon class="size-4" /> Organization controls
                 </div>
                 <h2
-                    class="text-2xl font-semibold tracking-tight text-foreground md:text-3xl"
+                    class="text-lg font-semibold tracking-tight text-zinc-950 md:text-xl dark:text-zinc-50"
                 >
                     System settings
                 </h2>
-                <p class="max-w-2xl text-sm/6 text-muted-foreground">
+                <p class="max-w-2xl text-xs text-zinc-500 dark:text-zinc-400">
                     Configure lending defaults, borrower risk rules, and
                     calculation policies from one controlled workspace. Existing
                     loans retain their contractual snapshots.
@@ -205,7 +207,7 @@
         </div>
     </header>
     <div
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-5 p-4 md:p-6 lg:p-8"
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-3 p-3 md:p-4"
     >
         {#if settingsQuery.isPending}
             <div class="grid gap-4 lg:grid-cols-2">
@@ -231,7 +233,7 @@
             </Alert.Root>
         {:else}
             <FormulaProfilesPanel />
-            <div class="grid auto-rows-min gap-5 xl:grid-cols-12">
+            <div class="grid auto-rows-min gap-3 xl:grid-cols-12">
                 <Card.Root
                     class="overflow-hidden border-border/60 shadow-sm xl:col-span-7"
                 >
@@ -253,7 +255,7 @@
                             </div>
                         </div>
                     </Card.Header>
-                    <Card.Content class="grid gap-5">
+                    <Card.Content class="grid gap-4">
                         <Field.Field>
                             <Field.Label for="default-payment-frequency"
                                 >Default payment frequency</Field.Label
@@ -358,7 +360,7 @@
                             </div>
                         </div>
                     </Card.Header>
-                    <Card.Content class="grid gap-5">
+                    <Card.Content class="grid gap-4">
                         <label
                             class="flex min-h-11 items-center justify-between gap-4 rounded-xl border border-border/70 bg-background px-3.5 text-sm shadow-sm transition-colors hover:bg-muted/30"
                         >
@@ -559,7 +561,9 @@
 <AlertDialog.Root
     bind:open={() => confirmationOpen, handleConfirmationOpenChange}
 >
-    <AlertDialog.Content>
+    <AlertDialog.Content
+        class="max-h-[calc(100svh-2rem)] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain"
+    >
         <AlertDialog.Header>
             <AlertDialog.Title>Save a new settings version?</AlertDialog.Title>
             <AlertDialog.Description>

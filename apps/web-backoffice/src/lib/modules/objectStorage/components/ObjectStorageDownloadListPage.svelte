@@ -184,13 +184,17 @@
     }
 </script>
 
-<div class="flex min-h-svh flex-col gap-6 p-4 md:p-6">
-    <header class="flex flex-wrap items-start justify-between gap-3">
+<div
+    class="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+>
+    <header
+        class="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+    >
         <div class="flex flex-col gap-1">
-            <h2 class="text-2xl font-semibold tracking-normal">
+            <h2 class="text-lg font-semibold tracking-tight md:text-xl">
                 Object Storage Downloads
             </h2>
-            <p class="text-sm text-muted-foreground">
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
                 {downloadListQuery.data?.count ?? 0} uploaded objects
             </p>
         </div>
@@ -221,7 +225,9 @@
         </Alert.Root>
     {/if}
 
-    <Card.Root>
+    <Card.Root
+        class="min-h-0 border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+    >
         <Card.Header>
             <Card.Title>Uploaded objects</Card.Title>
             <Card.Description>
@@ -249,12 +255,16 @@
                     </Empty.Header>
                 </Empty.Root>
             {:else}
-                <div class="overflow-hidden rounded-lg border">
+                <div
+                    class="max-h-[min(60vh,40rem)] min-h-48 overflow-auto rounded-xl border border-zinc-200 **:data-[slot=table-container]:overflow-visible dark:border-zinc-800"
+                >
                     <Table.Root>
                         <Table.Caption class="sr-only">
                             Uploaded objects available for download
                         </Table.Caption>
-                        <Table.Header>
+                        <Table.Header
+                            class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
+                        >
                             <Table.Row>
                                 <Table.Head>Object</Table.Head>
                                 <Table.Head class="w-32">Access</Table.Head>
@@ -265,7 +275,9 @@
                                 </Table.Head>
                             </Table.Row>
                         </Table.Header>
-                        <Table.Body>
+                        <Table.Body
+                            class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                        >
                             {#each files as file (file.uploadId + file.objectStorageId)}
                                 <Table.Row>
                                     <Table.Cell>
@@ -337,7 +349,9 @@
             {/if}
         </Card.Content>
         {#if (downloadListQuery.data?.count ?? 0) > DOWNLOAD_PAGE_SIZE}
-            <Card.Footer>
+            <Card.Footer
+                class="shrink-0 border-t border-zinc-100 bg-zinc-50/70 px-2 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/35"
+            >
                 <Pagination.Root
                     bind:page={currentPage}
                     count={downloadListQuery.data?.count ?? 0}
