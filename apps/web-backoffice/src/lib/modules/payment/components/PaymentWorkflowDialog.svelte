@@ -4,6 +4,7 @@
     import * as Dialog from '@loanms/ui/components/dialog'
     import * as Field from '@loanms/ui/components/field'
     import { Input } from '@loanms/ui/components/input'
+    import * as NativeSelect from '@loanms/ui/components/native-select'
     import { Spinner } from '@loanms/ui/components/spinner'
     import { Textarea } from '@loanms/ui/components/textarea'
     import CalculatorIcon from '@lucide/svelte/icons/calculator'
@@ -126,6 +127,12 @@
         createIdempotencyKey.abandonAttempt()
     }
 
+    function handlePaymentMethodChange(event: Event) {
+        paymentMethod = (event.currentTarget as HTMLSelectElement).value
+        referenceNumber = ''
+        handleDetailsChange()
+    }
+
     function handleOpenChange(nextOpen: boolean) {
         if (isLocked) return
         open = nextOpen
@@ -174,7 +181,7 @@
             amountReceivedMinor <= 0 ||
             !loanPublicId ||
             !paymentDate ||
-            !paymentMethod.trim()
+            (paymentMethod !== 'CASH' && !referenceNumber.trim())
         ) {
             return null
         }
@@ -184,8 +191,8 @@
             loanPublicId,
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             paymentDate,
-            paymentMethod: paymentMethod.trim(),
-            ...(referenceNumber.trim()
+            paymentMethod,
+            ...(paymentMethod !== 'CASH' && referenceNumber.trim()
                 ? { referenceNumber: referenceNumber.trim() }
                 : {}),
         }
@@ -330,27 +337,44 @@
                                 <Field.Label for="payment-method"
                                     >Payment method</Field.Label
                                 >
-                                <Input
+                                <NativeSelect.Root
                                     id="payment-method"
                                     bind:value={paymentMethod}
                                     disabled={isLocked}
-                                    maxlength={64}
-                                    oninput={handleDetailsChange}
-                                    required
-                                />
+                                    onchange={handlePaymentMethodChange}
+                                >
+                                    <NativeSelect.Option value="CASH"
+                                        >Cash</NativeSelect.Option
+                                    >
+                                    <NativeSelect.Option value="GCASH"
+                                        >GCash</NativeSelect.Option
+                                    >
+                                    <NativeSelect.Option value="BANK"
+                                        >Bank</NativeSelect.Option
+                                    >
+                                </NativeSelect.Root>
                             </Field.Field>
                         </div>
                         <Field.Field>
                             <Field.Label for="payment-reference"
                                 >Reference number</Field.Label
                             >
-                            <Input
-                                id="payment-reference"
-                                bind:value={referenceNumber}
-                                disabled={isLocked}
-                                maxlength={128}
-                                oninput={handleDetailsChange}
-                            />
+                            {#if paymentMethod === 'CASH'}
+                                <Input
+                                    id="payment-reference"
+                                    value="Generated when payment is posted"
+                                    disabled
+                                />
+                            {:else}
+                                <Input
+                                    id="payment-reference"
+                                    bind:value={referenceNumber}
+                                    disabled={isLocked}
+                                    maxlength={128}
+                                    oninput={handleDetailsChange}
+                                    required
+                                />
+                            {/if}
                         </Field.Field>
                         <Field.Field>
                             <Field.Label for="payment-notes">Notes</Field.Label>

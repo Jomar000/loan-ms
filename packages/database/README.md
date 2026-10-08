@@ -107,10 +107,10 @@ repository only; PostgreSQL data export/import is not included.
 
 ### Table inventory
 
-All 29 source-derived tables are present in the baseline migration. The
-additive formula-profile migration adds the organization-scoped calculation
-snapshot table. Business foreign keys, unique constraints, checks, and partial
-indexes are retained using SQLite equivalents.
+All 29 source-derived tables and the organization-scoped formula-profile
+snapshot table are present in the consolidated baseline migration. Business
+foreign keys, unique constraints, checks, and partial indexes are retained
+using SQLite equivalents.
 
 | Domain         | Tables                                                                                                       | D1 notes                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
@@ -295,17 +295,15 @@ runtime triggers, and requires `PRAGMA foreign_key_check` to remain empty.
 
 ## Runtime infrastructure
 
-- `00000000000000_default_schema.sql` creates the schema, constraints, and
-  indexes. Epoch-millisecond defaults are explicitly cast to `INTEGER` so
-  optimistic timestamp predicates remain exact.
+- `00000000000000_default_schema.sql` contains the dependency-ordered schema,
+  constraints, indexes, and default seeds. It includes the former additive
+  migrations, including the formula-profile removal marker that preserves
+  historical references. Epoch-millisecond defaults are explicitly cast to
+  `INTEGER` so optimistic timestamp predicates remain exact.
 - `00000000000001_runtime_triggers.sql` installs explicit `updated_at`
   triggers.
-- `00000000000002_default_data.sql` applies dependency-ordered default seeds.
-- `00000000000003_loan_formula_profile.sql` adds immutable, organization-scoped
-  formula profile snapshots. It intentionally has no seed because organization
-  formula initialization is application-owned.
-- `00000000000014_formula_profile_management.sql` adds tenant-scoped retry
-  identity and request fingerprints for formula-profile creation/versioning.
+- Organization formula initialization remains application-owned; the baseline
+  does not seed formula profiles.
 - `99999999999999_test_data.sql` is a separate test-only migration history.
 - The public API Wrangler configuration is the single migration owner. Public
   and backoffice D1 bindings point to the same database per environment.

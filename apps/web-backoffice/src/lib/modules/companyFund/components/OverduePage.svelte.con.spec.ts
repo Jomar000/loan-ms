@@ -71,7 +71,7 @@ describe('Overdue page', () => {
                 filters: { maxDaysLate: 30, minDaysLate: 7 },
                 limit: 25,
                 offset: 0,
-                sortOrder: 'desc',
+                sortOrder: 'asc',
             })
 
         await screen.getByRole('button', { name: 'Next page' }).click()

@@ -1,19 +1,24 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
+    import * as AlertDialog from '@loanms/ui/components/alert-dialog'
     import { Button } from '@loanms/ui/components/button'
     import * as Empty from '@loanms/ui/components/empty'
     import * as NativeSelect from '@loanms/ui/components/native-select'
     import { Skeleton } from '@loanms/ui/components/skeleton'
+    import { Spinner } from '@loanms/ui/components/spinner'
     import * as Table from '@loanms/ui/components/table'
     import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
     import PlusIcon from '@lucide/svelte/icons/plus'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
+    import Trash2Icon from '@lucide/svelte/icons/trash-2'
+    import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import PaginationFooter from '$lib/components/dataWorkspace/PaginationFooter.svelte'
     import type { AppRole } from '$lib/modules/app/utilities/navigation'
     import { useSessionContext } from '$lib/states/session'
-    import { createLoanListQuery } from '../queries'
-    import type { LoanStatus } from '../types'
+    import { getErrorMessage } from '$lib/utilities/helpers'
+    import { createLoanDeleteMutation, createLoanListQuery } from '../queries'
+    import type { LoanStatus, LoanTableItem } from '../types'
     import { formatCurrency, formatDate } from '../utilities/format'
     import LoanStatusBadge from './LoanStatusBadge.svelte'
     ////////////////////
@@ -38,6 +43,8 @@
     let pageNumber = $state(1)
     let pageSize = $state(PAGE_SIZE)
     let status = $state<'ALL' | LoanStatus>('ALL')
+    let deletingLoan = $state<LoanTableItem | null>(null)
+    let isDeleting = $state(false)
     /////////////////
     // 04. Derived //
     /////////////////
@@ -67,6 +74,14 @@
     )
     const loans = $derived(listQuery.data?.data ?? [])
     const count = $derived(listQuery.data?.count ?? 0)
+    ///////////////////
+    // 06. Mutations //
+    ///////////////////
+    const deleteMutation = createLoanDeleteMutation({
+        get organizationSlug() {
+            return session.data.organizationSlug
+        },
+    })
     //////////////////
     // 09. Handlers //
     //////////////////
@@ -88,10 +103,27 @@
             .value as typeof status
         pageNumber = 1
     }
+    function handleDeleteOpenChange(open: boolean) {
+        if (!open && !isDeleting) deletingLoan = null
+    }
+    async function handleDelete() {
+        if (!deletingLoan || isDeleting) return
+        isDeleting = true
+        try {
+            await deleteMutation.mutateAsync(deletingLoan.publicId)
+            deletingLoan = null
+            if (loans.length === 1 && pageNumber > 1) pageNumber -= 1
+            toast.success('Pending loan deleted.')
+        } catch (error) {
+            toast.error(getErrorMessage(error, 'Could not delete loan.'))
+        } finally {
+            isDeleting = false
+        }
+    }
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div
         class="mb-3 overflow-hidden rounded-xl border border-amber-200/70 bg-white shadow-sm dark:border-amber-500/15 dark:bg-[#202020]"
@@ -177,7 +209,7 @@
         </div>
     </div>
     <div
-        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+        class="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
     >
         {#if listQuery.isPending}
             <div
@@ -257,8 +289,8 @@
                 </Empty.Root>
             </div>
         {:else}
-            <div class="min-h-0 flex-1 overflow-auto">
-                <Table.Root class="min-w-[1220px] text-xs">
+            <div class="min-h-0 table-scroll flex-1">
+                <Table.Root class="min-w-[1300px] text-xs">
                     <Table.Caption class="sr-only"
                         >Loans for this organization</Table.Caption
                     >
@@ -304,6 +336,10 @@
                                 class="h-9 px-3 text-right text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                                 >Release</Table.Head
                             >
+                            <Table.Head
+                                class="h-9 px-3 text-right text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                >Actions</Table.Head
+                            >
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -317,11 +353,18 @@
                                     class="h-11 px-3 py-1.5 font-semibold text-zinc-950 group-hover:text-amber-800 dark:text-zinc-100 dark:group-hover:text-amber-300"
                                     >{loan.loanNumber}</Table.Cell
                                 >
-                                <Table.Cell
-                                    class="h-11 max-w-52 truncate px-3 py-1.5 font-mono text-[11px] font-medium text-zinc-600 dark:text-zinc-400"
-                                    title={loan.borrowerPublicId}
-                                    >{loan.borrowerPublicId}</Table.Cell
-                                >
+                                <Table.Cell class="h-11 max-w-60 px-3 py-1.5">
+                                    <span
+                                        class="block truncate font-medium text-zinc-900 dark:text-zinc-100"
+                                        title={loan.borrowerName}
+                                        >{loan.borrowerName}</span
+                                    >
+                                    <span
+                                        class="block truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400"
+                                        title={loan.borrowerPublicId}
+                                        >{loan.borrowerPublicId}</span
+                                    >
+                                </Table.Cell>
                                 <Table.Cell
                                     class="h-11 px-3 py-1.5 text-right font-mono text-xs font-medium text-zinc-700 tabular-nums dark:text-zinc-300"
                                     >{formatCurrency(
@@ -372,6 +415,25 @@
                                     class="h-11 px-3 py-1.5 text-right text-xs whitespace-nowrap text-zinc-600 dark:text-zinc-400"
                                     >{formatDate(loan.releaseDate)}</Table.Cell
                                 >
+                                <Table.Cell class="h-11 px-3 py-1.5 text-right">
+                                    {#if canCreateLoan && loan.status === 'PENDING_APPROVAL'}
+                                        <Button
+                                            aria-label={`Delete ${loan.loanNumber}`}
+                                            class="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                            onclick={(event) => {
+                                                event.stopPropagation()
+                                                deletingLoan = loan
+                                            }}
+                                            size="sm"
+                                            variant="ghost"
+                                        >
+                                            <Trash2Icon
+                                                data-icon="inline-start"
+                                            />
+                                            Delete
+                                        </Button>
+                                    {/if}
+                                </Table.Cell>
                             </Table.Row>
                         {/each}
                     </Table.Body>
@@ -392,3 +454,29 @@
         {/if}
     </div>
 </section>
+
+<AlertDialog.Root
+    bind:open={() => deletingLoan !== null, handleDeleteOpenChange}
+>
+    <AlertDialog.Content>
+        <AlertDialog.Header>
+            <AlertDialog.Title>Delete pending loan?</AlertDialog.Title>
+            <AlertDialog.Description>
+                Delete {deletingLoan?.loanNumber} for {deletingLoan?.borrowerName}?
+                This permanently removes the pending loan and cannot be undone.
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel disabled={isDeleting}>Cancel</AlertDialog.Cancel
+            >
+            <AlertDialog.Action
+                class="bg-destructive text-white hover:bg-destructive/90"
+                disabled={isDeleting}
+                onclick={handleDelete}
+            >
+                {#if isDeleting}<Spinner data-icon="inline-start" />{/if}
+                Delete loan
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>

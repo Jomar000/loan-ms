@@ -6,10 +6,11 @@ import type {
     LoanCreateInput,
     LoanFilters,
     LoanListItem,
-    LoanProduct,
     LoanProductCreateInput,
+    LoanProduct,
     LoanQuote,
     LoanQuoteInput,
+    LoanTableItem,
 } from './types'
 
 export type LoanListRequest = {
@@ -40,7 +41,7 @@ export async function createLoanProduct(input: LoanProductCreateInput) {
 
 export async function fetchLoans(request: LoanListRequest): Promise<{
     count: number
-    data: LoanListItem[]
+    data: LoanTableItem[]
     limit: number
     offset: number
 }> {
@@ -56,6 +57,15 @@ export async function fetchLoan(publicId: string): Promise<Loan> {
     const param = loanValidator.loanReadInputSchema.parse({ publicId })
     const responseJson = await (
         await loansClient.read[':publicId'].$get({ param })
+    ).json()
+    if (!responseJson.success) throw new Error(responseJson.error.message)
+    return responseJson.data
+}
+
+export async function deleteLoan(publicId: string) {
+    const param = loanValidator.loanDeleteInputSchema.parse({ publicId })
+    const responseJson = await (
+        await loansClient[':publicId'].delete.$post({ param })
     ).json()
     if (!responseJson.success) throw new Error(responseJson.error.message)
     return responseJson.data

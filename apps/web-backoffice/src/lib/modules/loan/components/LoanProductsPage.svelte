@@ -147,7 +147,7 @@
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div
         class="mb-3 overflow-hidden rounded-xl border border-amber-200/70 bg-white shadow-sm dark:border-amber-500/15 dark:bg-[#202020]"
@@ -190,7 +190,7 @@
         </header>
     </div>
     <div
-        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+        class="flex min-h-80 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
     >
         {#if productsQuery.isPending}
             <div
@@ -268,7 +268,7 @@
                 </Empty.Root>
             </div>
         {:else}
-            <div class="min-h-0 flex-1 overflow-auto">
+            <div class="min-h-0 table-scroll flex-1">
                 <Table.Root class="min-w-[760px] text-xs">
                     <Table.Caption class="sr-only"
                         >Loan product catalog</Table.Caption

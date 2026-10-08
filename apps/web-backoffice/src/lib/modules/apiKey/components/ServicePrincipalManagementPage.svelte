@@ -645,7 +645,7 @@
 </script>
 
 <div
-    class="grid min-h-0 flex-1 content-start gap-3 overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="grid min-h-0 page-scroll flex-1 content-start gap-3 bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div
         class="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-[#202020]"
@@ -698,9 +698,7 @@
                 </NativeSelect.Root>
             </Field.Field>
         </Card.Header>
-        <Card.Content
-            class="max-h-[min(60vh,40rem)] min-h-0 overflow-auto **:data-[slot=table-container]:overflow-visible"
-        >
+        <Card.Content class="min-w-0">
             {#if principalListQuery.isPending}
                 <div
                     class="flex min-h-48 items-center justify-center gap-2 text-sm"
@@ -740,123 +738,127 @@
                     </Empty.Header>
                 </Empty.Root>
             {:else}
-                <Table.Root>
-                    <Table.Header
-                        class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
-                    >
-                        <Table.Row>
-                            <Table.Head>Principal</Table.Head>
-                            <Table.Head>Status</Table.Head>
-                            <Table.Head>Permission</Table.Head>
-                            <Table.Head>Credentials</Table.Head>
-                            <Table.Head>Last verified</Table.Head>
-                            <Table.Head class="text-right">Actions</Table.Head>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body
-                        class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
-                    >
-                        {#each principalListQuery.data?.data ?? [] as principal (principal.publicId)}
+                <div class="max-h-[min(60dvh,40rem)] table-scroll">
+                    <Table.Root>
+                        <Table.Header
+                            class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
+                        >
                             <Table.Row>
-                                <Table.Cell>
-                                    <div class="flex flex-col gap-1">
-                                        <span class="font-medium">
-                                            {principal.name}
-                                        </span>
-                                        <span
-                                            class="max-w-48 truncate font-mono text-xs text-muted-foreground"
-                                        >
-                                            {principal.publicId}
-                                        </span>
-                                    </div>
-                                </Table.Cell>
-                                <Table.Cell>
-                                    <Badge
-                                        variant={principal.enabled
-                                            ? 'secondary'
-                                            : 'outline'}
-                                    >
-                                        {principal.enabled
-                                            ? 'Enabled'
-                                            : 'Disabled'}
-                                    </Badge>
-                                </Table.Cell>
-                                <Table.Cell>
-                                    <Badge variant="outline">
-                                        {permissionLabel(principal)}
-                                    </Badge>
-                                </Table.Cell>
-                                <Table.Cell>
-                                    {principal.activeCredentialCount} / 2 active
-                                </Table.Cell>
-                                <Table.Cell>
-                                    {formatDate(
-                                        principal.lastVerifiedAt,
-                                        'Never verified',
-                                    )}
-                                </Table.Cell>
-                                <Table.Cell>
-                                    <div
-                                        class="flex flex-wrap justify-end gap-2"
-                                    >
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onclick={() =>
-                                                openCredentialManager(
-                                                    principal,
-                                                )}
-                                            disabled={isInteractionLocked()}
-                                        >
-                                            Credentials
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onclick={() =>
-                                                openEditPrincipalDialog(
-                                                    principal,
-                                                )}
-                                            disabled={isInteractionLocked()}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onclick={() =>
-                                                openPrincipalActionDialog(
-                                                    principal,
-                                                    principal.enabled
-                                                        ? 'disable'
-                                                        : 'enable',
-                                                )}
-                                            disabled={isInteractionLocked()}
+                                <Table.Head>Principal</Table.Head>
+                                <Table.Head>Status</Table.Head>
+                                <Table.Head>Permission</Table.Head>
+                                <Table.Head>Credentials</Table.Head>
+                                <Table.Head>Last verified</Table.Head>
+                                <Table.Head class="text-right"
+                                    >Actions</Table.Head
+                                >
+                            </Table.Row>
+                        </Table.Header>
+                        <Table.Body
+                            class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                        >
+                            {#each principalListQuery.data?.data ?? [] as principal (principal.publicId)}
+                                <Table.Row>
+                                    <Table.Cell>
+                                        <div class="flex flex-col gap-1">
+                                            <span class="font-medium">
+                                                {principal.name}
+                                            </span>
+                                            <span
+                                                class="max-w-48 truncate font-mono text-xs text-muted-foreground"
+                                            >
+                                                {principal.publicId}
+                                            </span>
+                                        </div>
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <Badge
+                                            variant={principal.enabled
+                                                ? 'secondary'
+                                                : 'outline'}
                                         >
                                             {principal.enabled
-                                                ? 'Disable'
-                                                : 'Enable'}
-                                        </Button>
-                                        {#if !principal.enabled}
+                                                ? 'Enabled'
+                                                : 'Disabled'}
+                                        </Badge>
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <Badge variant="outline">
+                                            {permissionLabel(principal)}
+                                        </Badge>
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        {principal.activeCredentialCount} / 2 active
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        {formatDate(
+                                            principal.lastVerifiedAt,
+                                            'Never verified',
+                                        )}
+                                    </Table.Cell>
+                                    <Table.Cell>
+                                        <div
+                                            class="flex flex-wrap justify-end gap-2"
+                                        >
                                             <Button
                                                 size="sm"
-                                                variant="destructive"
+                                                variant="outline"
                                                 onclick={() =>
-                                                    openPrincipalActionDialog(
+                                                    openCredentialManager(
                                                         principal,
-                                                        'delete',
                                                     )}
                                                 disabled={isInteractionLocked()}
                                             >
-                                                Delete
+                                                Credentials
                                             </Button>
-                                        {/if}
-                                    </div>
-                                </Table.Cell>
-                            </Table.Row>
-                        {/each}
-                    </Table.Body>
-                </Table.Root>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onclick={() =>
+                                                    openEditPrincipalDialog(
+                                                        principal,
+                                                    )}
+                                                disabled={isInteractionLocked()}
+                                            >
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onclick={() =>
+                                                    openPrincipalActionDialog(
+                                                        principal,
+                                                        principal.enabled
+                                                            ? 'disable'
+                                                            : 'enable',
+                                                    )}
+                                                disabled={isInteractionLocked()}
+                                            >
+                                                {principal.enabled
+                                                    ? 'Disable'
+                                                    : 'Enable'}
+                                            </Button>
+                                            {#if !principal.enabled}
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    onclick={() =>
+                                                        openPrincipalActionDialog(
+                                                            principal,
+                                                            'delete',
+                                                        )}
+                                                    disabled={isInteractionLocked()}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            {/if}
+                                        </div>
+                                    </Table.Cell>
+                                </Table.Row>
+                            {/each}
+                        </Table.Body>
+                    </Table.Root>
+                </div>
             {/if}
         </Card.Content>
         {#if (principalListQuery.data?.count ?? 0) > PAGE_SIZE}
@@ -1153,53 +1155,57 @@
                 </Empty.Header>
             </Empty.Root>
         {:else}
-            <Table.Root>
-                <Table.Header
-                    class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
-                >
-                    <Table.Row>
-                        <Table.Head>Name</Table.Head>
-                        <Table.Head>Key start</Table.Head>
-                        <Table.Head>Expires</Table.Head>
-                        <Table.Head>Last verified</Table.Head>
-                        <Table.Head class="text-right">Action</Table.Head>
-                    </Table.Row>
-                </Table.Header>
-                <Table.Body
-                    class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
-                >
-                    {#each credentialListQuery.data?.data ?? [] as credential (credential.id)}
+            <div class="max-h-[min(60dvh,40rem)] table-scroll">
+                <Table.Root>
+                    <Table.Header
+                        class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95 [&_th]:h-9 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-semibold [&_th]:tracking-wider [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:text-zinc-400"
+                    >
                         <Table.Row>
-                            <Table.Cell class="font-medium">
-                                {credential.name}
-                            </Table.Cell>
-                            <Table.Cell class="font-mono text-xs">
-                                {credential.start ?? 'Unavailable'}…
-                            </Table.Cell>
-                            <Table.Cell>
-                                {formatDate(credential.expiresAt, 'Never')}
-                            </Table.Cell>
-                            <Table.Cell>
-                                {formatDate(
-                                    credential.lastVerifiedAt,
-                                    'Never verified',
-                                )}
-                            </Table.Cell>
-                            <Table.Cell class="text-right">
-                                <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onclick={() =>
-                                        openRevokeCredentialDialog(credential)}
-                                    disabled={isInteractionLocked()}
-                                >
-                                    Revoke
-                                </Button>
-                            </Table.Cell>
+                            <Table.Head>Name</Table.Head>
+                            <Table.Head>Key start</Table.Head>
+                            <Table.Head>Expires</Table.Head>
+                            <Table.Head>Last verified</Table.Head>
+                            <Table.Head class="text-right">Action</Table.Head>
                         </Table.Row>
-                    {/each}
-                </Table.Body>
-            </Table.Root>
+                    </Table.Header>
+                    <Table.Body
+                        class="[&_td]:h-10 [&_td]:px-3 [&_td]:py-1.5 [&_tr]:hover:bg-amber-50/60 dark:[&_tr]:hover:bg-amber-500/5"
+                    >
+                        {#each credentialListQuery.data?.data ?? [] as credential (credential.id)}
+                            <Table.Row>
+                                <Table.Cell class="font-medium">
+                                    {credential.name}
+                                </Table.Cell>
+                                <Table.Cell class="font-mono text-xs">
+                                    {credential.start ?? 'Unavailable'}…
+                                </Table.Cell>
+                                <Table.Cell>
+                                    {formatDate(credential.expiresAt, 'Never')}
+                                </Table.Cell>
+                                <Table.Cell>
+                                    {formatDate(
+                                        credential.lastVerifiedAt,
+                                        'Never verified',
+                                    )}
+                                </Table.Cell>
+                                <Table.Cell class="text-right">
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onclick={() =>
+                                            openRevokeCredentialDialog(
+                                                credential,
+                                            )}
+                                        disabled={isInteractionLocked()}
+                                    >
+                                        Revoke
+                                    </Button>
+                                </Table.Cell>
+                            </Table.Row>
+                        {/each}
+                    </Table.Body>
+                </Table.Root>
+            </div>
         {/if}
     </Dialog.Content>
 </Dialog.Root>

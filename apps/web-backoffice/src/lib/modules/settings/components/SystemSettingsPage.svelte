@@ -167,7 +167,7 @@
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 dark:bg-[#171717]"
 >
     <header
         class="border-b border-zinc-200 bg-white p-3 md:px-4 dark:border-zinc-800 dark:bg-[#202020]"
@@ -207,7 +207,7 @@
         </div>
     </header>
     <div
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-3 p-3 md:p-4"
+        class="mx-auto flex w-full max-w-[1600px] grow flex-col gap-3 p-3 *:shrink-0 md:p-4"
     >
         {#if settingsQuery.isPending}
             <div class="grid gap-4 lg:grid-cols-2">

@@ -1,7 +1,7 @@
 import type { dbSchema } from '@loanms/database/d1'
 import { AppError, catalog, defineError } from '@loanms/errors'
 import * as formulaValidator from '@loanms/validator/backoffice/loanCalculation'
-import { and, asc, count as countFn, desc, eq, like } from 'drizzle-orm'
+import { and, asc, count as countFn, desc, eq, isNull, like } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { createMiddleware } from 'hono/factory'
 import { v7 as uuidv7 } from 'uuid'
@@ -61,6 +61,7 @@ type TFormulaProfileInput =
 type TFormulaProfileRow = {
     allowRenewalPrincipalChange: boolean
     createdAt: Date
+    deletedAt: Date | null
     effectiveAt: Date
     fixedInterestAmountMinor: number | null
     id: number
@@ -87,6 +88,7 @@ type TFormulaProfileRow = {
 const profileSelection = (table: typeof dbSchema.loanFormulaProfile) => ({
     allowRenewalPrincipalChange: table.allowRenewalPrincipalChange,
     createdAt: table.createdAt,
+    deletedAt: table.deletedAt,
     effectiveAt: table.effectiveAt,
     fixedInterestAmountMinor: table.fixedInterestAmountMinor,
     id: table.id,
@@ -383,6 +385,7 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
                     loanFormulaProfile.organizationId,
                     getActiveOrganizationId(ctx),
                 ),
+                isNull(loanFormulaProfile.deletedAt),
                 ...(isActive === undefined
                     ? []
                     : [eq(loanFormulaProfile.isActive, isActive)]),
@@ -427,7 +430,9 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
         async (ctx) => {
             const input = ctx.req.valid('param')
             const profile = await readProfile(ctx, input.publicId)
-            if (!profile) throw new AppError(formulaProfileNotFound)
+            if (!profile || profile.deletedAt) {
+                throw new AppError(formulaProfileNotFound)
+            }
             return apiResponseOkWrapper(ctx, { data: profileOutput(profile) })
         },
     )
@@ -486,7 +491,9 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
             const param = ctx.req.valid('param')
             const input = ctx.req.valid('json')
             const source = await readProfile(ctx, param.publicId)
-            if (!source) throw new AppError(formulaProfileNotFound)
+            if (!source || source.deletedAt) {
+                throw new AppError(formulaProfileNotFound)
+            }
             if (
                 input.formulaProfile.name !== source.name ||
                 input.formulaProfile.version !== source.version + 1
@@ -522,7 +529,9 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
             const param = ctx.req.valid('param')
             const input = ctx.req.valid('json')
             const existing = await readProfile(ctx, param.publicId)
-            if (!existing) throw new AppError(formulaProfileNotFound)
+            if (!existing || existing.deletedAt) {
+                throw new AppError(formulaProfileNotFound)
+            }
             if (
                 existing.isActive &&
                 existing.isDefault === input.isDefault &&
@@ -555,14 +564,26 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
                         `UPDATE loan_formula_profile
                          SET is_default = FALSE
                          WHERE organization_id = ? AND public_id <> ?
-                           AND is_default = TRUE AND ? = TRUE`,
+                           AND is_default = TRUE AND ? = TRUE
+                           AND EXISTS (
+                               SELECT 1 FROM loan_formula_profile AS target
+                               WHERE target.organization_id = ? AND target.public_id = ?
+                                 AND target.deleted_at IS NULL
+                           )`,
                     )
-                    .bind(organizationId, existing.publicId, input.isDefault),
+                    .bind(
+                        organizationId,
+                        existing.publicId,
+                        input.isDefault,
+                        organizationId,
+                        existing.publicId,
+                    ),
                 database
                     .prepare(
                         `UPDATE loan_formula_profile
                          SET is_active = TRUE, is_default = ?, retired_at = NULL
-                         WHERE organization_id = ? AND public_id = ?`,
+                         WHERE organization_id = ? AND public_id = ?
+                           AND deleted_at IS NULL`,
                     )
                     .bind(input.isDefault, organizationId, existing.publicId),
                 auditTrailAfterChangeStatement(ctx, auditData, database),
@@ -587,7 +608,9 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
         async (ctx) => {
             const input = ctx.req.valid('param')
             const existing = await readProfile(ctx, input.publicId)
-            if (!existing) throw new AppError(formulaProfileNotFound)
+            if (!existing || existing.deletedAt) {
+                throw new AppError(formulaProfileNotFound)
+            }
             if (!existing.isActive || existing.retiredAt !== null) {
                 throw new AppError(formulaProfileConflict)
             }
@@ -613,7 +636,8 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
                         `UPDATE loan_formula_profile
                          SET is_active = FALSE, is_default = FALSE, retired_at = ?
                          WHERE organization_id = ? AND public_id = ?
-                           AND is_active = TRUE AND retired_at IS NULL`,
+                           AND is_active = TRUE AND retired_at IS NULL
+                           AND deleted_at IS NULL`,
                     )
                     .bind(
                         retiredAt,
@@ -629,6 +653,58 @@ export const formulaProfilesRoute = new Hono<THonoInstance>()
             const profile = await readProfile(ctx, existing.publicId)
             if (!profile) throw new AppError(formulaProfileNotFound)
             return apiResponseOkWrapper(ctx, { data: profileOutput(profile) })
+        },
+    )
+    .post(
+        '/:publicId/delete',
+        tenantGuard,
+        privilegedGuard,
+        validateRequest(
+            'param',
+            formulaValidator.formulaProfileReadInputSchema,
+        ),
+        async (ctx) => {
+            const { publicId } = ctx.req.valid('param')
+            const existing = await readProfile(ctx, publicId)
+            if (!existing || existing.deletedAt) {
+                throw new AppError(formulaProfileNotFound)
+            }
+            const auditData = auditTrailLogger.prepare({
+                action: 'delete',
+                component: 'loan.formulaProfile',
+                description: 'Formula profile removed',
+                records: {
+                    id: existing.publicId,
+                    newData: {
+                        isActive: false,
+                        isDefault: false,
+                    },
+                    oldData: {
+                        isActive: existing.isActive,
+                        isDefault: existing.isDefault,
+                        name: existing.name,
+                        version: existing.version,
+                    },
+                    table: 'loan_formula_profile',
+                },
+            })
+            const database = ctx.get('dbClient').$client
+            const [result] = await database.batch([
+                database
+                    .prepare(
+                        `UPDATE loan_formula_profile
+                         SET is_active = FALSE, is_default = FALSE, deleted_at = ?
+                         WHERE organization_id = ? AND public_id = ?
+                           AND deleted_at IS NULL`,
+                    )
+                    .bind(Date.now(), getActiveOrganizationId(ctx), publicId),
+                auditTrailAfterChangeStatement(ctx, auditData, database),
+            ])
+            if (result.meta.changes !== 1) {
+                throw new AppError(formulaProfileNotFound)
+            }
+            if (auditData) markAuditTrailRecorded(ctx)
+            return apiResponseOkWrapper(ctx, { data: { publicId } })
         },
     )
 

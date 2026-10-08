@@ -122,3 +122,27 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Keep the horizontal scrollbar at the bottom of the table workspace. */
+@utility table-scroll {
+    min-width: 0;
+    max-width: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+
+    & > [data-slot='table-container'] {
+        overflow: visible;
+    }
+}
+
+/* Keep stacked content reachable on narrow and short viewports. */
+@utility page-scroll {
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    & > * {
+        flex-shrink: 0;
+    }
+}

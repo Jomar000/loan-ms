@@ -17,12 +17,17 @@ import {
 } from '../utilities.js'
 
 type TBorrower = {
+    addressLine: string
+    barangay: string
     birthDate: null | string
     borrowerNumber: string
+    cityMunicipality: string
     emergencyContactName: null | string
     emergencyContactNumber: null | string
     emergencyContactRelationship: null | string
     fullName: string
+    postalCode: null | string
+    province: string
     paymentTag: 'BAD_PAYER' | 'GOOD_PAYER' | 'SCAMMER'
     paymentTagSource: 'MANUAL_OVERRIDE' | 'SYSTEM'
     publicId: string
@@ -52,6 +57,7 @@ const legacyBorrowerInput = {
 const objectStorageId = 'TESTBorrowerDocumentObject001'
 let borrowerPublicId: string
 let duplicateBorrowerPublicId: string
+let minimalBorrowerPublicId: string
 let db: ReturnType<typeof dbClient>
 let isolatedOwnerCookie: string
 let memberCookie: string
@@ -82,6 +88,7 @@ afterAll(async () => {
     const borrowerPublicIds = [
         borrowerPublicId,
         duplicateBorrowerPublicId,
+        minimalBorrowerPublicId,
     ].filter(Boolean)
     if (borrowerPublicIds.length > 0) {
         const borrowers = await db
@@ -120,6 +127,36 @@ afterAll(async () => {
 })
 
 describe('Borrower management API', () => {
+    it('accepts a single-part name and optional address fields', async () => {
+        const response = await postTestingRequest('/api/borrowers/create', {
+            body: {
+                addressLine: '',
+                contactNumber: '09180000007',
+                fullName: '李',
+                gender: 'PREFER_NOT_TO_SAY',
+                idempotencyKey: uuidv7(),
+                province: '',
+            },
+            cookie: ownerCookie,
+        })
+        const responseJson = await response.json<
+            TApiResponseOk<{
+                borrower: TBorrower
+                duplicateCandidates: TBorrower[]
+            }>
+        >()
+        expect(response.status).toBe(201)
+        minimalBorrowerPublicId = responseJson.data.borrower.publicId
+        expect(responseJson.data.borrower).toMatchObject({
+            addressLine: '',
+            barangay: '',
+            cityMunicipality: '',
+            fullName: '李',
+            postalCode: null,
+            province: '',
+        })
+    })
+
     it('creates a borrower without a loan, warns instead of blocking a duplicate, and replays idempotently', async () => {
         const idempotencyKey = uuidv7()
         const first = await postTestingRequest('/api/borrowers/create', {

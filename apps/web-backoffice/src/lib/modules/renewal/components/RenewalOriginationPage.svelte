@@ -206,7 +206,7 @@
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div class="mb-2 flex items-center">
         <Button
@@ -256,7 +256,7 @@
             </div>
         </header>
     </div>
-    <div class="grid min-h-0 flex-1 gap-3 xl:grid-cols-12">
+    <div class="grid min-w-0 grow gap-3 xl:grid-cols-12">
         <Card.Root
             class="flex min-h-0 flex-col overflow-hidden border-zinc-200 bg-white shadow-sm xl:col-span-7 dark:border-zinc-800 dark:bg-[#202020]"
         >

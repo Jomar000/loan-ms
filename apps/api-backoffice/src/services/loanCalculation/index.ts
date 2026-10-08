@@ -213,7 +213,7 @@ function daysInMonth(year: number, month: number) {
     return new Date(Date.UTC(year, month, 0)).getUTCDate()
 }
 
-function addCalendarDays(date: string, days: number) {
+export function addCalendarDays(date: string, days: number) {
     const parsed = parseDateOnly(date)
     const result = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day))
     result.setUTCDate(result.getUTCDate() + days)

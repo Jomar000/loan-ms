@@ -102,60 +102,125 @@
 
 <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div
-        class="shrink-0 border-b border-zinc-100 bg-zinc-50/60 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/30"
+        class="shrink-0 border-b border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/30"
     >
-        <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <NativeSelect.Root
-                aria-label="Payment type"
-                bind:value={paymentFrequency}
-                class="h-8 text-xs"
-            >
-                <NativeSelect.Option value="ALL"
-                    >All payment types</NativeSelect.Option
+        <div
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12"
+        >
+            <!-- Payment type -->
+            <div class="min-w-0 space-y-1.5 xl:col-span-2">
+                <span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                 >
-                <NativeSelect.Option value="DAILY">Daily</NativeSelect.Option>
-                <NativeSelect.Option value="WEEKLY">Weekly</NativeSelect.Option>
-                <NativeSelect.Option value="MONTHLY"
-                    >Monthly</NativeSelect.Option
+                    Payment type
+                </span>
+
+                <NativeSelect.Root
+                    aria-label="Payment type"
+                    bind:value={paymentFrequency}
+                    class="h-9 w-full border-zinc-200 bg-white text-xs shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
                 >
-            </NativeSelect.Root>
-            <NativeSelect.Root
-                aria-label="Loan"
-                bind:value={loanPublicId}
-                class="h-8 text-xs"
-            >
-                <NativeSelect.Option value="ALL">All loans</NativeSelect.Option>
-                {#each loans as loan (loan)}
-                    <NativeSelect.Option value={loan}
-                        >{loan}</NativeSelect.Option
-                    >
-                {/each}
-            </NativeSelect.Root>
-            <NativeSelect.Root
-                aria-label="Payment status"
-                bind:value={status}
-                class="h-8 text-xs"
-            >
-                <NativeSelect.Option value="ALL"
-                    >All statuses</NativeSelect.Option
+                    <NativeSelect.Option value="ALL">
+                        All payment types
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="DAILY">
+                        Daily
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="WEEKLY">
+                        Weekly
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="MONTHLY">
+                        Monthly
+                    </NativeSelect.Option>
+                </NativeSelect.Root>
+            </div>
+
+            <!-- Loan -->
+            <div class="min-w-0 space-y-1.5 xl:col-span-3">
+                <span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                 >
-                <NativeSelect.Option value="POSTED">Posted</NativeSelect.Option>
-                <NativeSelect.Option value="REVERSED"
-                    >Reversed</NativeSelect.Option
+                    Loan
+                </span>
+
+                <NativeSelect.Root
+                    aria-label="Loan"
+                    bind:value={loanPublicId}
+                    class="h-9 w-full border-zinc-200 bg-white text-xs shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
                 >
-            </NativeSelect.Root>
-            <Input
-                class="h-8 text-xs"
-                aria-label="Payments from date"
-                bind:value={dateFrom}
-                type="date"
-            />
-            <Input
-                class="h-8 text-xs"
-                aria-label="Payments to date"
-                bind:value={dateTo}
-                type="date"
-            />
+                    <NativeSelect.Option value="ALL">
+                        All loans
+                    </NativeSelect.Option>
+
+                    {#each loans as loan (loan)}
+                        <NativeSelect.Option value={loan}>
+                            {loan}
+                        </NativeSelect.Option>
+                    {/each}
+                </NativeSelect.Root>
+            </div>
+
+            <!-- Payment status -->
+            <div class="min-w-0 space-y-1.5 xl:col-span-2">
+                <span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    Payment status
+                </span>
+
+                <NativeSelect.Root
+                    aria-label="Payment status"
+                    bind:value={status}
+                    class="h-9 w-full border-zinc-200 bg-white text-xs shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
+                >
+                    <NativeSelect.Option value="ALL">
+                        All statuses
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="POSTED">
+                        Posted
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="REVERSED">
+                        Reversed
+                    </NativeSelect.Option>
+                </NativeSelect.Root>
+            </div>
+
+            <!-- From date -->
+            <label class="min-w-0 space-y-1.5 sm:col-span-1 xl:col-span-2">
+                <span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    From date
+                </span>
+
+                <Input
+                    class="h-9 w-full border-zinc-200 bg-white text-xs shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
+                    aria-label="Payments from date"
+                    bind:value={dateFrom}
+                    type="date"
+                />
+            </label>
+
+            <!-- To date -->
+            <label class="min-w-0 space-y-1.5 sm:col-span-1 xl:col-span-3">
+                <span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                >
+                    To date
+                </span>
+
+                <Input
+                    class="h-9 w-full border-zinc-200 bg-white text-xs shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
+                    aria-label="Payments to date"
+                    bind:value={dateTo}
+                    type="date"
+                />
+            </label>
         </div>
     </div>
     {#if listQuery.isPending}
@@ -221,10 +286,8 @@
             </Empty.Root>
         </div>
     {:else}
-        <div
-            class="min-h-0 flex-1 overflow-auto **:data-[slot=table-container]:overflow-visible"
-        >
-            <Table.Root class="min-w-[1180px] text-xs">
+        <div class="min-h-0 table-scroll flex-1">
+            <Table.Root class="min-w-295 text-xs">
                 <Table.Caption class="sr-only"
                     >Payment history for this borrower</Table.Caption
                 >

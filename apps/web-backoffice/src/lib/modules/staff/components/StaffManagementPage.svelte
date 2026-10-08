@@ -190,7 +190,7 @@
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 lg:overflow-hidden dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col gap-3 bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <header
         class="flex flex-col gap-1 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
@@ -255,7 +255,7 @@
         </Empty.Root>
     {:else}
         <div
-            class="min-h-48 overflow-auto rounded-xl border border-zinc-200 bg-white shadow-sm **:data-[slot=table-container]:overflow-visible lg:min-h-0 lg:flex-1 dark:border-zinc-800 dark:bg-[#202020]"
+            class="max-h-[min(60dvh,40rem)] min-h-64 table-scroll rounded-xl border border-zinc-200 bg-white shadow-sm lg:flex-1 dark:border-zinc-800 dark:bg-[#202020]"
         >
             <Table.Root class="min-w-190">
                 <Table.Header

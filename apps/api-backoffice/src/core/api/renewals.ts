@@ -1018,6 +1018,9 @@ export const renewalsRoute = new Hono<THonoInstance>()
                     input.sortOrder === 'asc'
                         ? asc(loanRenewal.processedAt)
                         : desc(loanRenewal.processedAt),
+                    input.sortOrder === 'asc'
+                        ? asc(loanRenewal.id)
+                        : desc(loanRenewal.id),
                 )
                 .limit(input.limit)
                 .offset(input.offset)

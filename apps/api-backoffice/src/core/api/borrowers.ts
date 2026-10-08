@@ -21,10 +21,10 @@ import { isTenantAuthenticated } from '../middleware/isTenantAuthenticated.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 
 type TBorrowerFields = {
-    addressLine: string
-    barangay: string
+    addressLine?: string
+    barangay?: string
     birthDate?: null | string
-    cityMunicipality: string
+    cityMunicipality?: string
     contactNumber: string
     email?: null | string
     emergencyContactName?: null | string
@@ -37,7 +37,7 @@ type TBorrowerFields = {
     middleName?: null | string
     notes?: null | string
     postalCode?: null | string
-    province: string
+    province?: string
     secondaryContactNumber?: null | string
     suffix?: null | string
 }
@@ -76,6 +76,9 @@ const normalize = (value: string) =>
         .replace(/[^a-zA-Z0-9]+/g, '')
         .toLowerCase()
 
+const normalizeNameText = (value: string) =>
+    normalize(value) || value.normalize('NFKC').trim().toLowerCase()
+
 const displayName = (input: {
     firstName: string
     lastName: string
@@ -92,7 +95,7 @@ const displayName = (input: {
         .join(' ')
 
 const normalizeName = (input: TCanonicalBorrowerFields) =>
-    normalize(input.fullName)
+    normalizeNameText(input.fullName)
 
 const canonicalizeBorrowerFields = (
     input: TBorrowerFields,
@@ -188,10 +191,10 @@ const serializeBorrower = <
 })
 
 const borrowerValues = (input: TCanonicalBorrowerFields) => ({
-    addressLine: input.addressLine,
-    barangay: input.barangay,
+    addressLine: input.addressLine ?? '',
+    barangay: input.barangay ?? '',
     birthDate: input.birthDate ?? null,
-    cityMunicipality: input.cityMunicipality,
+    cityMunicipality: input.cityMunicipality ?? '',
     contactNumber: input.contactNumber,
     email: input.email ?? null,
     emergencyContactName: input.emergencyContactName ?? null,
@@ -203,7 +206,7 @@ const borrowerValues = (input: TCanonicalBorrowerFields) => ({
     middleName: input.middleName ?? null,
     notes: input.notes ?? null,
     postalCode: input.postalCode ?? null,
-    province: input.province,
+    province: input.province ?? '',
     secondaryContactNumber: input.secondaryContactNumber ?? null,
     suffix: input.suffix ?? null,
 })
@@ -287,7 +290,9 @@ export const borrowersRoute = new Hono<THonoInstance>()
             const { borrower } = ctx.get('dbSchema')
             const organizationId = getActiveOrganizationId(ctx)
             const { paymentTag, search, status } = input.filters
-            const searchValue = search ? `%${normalize(search)}%` : undefined
+            const searchValue = search
+                ? `%${normalizeNameText(search)}%`
+                : undefined
             const conditions = [
                 eq(borrower.organizationId, organizationId),
                 ...(paymentTag ? [eq(borrower.paymentTag, paymentTag)] : []),

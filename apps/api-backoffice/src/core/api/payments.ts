@@ -517,6 +517,10 @@ export const paymentsRoute = new Hono<THonoInstance>()
                 quote.amountAllocatedMinor - principalCollectionMinor
             const publicId = uuidv7()
             const paymentNumber = `PAY-${publicId}`
+            const referenceNumber =
+                input.paymentMethod === 'CASH'
+                    ? paymentNumber
+                    : input.referenceNumber!.trim()
             const database = db.$client
             const installmentsAfterPayment = installments.map((installment) => {
                 const allocation = quote.allocations.find(
@@ -624,7 +628,7 @@ export const paymentsRoute = new Hono<THonoInstance>()
                         input.paymentDate,
                         loan.paymentFrequency,
                         input.paymentMethod,
-                        input.referenceNumber ?? null,
+                        referenceNumber,
                         input.notes ?? null,
                         quote.partialPaymentCreditAfterPaymentMinor,
                         quote.completedInstallmentsAfterPayment,

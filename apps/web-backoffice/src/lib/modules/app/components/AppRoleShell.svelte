@@ -97,7 +97,7 @@
 </svelte:head>
 
 <Sidebar.Provider
-    class="h-svh overflow-hidden"
+    class="h-dvh min-h-0 overflow-hidden"
     onOpenChange={handleSidebarOpenChange}
     open={!collapsed}
     style="--sidebar-width: 15rem; --sidebar-width-icon: 3.5rem;"
@@ -109,7 +109,7 @@
     />
 
     <div
-        class="flex min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 dark:bg-[#171717]"
+        class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 dark:bg-[#171717]"
     >
         <div
             class="flex h-15 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:hidden"
@@ -132,7 +132,7 @@
         </div>
 
         <main
-            class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain"
+            class="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain"
         >
             {@render children()}
         </main>

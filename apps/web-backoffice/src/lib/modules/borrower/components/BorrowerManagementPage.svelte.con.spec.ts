@@ -1,16 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
+import { page } from 'vitest/browser'
 
+import '../../../../app.css'
 import BorrowerManagementPage from './BorrowerManagementPage.svelte'
 
 const mocks = vi.hoisted(() => {
     let resolveCreate: ((value: unknown) => void) | undefined
+    let rejectCreate: ((reason: unknown) => void) | undefined
 
     return {
         create: vi.fn(
             () =>
-                new Promise((resolve) => {
+                new Promise((resolve, reject) => {
                     resolveCreate = resolve
+                    rejectCreate = reject
                 }),
         ),
         goto: vi.fn(async () => undefined),
@@ -31,6 +35,9 @@ const mocks = vi.hoisted(() => {
             offset: 0,
         },
         refetch: vi.fn(async () => undefined),
+        rejectCreate(reason: unknown) {
+            rejectCreate?.(reason)
+        },
         resolveCreate(value: unknown) {
             resolveCreate?.(value)
         },
@@ -85,7 +92,55 @@ describe('Borrower management page', () => {
             .not.toBeInTheDocument()
     })
 
-    it('locks duplicate creation and shows returned duplicate candidates', async () => {
+    it('creates with only a full name and primary contact while keeping address defaults editable', async () => {
+        const screen = await render(BorrowerManagementPage, {
+            props: { role: 'owner' },
+        })
+
+        await screen
+            .getByRole('button', { name: /create new borrower/i })
+            .click()
+        await expect
+            .element(screen.getByLabelText('Province'))
+            .toHaveValue('Nueva Ecija')
+        await expect
+            .element(screen.getByLabelText('Postal code'))
+            .toHaveValue('3105')
+        await screen.getByLabelText('Full name').fill('Ñora#7')
+        await screen
+            .getByLabelText('Primary contact number')
+            .fill('09171234567')
+        await screen.getByRole('button', { name: /create borrower/i }).click()
+
+        expect(mocks.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                addressLine: '',
+                barangay: '',
+                cityMunicipality: '',
+                contactNumber: '09171234567',
+                fullName: 'Ñora#7',
+                postalCode: '3105',
+                province: 'Nueva Ecija',
+            }),
+        )
+        mocks.resolveCreate({
+            borrower: { publicId: '019936e2-b837-7000-8000-000000000003' },
+            duplicateCandidates: [],
+        })
+        await expect
+            .element(
+                screen.getByRole('dialog', { name: /create new borrower/i }),
+            )
+            .not.toBeInTheDocument()
+        expect(mocks.toastSuccess).toHaveBeenCalledWith(
+            'Borrower created successfully.',
+            expect.objectContaining({
+                action: expect.objectContaining({ label: 'View borrower' }),
+            }),
+        )
+    })
+
+    it('locks duplicate creation and warns about returned duplicate candidates', async () => {
         const screen = await render(BorrowerManagementPage, {
             props: { role: 'owner' },
         })
@@ -115,12 +170,57 @@ describe('Borrower management page', () => {
         })
 
         await expect
-            .element(screen.getByText('Possible duplicate records'))
-            .toBeVisible()
-        await screen.getByRole('button', { name: 'View Borrower' }).click()
+            .element(
+                screen.getByRole('dialog', { name: /create new borrower/i }),
+            )
+            .not.toBeInTheDocument()
+        expect(mocks.toastSuccess).toHaveBeenCalledWith(
+            'Borrower created successfully.',
+            expect.objectContaining({
+                description: expect.stringContaining(
+                    'Similar borrower records',
+                ),
+            }),
+        )
+        mocks.toastSuccess.mock.calls.at(-1)?.[1]?.action.onClick()
         expect(mocks.goto).toHaveBeenCalledWith(
             '/app/owner/borrowers/019936e2-b837-7000-8000-000000000002',
         )
+    })
+
+    it('shows a plain-language error dialog and keeps the entered details', async () => {
+        const screen = await render(BorrowerManagementPage, {
+            props: { role: 'owner' },
+        })
+
+        await screen
+            .getByRole('button', { name: /create new borrower/i })
+            .click()
+        await screen.getByLabelText('Full name').fill('Ana Dela Cruz')
+        await screen
+            .getByLabelText('Primary contact number')
+            .fill('09171234567')
+        await screen.getByRole('button', { name: /create borrower/i }).click()
+        mocks.rejectCreate(new Error('[{"code":"custom","path":["fullName"]}]'))
+
+        await expect
+            .element(
+                screen.getByRole('dialog', {
+                    name: 'Borrower could not be created',
+                }),
+            )
+            .toBeVisible()
+        await expect
+            .element(
+                screen.getByText(
+                    'Please review the borrower details and try again.',
+                ),
+            )
+            .toBeVisible()
+        await screen.getByRole('button', { name: 'Back to form' }).click()
+        await expect
+            .element(screen.getByLabelText('Full name'))
+            .toHaveValue('Ana Dela Cruz')
     })
 })
 
@@ -128,9 +228,77 @@ async function fillRequiredBorrowerFields(
     screen: Awaited<ReturnType<typeof render>>,
 ) {
     await screen.getByLabelText('Full name').fill('Ana Dela Cruz')
-    await screen.getByLabelText('Mobile number').fill('09171234567')
+    await screen.getByLabelText('Primary contact number').fill('09171234567')
     await screen.getByLabelText('Street address').fill('1 Rizal Street')
     await screen.getByLabelText('Barangay').fill('San Jose')
     await screen.getByLabelText('City or municipality').fill('Manila')
     await screen.getByLabelText('Province').fill('Metro Manila')
 }
+
+describe('Borrower workspace scrolling', () => {
+    const originalList = { ...mocks.list, data: [...mocks.list.data] }
+    afterEach(() => Object.assign(mocks.list, originalList))
+
+    for (const viewport of [
+        { name: 'mobile', width: 375, height: 560 },
+        { name: 'tablet', width: 768, height: 650 },
+        { name: 'desktop', width: 1440, height: 800 },
+    ]) {
+        it(`${
+            viewport.name
+        } keeps borrowers and pagination reachable with a long table`, async () => {
+            mocks.list.count = 80
+            mocks.list.data = Array.from({ length: 80 }, (_, index) => ({
+                ...originalList.data[0],
+                borrowerNumber: `BR-${String(index + 1).padStart(6, '0')}`,
+                publicId: `019936e2-b837-7000-8000-${String(index + 1).padStart(
+                    12,
+                    '0',
+                )}`,
+            }))
+            await page.viewport(viewport.width, viewport.height)
+            const screen = await render(BorrowerManagementPage, {
+                props: { role: 'owner' },
+            })
+            screen.container.style.cssText =
+                'display: flex; flex-direction: column; height: calc(100dvh - 80px); width: 100%;'
+            const table = screen
+                .getByRole('table')
+                .element() as HTMLTableElement
+            const scroller = table.parentElement!.parentElement!
+            const pageRoot = screen.container.querySelector('section')!
+            const nextPage = screen
+                .getByRole('button', { name: 'Next page' })
+                .element()
+            await expect.poll(() => scroller.clientHeight).toBeGreaterThan(150)
+            expect(screen.container.scrollWidth).toBeLessThanOrEqual(
+                screen.container.clientWidth,
+            )
+            expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight)
+            expect(table.getBoundingClientRect().bottom).toBeGreaterThan(
+                scroller.getBoundingClientRect().bottom,
+            )
+            scroller.scrollTop = 250
+            await expect
+                .poll(() =>
+                    Math.abs(
+                        table.tHead!.getBoundingClientRect().top -
+                            scroller.getBoundingClientRect().top,
+                    ),
+                )
+                .toBeLessThan(2)
+            if (viewport.width < 760) {
+                scroller.scrollLeft = scroller.scrollWidth
+                await expect.poll(() => scroller.scrollLeft).toBeGreaterThan(0)
+            }
+            pageRoot.scrollTop = pageRoot.scrollHeight
+            await expect
+                .poll(() => nextPage.getBoundingClientRect().bottom)
+                .toBeLessThanOrEqual(pageRoot.getBoundingClientRect().bottom)
+            expect(nextPage.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+                pageRoot.getBoundingClientRect().top,
+            )
+            await screen.unmount()
+        })
+    }
+})

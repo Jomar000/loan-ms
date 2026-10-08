@@ -624,4 +624,60 @@ describe('Payment and collection API', () => {
         expect(collectorUnassigned.status).toBe(403)
         expect(collectorAssigned.status).toBe(200)
     })
+
+    it('generates Cash references and requires entered electronic references', async () => {
+        const referenceLoanPublicId = await createActiveLoan(100_000)
+        const base = {
+            amountReceivedMinor: 60_000,
+            loanPublicId: referenceLoanPublicId,
+            paymentDate: '2026-10-10',
+        }
+        for (const paymentMethod of [
+            'GCASH',
+            'BANK',
+        ]) {
+            const missingReference = await postTestingRequest(
+                '/api/payments/quote',
+                {
+                    body: { ...base, paymentMethod },
+                    cookie: ownerCookie,
+                },
+            )
+            expect(missingReference.status).toBe(400)
+        }
+
+        const cash = await postTestingRequest('/api/payments/create', {
+            body: {
+                ...base,
+                idempotencyKey: uuidv7(),
+                paymentMethod: 'CASH',
+                referenceNumber: '__TEST-ignored-cash-reference',
+            },
+            cookie: ownerCookie,
+        })
+        const cashJson =
+            await cash.json<
+                TApiResponseOk<{
+                    paymentNumber: string
+                    referenceNumber: string
+                }>
+            >()
+        expect(cash.status).toBe(201)
+        expect(cashJson.data.referenceNumber).toBe(cashJson.data.paymentNumber)
+
+        const bank = await postTestingRequest('/api/payments/create', {
+            body: {
+                ...base,
+                idempotencyKey: uuidv7(),
+                paymentDate: '2026-10-11',
+                paymentMethod: 'BANK',
+                referenceNumber: '__TEST-BANK-TRANSFER-1',
+            },
+            cookie: ownerCookie,
+        })
+        const bankJson =
+            await bank.json<TApiResponseOk<{ referenceNumber: string }>>()
+        expect(bank.status).toBe(201)
+        expect(bankJson.data.referenceNumber).toBe('__TEST-BANK-TRANSFER-1')
+    })
 })

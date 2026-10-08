@@ -251,4 +251,162 @@ describe('Formula profile management API', () => {
         expect(read.status).toBe(404)
         expect(readJson.error.code).toBe('NOT_FOUND')
     })
+
+    it('removes an inactive profile and rejects unauthorized or repeated deletion', async () => {
+        const create = await postTestingRequest(
+            '/api/settings/formulaProfile/create',
+            {
+                body: {
+                    formulaProfile: {
+                        ...profileInput(1),
+                        name: '__TEST-Delete Formula',
+                    },
+                    idempotencyKey: uuidv7(),
+                },
+                cookie: ownerCookie,
+            },
+        )
+        const created = await create.json<TApiResponseOk<TFormulaProfile>>()
+        const path = `/api/settings/formulaProfile/${created.data.publicId}/delete`
+        const member = await postTestingRequest(path, { cookie: memberCookie })
+        const otherTenant = await postTestingRequest(path, {
+            cookie: isolatedOwnerCookie,
+        })
+        const deleted = await postTestingRequest(path, { cookie: ownerCookie })
+        const repeated = await postTestingRequest(path, { cookie: ownerCookie })
+
+        expect(create.status).toBe(201)
+        expect(member.status).toBe(403)
+        expect(otherTenant.status).toBe(404)
+        expect(deleted.status).toBe(200)
+        expect(deleted.headers.get('audit-event-recorded')).toBe('true')
+        expect(await deleted.json()).toMatchObject({
+            success: true,
+            data: { publicId: created.data.publicId },
+        })
+        expect(repeated.status).toBe(404)
+        expect(
+            await getTestingRequest(
+                `/api/settings/formulaProfile/read/${created.data.publicId}`,
+                { cookie: ownerCookie },
+            ),
+        ).toHaveProperty('status', 404)
+        const [stored] = await dbClient(env.LOANMSBOFC_D1)
+            .select({ deletedAt: dbSchema.loanFormulaProfile.deletedAt })
+            .from(dbSchema.loanFormulaProfile)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loanFormulaProfile.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(
+                        dbSchema.loanFormulaProfile.publicId,
+                        created.data.publicId,
+                    ),
+                ),
+            )
+        expect(stored?.deletedAt).toBeInstanceOf(Date)
+    })
+
+    it('removes an active profile while preserving its linked product', async () => {
+        const read = await queryTestingRequest(
+            '/api/settings/formulaProfile/readMany',
+            {
+                filters: { isActive: true },
+                limit: 100,
+                offset: 0,
+                sortOrder: 'desc',
+            },
+            { cookie: ownerCookie },
+        )
+        const body = await read.json<TApiResponseOk<TFormulaProfile[]>>()
+        const publicId = body.data[0]!.publicId
+        const product = await postTestingRequest('/api/loans/product/create', {
+            body: {
+                formulaProfilePublicId: publicId,
+                idempotencyKey: uuidv7(),
+                maximumPrincipalMinor: 2_000_000,
+                minimumPrincipalMinor: 100_000,
+                name: '__TEST-Deleted Formula Product',
+            },
+            cookie: ownerCookie,
+        })
+        const response = await postTestingRequest(
+            `/api/settings/formulaProfile/${publicId}/delete`,
+            { cookie: ownerCookie },
+        )
+        const remaining = await queryTestingRequest(
+            '/api/settings/formulaProfile/readMany',
+            {
+                filters: { isActive: true },
+                limit: 100,
+                offset: 0,
+                sortOrder: 'desc',
+            },
+            { cookie: ownerCookie },
+        )
+        const remainingJson = await remaining.json<
+            TApiResponseOk<TFormulaProfile[]> & { count: number }
+        >()
+        const products = await queryTestingRequest(
+            '/api/loans/product/readMany',
+            { filters: {}, limit: 100, offset: 0, sortOrder: 'desc' },
+            { cookie: ownerCookie },
+        )
+        const productsJson = await products.json<
+            TApiResponseOk<{ formulaProfilePublicId: string }[]> & {
+                count: number
+            }
+        >()
+        const reactivation = await postTestingRequest(
+            `/api/settings/formulaProfile/${publicId}/activate`,
+            { body: { isDefault: true }, cookie: ownerCookie },
+        )
+        const newProduct = await postTestingRequest(
+            '/api/loans/product/create',
+            {
+                body: {
+                    formulaProfilePublicId: publicId,
+                    idempotencyKey: uuidv7(),
+                    maximumPrincipalMinor: 2_000_000,
+                    minimumPrincipalMinor: 100_000,
+                    name: '__TEST-New Deleted Formula Product',
+                },
+                cookie: ownerCookie,
+            },
+        )
+        const [stored] = await dbClient(env.LOANMSBOFC_D1)
+            .select({
+                deletedAt: dbSchema.loanFormulaProfile.deletedAt,
+                isActive: dbSchema.loanFormulaProfile.isActive,
+                isDefault: dbSchema.loanFormulaProfile.isDefault,
+            })
+            .from(dbSchema.loanFormulaProfile)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loanFormulaProfile.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loanFormulaProfile.publicId, publicId),
+                ),
+            )
+
+        expect(product.status).toBe(201)
+        expect(response.status).toBe(200)
+        expect(response.headers.get('audit-event-recorded')).toBe('true')
+        expect(remainingJson.data).toEqual([])
+        expect(remainingJson.count).toBe(0)
+        expect(productsJson.data).toEqual([
+            expect.objectContaining({ formulaProfilePublicId: publicId }),
+        ])
+        expect(reactivation.status).toBe(404)
+        expect(newProduct.status).toBe(404)
+        expect(stored).toMatchObject({
+            deletedAt: expect.any(Date),
+            isActive: false,
+            isDefault: false,
+        })
+    })
 })

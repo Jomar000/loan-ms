@@ -75,6 +75,55 @@ vi.mock('../queries', () => ({
 }))
 
 describe('Payment workflow dialog', () => {
+    it('shows a generated Cash reference and requires an entered GCash or bank reference', async () => {
+        mocks.quote.mockClear()
+        const screen = await render(PaymentWorkflowDialog, {
+            props: {
+                loanPublicId: '019936e2-b837-7000-8000-000000000101',
+                open: true,
+            },
+        })
+        await expect
+            .element(screen.getByLabelText('Reference number'))
+            .toBeDisabled()
+        await screen.getByLabelText('Amount received (PHP)').fill('140.00')
+        await screen.getByLabelText('Payment method').selectOptions('GCASH')
+        await expect
+            .element(screen.getByLabelText('Reference number'))
+            .toBeEnabled()
+
+        await screen
+            .getByRole('button', { name: 'Calculate allocation' })
+            .click()
+        expect(mocks.quote).not.toHaveBeenCalled()
+
+        await screen.getByLabelText('Reference number').fill('__TEST-GCASH-1')
+        await screen
+            .getByRole('button', { name: 'Calculate allocation' })
+            .click()
+        expect(mocks.quote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                paymentMethod: 'GCASH',
+                referenceNumber: '__TEST-GCASH-1',
+            }),
+        )
+
+        await screen.getByLabelText('Payment method').selectOptions('BANK')
+        await expect
+            .element(screen.getByLabelText('Reference number'))
+            .toHaveValue('')
+        await screen.getByLabelText('Reference number').fill('__TEST-BANK-1')
+        await screen
+            .getByRole('button', { name: 'Calculate allocation' })
+            .click()
+        expect(mocks.quote).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                paymentMethod: 'BANK',
+                referenceNumber: '__TEST-BANK-1',
+            }),
+        )
+    })
+
     it('quotes before posting, then retains a receipt after the cash-in is confirmed', async () => {
         const screen = await render(PaymentWorkflowDialog, {
             props: {

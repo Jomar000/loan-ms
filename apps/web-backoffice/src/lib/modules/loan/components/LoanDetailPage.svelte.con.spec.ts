@@ -113,4 +113,45 @@ describe('Loan detail page', () => {
         mocks.resolveApprove()
         await expect.element(confirm).not.toBeInTheDocument()
     })
+
+    it('offers approval beside the cash-out message for a pending owner loan', async () => {
+        const screen = await render(LoanDetailPage, {
+            props: {
+                publicId: '019936e2-b837-7000-8000-000000000101',
+                role: 'owner',
+            },
+        })
+
+        await expect
+            .element(
+                screen.getByText('No cash has been released for this loan.'),
+            )
+            .toBeVisible()
+        await screen.getByRole('button', { name: 'Approve this loan' }).click()
+        await expect
+            .element(
+                screen.getByRole('alertdialog', { name: 'Approve this loan?' }),
+            )
+            .toBeVisible()
+    })
+
+    it('explains who can approve when the viewer lacks permission', async () => {
+        const screen = await render(LoanDetailPage, {
+            props: {
+                publicId: '019936e2-b837-7000-8000-000000000101',
+                role: 'cashier',
+            },
+        })
+
+        await expect
+            .element(
+                screen.getByText(
+                    'An owner or admin must approve this loan before cash can be released.',
+                ),
+            )
+            .toBeVisible()
+        await expect
+            .element(screen.getByRole('button', { name: 'Approve this loan' }))
+            .not.toBeInTheDocument()
+    })
 })

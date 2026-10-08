@@ -1,12 +1,13 @@
 import { AppError, catalog, defineError } from '@loanms/errors'
 import * as loanValidator from '@loanms/validator/backoffice/loan'
-import { and, asc, count as countFn, desc, eq, like } from 'drizzle-orm'
+import { and, asc, count as countFn, desc, eq, isNull, like } from 'drizzle-orm'
 import { Hono } from 'hono'
 import type { ApplyGlobalResponse } from 'hono/client'
 import { createMiddleware } from 'hono/factory'
 import { v7 as uuidv7 } from 'uuid'
 
 import {
+    addCalendarDays,
     calculateLoan,
     createInstallmentSchedule,
     type TLoanCalculationInput,
@@ -34,6 +35,11 @@ const loanProductNotFound = defineError(
     'LOAN_PRODUCT_NOT_FOUND',
     'NOT_FOUND',
     'Loan product not found.',
+)
+const loanDeleteConflict = defineError(
+    'LOAN_DELETE_CONFLICT',
+    'CONFLICT',
+    'Only pending approval loans without related records can be deleted.',
 )
 const loanProductUnavailable = defineError(
     'LOAN_PRODUCT_UNAVAILABLE',
@@ -534,6 +540,7 @@ export const loansRoute = new Hono<THonoInstance>()
                                 input.formulaProfilePublicId,
                             ),
                             eq(loanFormulaProfile.isActive, true),
+                            isNull(loanFormulaProfile.deletedAt),
                         ),
                     )
                     .limit(1)
@@ -790,7 +797,13 @@ export const loansRoute = new Hono<THonoInstance>()
                 .where(where)
             const rows = await ctx
                 .get('dbClient')
-                .select({ publicId: loan.publicId })
+                .select({
+                    borrowerFirstName: borrower.firstName,
+                    borrowerLastName: borrower.lastName,
+                    borrowerMiddleName: borrower.middleName,
+                    borrowerSuffix: borrower.suffix,
+                    publicId: loan.publicId,
+                })
                 .from(loan)
                 .innerJoin(
                     borrower,
@@ -809,11 +822,23 @@ export const loansRoute = new Hono<THonoInstance>()
                 .offset(input.offset)
             const data = (
                 await Promise.all(
-                    rows.map(({ publicId }) => readLoan(ctx, publicId)),
+                    rows.map(async (row) => {
+                        const record = await readLoan(ctx, row.publicId)
+                        if (!record) return null
+                        return {
+                            ...loanOutput(record),
+                            borrowerName: [
+                                row.borrowerFirstName,
+                                row.borrowerMiddleName,
+                                row.borrowerLastName,
+                                row.borrowerSuffix,
+                            ]
+                                .filter(Boolean)
+                                .join(' '),
+                        }
+                    }),
                 )
-            )
-                .filter((record): record is TLoan => record !== null)
-                .map(loanOutput)
+            ).filter((record) => record !== null)
             return apiResponsePaginatedOkWrapper(ctx, {
                 count: countRow.count,
                 data,
@@ -855,6 +880,58 @@ export const loansRoute = new Hono<THonoInstance>()
             return apiResponseOkWrapper(ctx, {
                 data: { ...loanOutput(record), installments },
             })
+        },
+    )
+    .post(
+        '/:publicId/delete',
+        tenantGuard,
+        privilegedGuard,
+        validateRequest('param', loanValidator.loanDeleteInputSchema),
+        async (ctx) => {
+            const { publicId } = ctx.req.valid('param')
+            const existing = await readLoan(ctx, publicId)
+            if (!existing) throw new AppError(loanNotFound)
+            if (existing.status !== 'PENDING_APPROVAL') {
+                throw new AppError(loanDeleteConflict)
+            }
+
+            const auditData = auditTrailLogger.prepare({
+                action: 'delete',
+                component: 'loan',
+                description: 'Pending loan deleted',
+                records: {
+                    table: 'loan',
+                    id: publicId,
+                    oldData: {
+                        borrowerPublicId: existing.borrowerPublicId,
+                        loanNumber: existing.loanNumber,
+                        loanProductPublicId: existing.loanProductPublicId,
+                        principalAmountMinor: existing.principalAmountMinor,
+                        status: existing.status,
+                    },
+                },
+            })
+            const database = ctx.get('dbClient').$client
+            const [result] = await database.batch([
+                database
+                    .prepare(
+                        `DELETE FROM loan
+                         WHERE organization_id = ? AND public_id = ?
+                           AND status = 'PENDING_APPROVAL'
+                           AND NOT EXISTS (SELECT 1 FROM loan_installment WHERE organization_id = loan.organization_id AND loan_id = loan.id)
+                           AND NOT EXISTS (SELECT 1 FROM payment WHERE organization_id = loan.organization_id AND loan_id = loan.id)
+                           AND NOT EXISTS (SELECT 1 FROM cash_transaction WHERE organization_id = loan.organization_id AND loan_id = loan.id)
+                           AND NOT EXISTS (SELECT 1 FROM capital_transaction WHERE organization_id = loan.organization_id AND loan_id = loan.id)
+                           AND NOT EXISTS (SELECT 1 FROM loan_collection_assignment WHERE organization_id = loan.organization_id AND loan_id = loan.id)
+                           AND NOT EXISTS (SELECT 1 FROM loan_renewal WHERE organization_id = loan.organization_id AND (old_loan_id = loan.id OR new_loan_id = loan.id))`,
+                    )
+                    .bind(getActiveOrganizationId(ctx), publicId),
+                auditTrailAfterChangeStatement(ctx, auditData, database),
+            ])
+            if (result.meta.changes !== 1)
+                throw new AppError(loanDeleteConflict)
+            if (auditData) markAuditTrailRecorded(ctx)
+            return apiResponseOkWrapper(ctx, { data: { publicId } })
         },
     )
     .post(
@@ -930,8 +1007,11 @@ export const loansRoute = new Hono<THonoInstance>()
                 )
                 .limit(1)
             if (!fund) throw new AppError(primaryFundRequired)
+            const releasedAt = Date.now()
+            const releaseDate = manilaDate(releasedAt)
+            const firstPaymentDate = addCalendarDays(releaseDate, 1)
             const schedule = createInstallmentSchedule({
-                firstDueDate: existing.firstPaymentDate,
+                firstDueDate: firstPaymentDate,
                 installmentCount: existing.installmentCount,
                 paymentFrequency: existing.paymentFrequency,
                 totalPayableAmountCents: existing.totalPayableAmountMinor,
@@ -939,8 +1019,7 @@ export const loansRoute = new Hono<THonoInstance>()
             const database = ctx.get('dbClient').$client
             const organizationId = getActiveOrganizationId(ctx)
             const actorId = ctx.get('user')!.id
-            const releasedAt = Date.now()
-            const releaseDate = manilaDate(releasedAt)
+            const expectedCompletionDate = schedule.at(-1)!.dueDate
             const auditData = auditTrailLogger.prepare({
                 action: 'update',
                 component: 'loan',
@@ -949,8 +1028,19 @@ export const loansRoute = new Hono<THonoInstance>()
                     {
                         table: 'loan',
                         id: publicId,
-                        oldData: { status: existing.status },
-                        newData: { status: 'ACTIVE' },
+                        oldData: {
+                            expectedCompletionDate:
+                                existing.expectedCompletionDate,
+                            firstPaymentDate: existing.firstPaymentDate,
+                            releaseDate: existing.releaseDate,
+                            status: existing.status,
+                        },
+                        newData: {
+                            expectedCompletionDate,
+                            firstPaymentDate,
+                            releaseDate,
+                            status: 'ACTIVE',
+                        },
                     },
                     {
                         table: 'cash_transaction',
@@ -966,12 +1056,15 @@ export const loansRoute = new Hono<THonoInstance>()
                 database
                     .prepare(
                         `UPDATE loan
-                         SET status = 'ACTIVE', release_date = ?, released_by_user_id = ?,
+                         SET status = 'ACTIVE', release_date = ?, first_payment_date = ?,
+                             expected_completion_date = ?, released_by_user_id = ?,
                              released_at = ?, updated_by_user_id = ?, updated_at = ?
                          WHERE organization_id = ? AND public_id = ? AND status = 'APPROVED'`,
                     )
                     .bind(
                         releaseDate,
+                        firstPaymentDate,
+                        expectedCompletionDate,
                         actorId,
                         releasedAt,
                         actorId,

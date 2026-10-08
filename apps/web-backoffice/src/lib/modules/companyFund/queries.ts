@@ -5,6 +5,7 @@ import {
 } from '@tanstack/svelte-query'
 
 import { createTenantKey } from '$lib/states/session/tenant'
+import { REVALIDATE_ON_ACTIVATION_QUERY_OPTIONS } from '$lib/utilities/realtimeQuery'
 import {
     fetchCapitalTransactions,
     fetchCompanyFundSummary,
@@ -71,6 +72,7 @@ export function createOverdueLoansQuery(
     options: { readonly request: unknown },
 ) {
     return createQuery(() => ({
+        ...REVALIDATE_ON_ACTIVATION_QUERY_OPTIONS,
         enabled: Boolean(scope.organizationSlug),
         queryKey: createTenantKey(
             scope.organizationSlug,

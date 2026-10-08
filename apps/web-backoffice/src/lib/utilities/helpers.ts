@@ -322,3 +322,32 @@ export function getErrorMessage(error: unknown, fallback: string) {
 
     return fallback
 }
+
+export function getUserFacingSaveErrorMessage(
+    error: unknown,
+    messages: {
+        invalid: string
+        network: string
+        unexpected: string
+    },
+) {
+    const message = getErrorMessage(error, messages.unexpected).trim()
+
+    if (/failed to fetch|networkerror|network request failed/i.test(message)) {
+        return messages.network
+    }
+
+    if (message.startsWith('[') || message.startsWith('{')) {
+        return messages.invalid
+    }
+
+    if (
+        /SQLITE_|idempotency key|internal server error|^TypeError:|^ZodError:|^HTTP \d{3}\b/i.test(
+            message,
+        )
+    ) {
+        return messages.unexpected
+    }
+
+    return message
+}

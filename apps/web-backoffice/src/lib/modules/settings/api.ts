@@ -112,6 +112,16 @@ export async function retireFormulaProfile(
     return output.data
 }
 
+export async function deleteFormulaProfile(publicId: string): Promise<void> {
+    const param = loanCalculationValidator.formulaProfileReadInputSchema.parse({
+        publicId,
+    })
+    const responseJson = await (
+        await settingsClient.formulaProfile[':publicId'].delete.$post({ param })
+    ).json()
+    if (!responseJson.success) throw new Error(responseJson.error.message)
+}
+
 export async function previewFormulaProfile(
     input: FormulaProfilePreviewInput,
 ): Promise<FormulaProfilePreview> {

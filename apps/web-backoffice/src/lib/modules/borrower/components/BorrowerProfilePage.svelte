@@ -295,7 +295,7 @@
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div class="mb-2 flex items-center">
         <Button
@@ -431,7 +431,7 @@
             </header>
         </div>
         <Tabs.Root
-            class="flex min-h-0 flex-1 flex-col"
+            class="flex min-h-96 flex-1 flex-col"
             bind:value={selectedTab}
         >
             <Tabs.List
@@ -738,7 +738,7 @@
             </Tabs.Content>
             <Tabs.Content
                 value="payments"
-                class="mt-0 flex min-h-0 flex-1 flex-col"
+                class="mt-0 flex min-h-192 flex-1 flex-col sm:min-h-128 lg:min-h-96"
             >
                 <div
                     class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
@@ -760,7 +760,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="min-h-0 flex-1 overflow-auto">
+                    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
                         <PaymentHistoryTable borrowerPublicId={publicId} />
                     </div>
                 </div>

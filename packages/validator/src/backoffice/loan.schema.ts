@@ -110,12 +110,11 @@ const loanRequestFieldsSchema = z.object({
 export const loanQuoteInputSchema = loanRequestFieldsSchema
     .strict()
     .check((ctx) => {
-        if (ctx.value.firstPaymentDate < ctx.value.releaseDate) {
+        if (ctx.value.firstPaymentDate <= ctx.value.releaseDate) {
             ctx.issues.push({
                 code: 'custom',
                 input: ctx.value.firstPaymentDate,
-                message:
-                    'First payment date must be on or after the release date.',
+                message: 'First payment date must be after the release date.',
                 path: ['firstPaymentDate'],
             })
         }
@@ -127,12 +126,11 @@ export const loanCreateInputSchema = loanRequestFieldsSchema
     })
     .strict()
     .check((ctx) => {
-        if (ctx.value.firstPaymentDate < ctx.value.releaseDate) {
+        if (ctx.value.firstPaymentDate <= ctx.value.releaseDate) {
             ctx.issues.push({
                 code: 'custom',
                 input: ctx.value.firstPaymentDate,
-                message:
-                    'First payment date must be on or after the release date.',
+                message: 'First payment date must be after the release date.',
                 path: ['firstPaymentDate'],
             })
         }
@@ -235,13 +233,18 @@ export const loanReadInputSchema = z.object({
 })
 
 export const loanReadManyOutputSchema = base.paginatedOutputSchema(
-    z.array(loanOutputDataSchema),
+    z.array(loanOutputDataSchema.extend({ borrowerName: z.string() })),
 )
 export const loanReadOutputSchema = base.outputSchema(
     loanOutputDataSchema.extend({
         installments: z.array(installmentOutputDataSchema),
     }),
 )
+
+export const loanDeleteInputSchema = z.object({
+    publicId: publicIdSchema,
+})
+export const loanDeleteOutputSchema = base.outputSchema(loanDeleteInputSchema)
 
 export const loanApproveInputSchema = z
     .object({

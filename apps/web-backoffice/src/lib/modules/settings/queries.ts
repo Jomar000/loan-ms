@@ -9,6 +9,7 @@ import {
     activateFormulaProfile,
     createFormulaProfile,
     createFormulaProfileVersion,
+    deleteFormulaProfile,
     fetchFormulaProfiles,
     fetchSystemSettings,
     previewFormulaProfile,
@@ -118,6 +119,28 @@ export function createFormulaProfileRetireMutation(scope: {
             'retire',
         ),
         mutationFn: retireFormulaProfile,
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: createTenantKey(
+                    scope.organizationSlug,
+                    'formulaProfile',
+                ),
+            })
+        },
+    }))
+}
+
+export function createFormulaProfileDeleteMutation(scope: {
+    readonly organizationSlug: string
+}) {
+    const queryClient = useQueryClient()
+    return createMutation(() => ({
+        mutationKey: createTenantKey(
+            scope.organizationSlug,
+            'formulaProfile',
+            'delete',
+        ),
+        mutationFn: deleteFormulaProfile,
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: createTenantKey(

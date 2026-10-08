@@ -424,7 +424,9 @@
                 </Empty.Header>
             </Empty.Root>
         {:else}
-            <div class="overflow-hidden rounded-md border">
+            <div
+                class="max-h-[min(60dvh,40rem)] table-scroll rounded-md border"
+            >
                 <Table.Root>
                     <Table.Caption class="sr-only">
                         Selected files and upload status

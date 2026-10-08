@@ -47,21 +47,19 @@ const phoneNumberSchema = field
         'Contact Number must contain a valid phone number.',
     )
 
-const fullNameSchema = field
-    .vText({ fieldName: 'Full Name', max: 234 })
-    .refine(
-        (value) => value.trim().split(/\s+/).length >= 2,
-        'Full Name must include at least a first and last name.',
-    )
+const fullNameSchema = field.vText({ fieldName: 'Full Name', max: 234 })
 
 const borrowerSharedFieldsSchema = z.object({
-    addressLine: field.vText({ fieldName: 'Address Line', max: 200 }),
-    barangay: field.vText({ fieldName: 'Barangay', max: 100 }),
+    addressLine: field
+        .vText({ fieldName: 'Address Line', min: 0, max: 200 })
+        .optional(),
+    barangay: field
+        .vText({ fieldName: 'Barangay', min: 0, max: 100 })
+        .optional(),
     birthDate: field.vIsoDate('Birth Date').nullable().optional(),
-    cityMunicipality: field.vText({
-        fieldName: 'City or Municipality',
-        max: 100,
-    }),
+    cityMunicipality: field
+        .vText({ fieldName: 'City or Municipality', min: 0, max: 100 })
+        .optional(),
     contactNumber: phoneNumberSchema,
     email: z.email('Email must be a valid email address.').max(254).optional(),
     emergencyContactName: field
@@ -76,7 +74,9 @@ const borrowerSharedFieldsSchema = z.object({
     gender: borrowerGenderSchema,
     notes: field.vText({ fieldName: 'Notes', max: 2_000 }).optional(),
     postalCode: field.vText({ fieldName: 'Postal Code', max: 32 }).optional(),
-    province: field.vText({ fieldName: 'Province', max: 100 }),
+    province: field
+        .vText({ fieldName: 'Province', min: 0, max: 100 })
+        .optional(),
     secondaryContactNumber: phoneNumberSchema.optional(),
 })
 

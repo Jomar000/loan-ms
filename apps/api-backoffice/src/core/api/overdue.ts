@@ -61,7 +61,7 @@ export const overdueRoute = new Hono<THonoInstance>().on(
             database
                 .prepare(
                     `${overdueQuery}
-                     ORDER BY oldest_due_date ASC, loan_public_id ASC
+                     ORDER BY oldest_due_date ${input.sortOrder === 'asc' ? 'ASC' : 'DESC'}, loan_public_id ASC
                      LIMIT ? OFFSET ?`,
                 )
                 .bind(...bindings, input.limit, input.offset)

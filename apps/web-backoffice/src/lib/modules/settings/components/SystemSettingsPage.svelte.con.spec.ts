@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
+import { page } from 'vitest/browser'
 
+import '../../../../app.css'
 import SystemSettingsPage from './SystemSettingsPage.svelte'
 
 const mocks = vi.hoisted(() => ({
@@ -28,6 +30,18 @@ vi.mock('svelte-sonner', () => ({
     toast: { error: vi.fn(), success: vi.fn() },
 }))
 vi.mock('../queries', () => ({
+    createFormulaProfileActivateMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfileCreateMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfileDeleteMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfilePreviewMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfileRetireMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfileVersionMutation: () => ({ mutateAsync: vi.fn() }),
+    createFormulaProfilesQuery: () => ({
+        data: [],
+        isError: false,
+        isPending: false,
+        refetch: vi.fn(),
+    }),
     createSystemSettingsQuery: () => ({
         get data() {
             return mocks.settings
@@ -100,4 +114,50 @@ describe('System settings page', () => {
                 }),
             )
     })
+})
+
+describe('Settings page scrolling', () => {
+    for (const viewport of [
+        { name: 'mobile', width: 375, height: 560 },
+        { name: 'tablet', width: 768, height: 650 },
+        { name: 'desktop', width: 1440, height: 800 },
+    ]) {
+        it(`${
+            viewport.name
+        } keeps stacked settings and the save action reachable`, async () => {
+            mocks.settings = createSettings()
+            await page.viewport(viewport.width, viewport.height)
+            const screen = await render(SystemSettingsPage, {
+                props: { role: 'admin' },
+            })
+            screen.container.style.cssText =
+                'display: flex; flex-direction: column; height: calc(100dvh - 80px); width: 100%;'
+            const pageRoot = screen.container.querySelector('section')!
+            const control = screen
+                .getByRole('checkbox', {
+                    name: 'Show historical worst tag',
+                })
+                .element()
+            const saveButton = screen
+                .getByRole('button', { name: 'Save settings' })
+                .element()
+            await expect
+                .poll(() => pageRoot.scrollHeight)
+                .toBeGreaterThan(pageRoot.clientHeight)
+            expect(screen.container.scrollWidth).toBeLessThanOrEqual(
+                screen.container.clientWidth,
+            )
+            pageRoot.scrollTop = pageRoot.scrollHeight
+            await expect
+                .poll(() => control.getBoundingClientRect().bottom)
+                .toBeLessThanOrEqual(pageRoot.getBoundingClientRect().bottom)
+            expect(control.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+                pageRoot.getBoundingClientRect().top,
+            )
+            expect(
+                saveButton.getBoundingClientRect().bottom,
+            ).toBeLessThanOrEqual(pageRoot.getBoundingClientRect().bottom)
+            await screen.unmount()
+        })
+    }
 })

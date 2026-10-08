@@ -9,8 +9,8 @@ const mocks = vi.hoisted(() => ({
     })),
     goto: vi.fn(async () => undefined),
     quote: vi.fn(async () => ({
-        expectedCompletionDate: '2026-12-02',
-        firstPaymentDate: '2026-10-04',
+        expectedCompletionDate: '2026-12-06',
+        firstPaymentDate: '2026-10-08',
         formulaSnapshot: {
             fixedInterestAmountMinor: null,
             formulaProfilePublicId: '019936e2-b837-7000-8000-000000000001',
@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
         interestAmountMinor: 140_000,
         installments: [],
         principalMinor: 700_000,
-        releaseDate: '2026-10-03',
+        releaseDate: '2026-10-07',
         riskWarning: null,
         totalPayableMinor: 840_000,
     })),
@@ -78,7 +78,18 @@ describe('Loan origination page', () => {
             .getByLabelText('Loan product')
             .selectOptions('019936e2-b837-7000-8000-000000000010')
         await screen.getByLabelText('Principal amount (PHP)').fill('7000')
+        await screen.getByLabelText('Release date').fill('2026-10-07')
+        await expect
+            .element(screen.getByLabelText('Estimated first collection date'))
+            .toHaveValue('2026-10-08')
         await screen.getByRole('button', { name: 'Calculate quote' }).click()
+
+        expect(mocks.quote).toHaveBeenCalledWith(
+            expect.objectContaining({
+                firstPaymentDate: '2026-10-08',
+                releaseDate: '2026-10-07',
+            }),
+        )
 
         await expect.element(screen.getByText('₱8,400.00')).toBeVisible()
         await expect.element(screen.getByText('₱140.00 × 60')).toBeVisible()

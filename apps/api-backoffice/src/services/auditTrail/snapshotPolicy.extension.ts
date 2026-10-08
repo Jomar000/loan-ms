@@ -65,6 +65,9 @@ export const extensionSnapshotPolicy = {
             'principalAmountMinor',
             'interestAmountMinor',
             'totalPayableAmountMinor',
+            'releaseDate',
+            'firstPaymentDate',
+            'expectedCompletionDate',
             'status',
         ],
         loan_installment: [

@@ -1,5 +1,9 @@
 import { dbClient, dbSchema } from '@loanms/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
+import type {
+    TApiResponseError,
+    TApiResponseOk,
+    TApiResponsePaginatedOk,
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, eq } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -106,10 +110,21 @@ describe('Loan origination API', () => {
                 totalPayableMinor: number
             }>
         >()
+        const sameDayQuote = await postTestingRequest('/api/loans/quote', {
+            body: {
+                borrowerPublicId,
+                firstPaymentDate: '2026-10-09',
+                loanProductPublicId,
+                principalMinor: 7_000_00,
+                releaseDate: '2026-10-09',
+            },
+            cookie: ownerCookie,
+        })
 
         expect(create.status).toBe(201)
         expect(create.headers.get('audit-event-recorded')).toBe('true')
         expect(quote.status).toBe(200)
+        expect(sameDayQuote.status).toBe(400)
         expect(quoteJson.data.interestAmountMinor).toBe(1_400_00)
         expect(quoteJson.data.totalPayableMinor).toBe(8_400_00)
         expect(quoteJson.data.installments).toHaveLength(60)
@@ -130,6 +145,14 @@ describe('Loan origination API', () => {
             principalMinor: 7_000_00,
             releaseDate: '2026-10-09',
         }
+        const sameDayCreate = await postTestingRequest('/api/loans/create', {
+            body: {
+                ...body,
+                firstPaymentDate: body.releaseDate,
+                idempotencyKey: uuidv7(),
+            },
+            cookie: ownerCookie,
+        })
         const first = await postTestingRequest('/api/loans/create', {
             body,
             cookie: ownerCookie,
@@ -179,9 +202,20 @@ describe('Loan origination API', () => {
             { filters: { borrowerPublicId } },
             { cookie: ownerCookie },
         )
+        const listJson =
+            await list.json<
+                TApiResponsePaginatedOk<
+                    { borrowerName: string; borrowerPublicId: string }[]
+                >
+            >()
         const db = dbClient(env.LOANMSBOFC_D1)
         const [storedLoan] = await db
-            .select({ id: dbSchema.loan.id })
+            .select({
+                expectedCompletionDate: dbSchema.loan.expectedCompletionDate,
+                firstPaymentDate: dbSchema.loan.firstPaymentDate,
+                id: dbSchema.loan.id,
+                releaseDate: dbSchema.loan.releaseDate,
+            })
             .from(dbSchema.loan)
             .where(
                 and(
@@ -193,18 +227,35 @@ describe('Loan origination API', () => {
                 ),
             )
         const installments = await db
-            .select({ id: dbSchema.loanInstallment.id })
+            .select({
+                dueDate: dbSchema.loanInstallment.dueDate,
+                installmentNumber: dbSchema.loanInstallment.installmentNumber,
+            })
             .from(dbSchema.loanInstallment)
             .where(eq(dbSchema.loanInstallment.loanId, storedLoan.id))
+            .orderBy(dbSchema.loanInstallment.installmentNumber)
         const cashTransactions = await db
             .select({ amountMinor: dbSchema.cashTransaction.amountMinor })
             .from(dbSchema.cashTransaction)
             .where(eq(dbSchema.cashTransaction.loanId, storedLoan.id))
         const deniedJson = await denied.json<TApiResponseError>()
-        const releaseJson =
-            await release.json<TApiResponseOk<{ status: string }>>()
+        const releaseJson = await release.json<
+            TApiResponseOk<{
+                expectedCompletionDate: string
+                firstPaymentDate: string
+                installments: { dueDate: string }[]
+                releaseDate: string
+                status: string
+            }>
+        >()
+        const nextDay = new Date(
+            `${releaseJson.data.releaseDate}T00:00:00.000Z`,
+        )
+        nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+        const expectedFirstPaymentDate = nextDay.toISOString().slice(0, 10)
 
         expect(first.status).toBe(201)
+        expect(sameDayCreate.status).toBe(400)
         expect(first.headers.get('audit-event-recorded')).toBe('true')
         expect(replay.headers.get('audit-event-recorded')).toBeNull()
         expect(deniedJson.error.code).toBe('FORBIDDEN')
@@ -214,11 +265,94 @@ describe('Loan origination API', () => {
         expect(release.status).toBe(200)
         expect(release.headers.get('audit-event-recorded')).toBe('true')
         expect(releaseJson.data.status).toBe('ACTIVE')
+        expect(releaseJson.data.firstPaymentDate).toBe(expectedFirstPaymentDate)
+        expect(releaseJson.data.installments[0]?.dueDate).toBe(
+            expectedFirstPaymentDate,
+        )
+        expect(storedLoan.releaseDate).toBe(releaseJson.data.releaseDate)
+        expect(storedLoan.firstPaymentDate).toBe(expectedFirstPaymentDate)
+        expect(storedLoan.expectedCompletionDate).toBe(
+            installments.at(-1)?.dueDate,
+        )
+        expect(releaseJson.data.expectedCompletionDate).toBe(
+            installments.at(-1)?.dueDate,
+        )
         expect(secondRelease.status).toBe(409)
         expect(detail.status).toBe(200)
         expect(list.status).toBe(200)
+        expect(listJson.data).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    borrowerName: '__TEST LOAN BORROWER',
+                    borrowerPublicId,
+                }),
+            ]),
+        )
         expect(installments).toHaveLength(60)
         expect(cashTransactions).toEqual([{ amountMinor: 7_000_00 }])
+    })
+
+    it('deletes pending loans regardless of product availability', async () => {
+        const createPending = async () => {
+            const response = await postTestingRequest('/api/loans/create', {
+                body: {
+                    borrowerPublicId,
+                    firstPaymentDate: '2026-10-10',
+                    idempotencyKey: uuidv7(),
+                    loanProductPublicId,
+                    principalMinor: 5_000_00,
+                    releaseDate: '2026-10-09',
+                },
+                cookie: ownerCookie,
+            })
+            expect(response.status).toBe(201)
+            return (await response.json<TApiResponseOk<{ publicId: string }>>())
+                .data.publicId
+        }
+        const activeProductLoanId = await createPending()
+        const inactiveProductLoanId = await createPending()
+        const activePath = `/api/loans/${activeProductLoanId}/delete`
+        const inactivePath = `/api/loans/${inactiveProductLoanId}/delete`
+        const denied = await postTestingRequest(activePath, {
+            body: {},
+            cookie: memberCookie,
+        })
+        const releasedDenied = await postTestingRequest(
+            `/api/loans/${loanPublicId}/delete`,
+            { body: {}, cookie: ownerCookie },
+        )
+        expect(denied.status).toBe(403)
+        expect(releasedDenied.status).toBe(409)
+
+        const activeDeleted = await postTestingRequest(activePath, {
+            body: {},
+            cookie: ownerCookie,
+        })
+        expect(activeDeleted.status).toBe(200)
+        expect(activeDeleted.headers.get('audit-event-recorded')).toBe('true')
+
+        const db = dbClient(env.LOANMSBOFC_D1)
+        await db
+            .update(dbSchema.loanProduct)
+            .set({ isActive: false })
+            .where(eq(dbSchema.loanProduct.publicId, loanProductPublicId))
+        try {
+            const inactiveDeleted = await postTestingRequest(inactivePath, {
+                body: {},
+                cookie: ownerCookie,
+            })
+            expect(inactiveDeleted.status).toBe(200)
+        } finally {
+            await db
+                .update(dbSchema.loanProduct)
+                .set({ isActive: true })
+                .where(eq(dbSchema.loanProduct.publicId, loanProductPublicId))
+        }
+        const repeated = await postTestingRequest(activePath, {
+            body: {},
+            cookie: ownerCookie,
+        })
+        expect(repeated.status).toBe(404)
     })
 
     it('enforces enabled payment frequencies and the configured Scammer origination block', async () => {

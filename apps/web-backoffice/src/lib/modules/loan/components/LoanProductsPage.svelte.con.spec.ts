@@ -52,6 +52,7 @@ describe('Loan products page', () => {
 
         await screen
             .getByRole('button', { name: 'Create loan product' })
+            .first()
             .click()
         await screen.getByLabelText('Name').fill('__TEST-Regular loan')
         await screen

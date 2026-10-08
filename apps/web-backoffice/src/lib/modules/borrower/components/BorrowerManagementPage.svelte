@@ -17,7 +17,10 @@
     import { goto } from '$app/navigation'
     import PaginationFooter from '$lib/components/dataWorkspace/PaginationFooter.svelte'
     import { useSessionContext } from '$lib/states/session'
-    import { debounce, getErrorMessage } from '$lib/utilities/helpers'
+    import {
+        debounce,
+        getUserFacingSaveErrorMessage,
+    } from '$lib/utilities/helpers'
     import { createIdempotencyKeyLifecycle } from '$lib/utilities/idempotencyKey'
     import {
         createBorrowerCreateMutation,
@@ -48,15 +51,7 @@
     // 03. State //
     ///////////////
     let createOpen = $state(false)
-    let createdBorrowerPublicId = $state<string | null>(null)
-    let duplicateCandidates = $state<
-        {
-            borrowerNumber: string
-            contactNumber: string
-            fullName: string
-            publicId: string
-        }[]
-    >([])
+    let createError = $state<string | null>(null)
     let draft = $state<BorrowerCreateInput>(createBorrowerDraft())
     let inputSearch = $state('')
     let isCreating = $state(false)
@@ -96,9 +91,6 @@
         },
     )
     const rows = $derived(listQuery.data?.data ?? [])
-    const isCreateWorkflowLocked = $derived(
-        isCreating || Boolean(createdBorrowerPublicId),
-    )
     ///////////////////
     // 06. Mutations //
     ///////////////////
@@ -122,21 +114,22 @@
         if (isCreating) return
         createOpen = open
         if (!open) {
-            createdBorrowerPublicId = null
-            duplicateCandidates = []
+            createError = null
             createIdempotencyKey.abandonAttempt()
             draft = createBorrowerDraft()
         }
     }
+    function handleCreateErrorOpenChange(open: boolean) {
+        if (!open) createError = null
+    }
     async function handleCreate(event: SubmitEvent) {
         event.preventDefault()
-        if (isCreateWorkflowLocked) return
+        if (isCreating) return
         const payload = normalizeBorrowerDraft(draft)
         const claim = createIdempotencyKey.claim(payload)
         if (!claim.ok) {
-            toast.error(
-                'Retry the unresolved request without changing its details.',
-            )
+            createError =
+                'Please try again with the same details. We could not confirm the previous request.'
             return
         }
         isCreating = true
@@ -145,13 +138,30 @@
                 ...payload,
                 idempotencyKey: claim.key,
             })
-            duplicateCandidates = result.duplicateCandidates
-            createdBorrowerPublicId = result.borrower.publicId
             createIdempotencyKey.confirmSuccess()
-            draft = createBorrowerDraft()
-            toast.success('Borrower created successfully.')
+            isCreating = false
+            handleCreateOpenChange(false)
+            toast.success('Borrower created successfully.', {
+                ...(result.duplicateCandidates.length > 0
+                    ? {
+                          description:
+                              'Similar borrower records were found. Review this borrower before issuing a loan.',
+                      }
+                    : {}),
+                action: {
+                    label: 'View borrower',
+                    onClick: () =>
+                        void handleViewBorrower(result.borrower.publicId),
+                },
+            })
         } catch (error) {
-            toast.error(getErrorMessage(error, 'Could not create borrower.'))
+            createError = getUserFacingSaveErrorMessage(error, {
+                invalid: 'Please review the borrower details and try again.',
+                network:
+                    'We could not confirm whether the borrower was saved. Check the borrower list before trying again.',
+                unexpected:
+                    'Something went wrong while saving. Check the borrower list before trying again.',
+            })
         } finally {
             isCreating = false
         }
@@ -183,8 +193,8 @@
             gender: 'PREFER_NOT_TO_SAY',
             idempotencyKey: createIdempotencyKey.current,
             notes: '',
-            postalCode: '',
-            province: '',
+            postalCode: '3105',
+            province: 'Nueva Ecija',
             secondaryContactNumber: '',
         }
     }
@@ -215,7 +225,7 @@
 </script>
 
 <section
-    class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/70 p-3 text-zinc-950 md:p-4 dark:bg-[#171717] dark:text-zinc-100"
+    class="flex h-full min-h-0 page-scroll flex-1 flex-col bg-zinc-50/70 p-3 text-zinc-950 md:p-4 dark:bg-[#171717] dark:text-zinc-100"
 >
     <div class="flex min-h-0 flex-1 flex-col gap-3">
         <header
@@ -303,75 +313,96 @@
             </div>
         </header>
         <div
-            class="grid shrink-0 gap-2 rounded-xl border border-zinc-200/80 bg-white p-2.5 shadow-sm md:grid-cols-12 dark:border-zinc-800 dark:bg-[#202020]"
+            class="grid w-full shrink-0 grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm md:grid-cols-2 xl:grid-cols-12 dark:border-zinc-800 dark:bg-[#202020]"
         >
-            <label class="relative block md:col-span-6">
+            <!-- Search -->
+            <label class="min-w-0 space-y-1.5 md:col-span-2 xl:col-span-6">
                 <span
-                    class="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-500 uppercase dark:text-zinc-400"
-                    >Search borrower</span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                 >
+                    Search borrower
+                </span>
+
                 <div class="relative">
                     <SearchIcon
-                        class="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-zinc-400"
+                        class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500"
                         aria-hidden="true"
                     />
+
                     <Input
-                        class="h-9 border-zinc-200 bg-zinc-50/70 pl-9 text-sm shadow-none focus-visible:ring-amber-500/30 dark:border-zinc-700 dark:bg-[#151515]"
+                        class="h-9 w-full min-w-0 border-zinc-200 bg-zinc-50/60 pr-3 pl-9 text-sm shadow-none transition-colors placeholder:text-zinc-400 focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818] dark:placeholder:text-zinc-600 dark:focus-visible:border-amber-500/50"
                         bind:value={inputSearch}
                         oninput={() => applySearch(inputSearch)}
                         placeholder="Name, borrower number, or contact number"
                     />
                 </div>
             </label>
-            <div class="md:col-span-3">
+
+            <!-- Account status -->
+            <div class="min-w-0 space-y-1.5 md:col-span-1 xl:col-span-3">
                 <span
-                    class="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-500 uppercase dark:text-zinc-400"
-                    >Account status</span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                 >
+                    Account status
+                </span>
+
                 <NativeSelect.Root
+                    class="h-9 w-full border-zinc-200 bg-zinc-50/60 text-sm shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
                     aria-label="Borrower status"
                     onchange={handleStatusChange}
                     value={status}
                 >
-                    <NativeSelect.Option value="ALL"
-                        >All statuses</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="ACTIVE"
-                        >Active</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="INACTIVE"
-                        >Inactive</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="BLOCKED"
-                        >Blocked</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="ARCHIVED"
-                        >Archived</NativeSelect.Option
-                    >
+                    <NativeSelect.Option value="ALL">
+                        All statuses
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="ACTIVE">
+                        Active
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="INACTIVE">
+                        Inactive
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="BLOCKED">
+                        Blocked
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="ARCHIVED">
+                        Archived
+                    </NativeSelect.Option>
                 </NativeSelect.Root>
             </div>
-            <div class="md:col-span-3">
+
+            <!-- Payment tag -->
+            <div class="min-w-0 space-y-1.5 md:col-span-1 xl:col-span-3">
                 <span
-                    class="mb-1 block text-[10px] font-semibold tracking-widest text-zinc-500 uppercase dark:text-zinc-400"
-                    >Payment tag</span
+                    class="block text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                 >
+                    Payment tag
+                </span>
+
                 <NativeSelect.Root
+                    class="h-9 w-full border-zinc-200 bg-zinc-50/60 text-sm shadow-none focus-visible:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 dark:border-zinc-700 dark:bg-[#181818]"
                     aria-label="Payment tag"
                     onchange={handlePaymentTagChange}
                     value={paymentTag}
                 >
-                    <NativeSelect.Option value="ALL"
-                        >All payment tags</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="GOOD_PAYER"
-                        >Good Payer</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="BAD_PAYER"
-                        >Bad Payer</NativeSelect.Option
-                    >
-                    <NativeSelect.Option value="SCAMMER"
-                        >Scammer</NativeSelect.Option
-                    >
+                    <NativeSelect.Option value="ALL">
+                        All payment tags
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="GOOD_PAYER">
+                        Good Payer
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="BAD_PAYER">
+                        Bad Payer
+                    </NativeSelect.Option>
+
+                    <NativeSelect.Option value="SCAMMER">
+                        Scammer
+                    </NativeSelect.Option>
                 </NativeSelect.Root>
             </div>
         </div>
@@ -421,38 +452,39 @@
                 {/if}
             </div>
             <div
-                class="min-h-0 flex-1 overflow-auto **:data-[slot=table-container]:overflow-visible [&_table]:min-w-[760px] [&_tbody_tr]:border-zinc-200/70 [&_tbody_tr]:transition-colors hover:[&_tbody_tr]:bg-amber-50/40 dark:[&_tbody_tr]:border-zinc-800 dark:hover:[&_tbody_tr]:bg-amber-500/4 [&_td]:px-3 [&_td]:py-2 [&_th]:h-9 [&_th]:border-b [&_th]:border-zinc-200 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-bold [&_th]:tracking-widest [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:border-zinc-800 dark:[&_th]:text-zinc-400 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead]:bg-zinc-100/95 [&_thead]:backdrop-blur-sm dark:[&_thead]:bg-[#202020]/95"
+                class="min-h-0 table-scroll flex-1 [&_table]:min-w-190 [&_tbody_tr]:border-zinc-200/70 dark:[&_tbody_tr]:border-zinc-800 [&_td]:px-3 [&_td]:py-2 [&_th]:h-9 [&_th]:border-b [&_th]:border-zinc-200 [&_th]:px-3 [&_th]:text-[10px] [&_th]:font-bold [&_th]:tracking-widest [&_th]:text-zinc-500 [&_th]:uppercase dark:[&_th]:border-zinc-800 dark:[&_th]:text-zinc-400 [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-20 [&_thead]:bg-zinc-100/95 [&_thead]:backdrop-blur-sm dark:[&_thead]:bg-[#202020]/95"
             >
                 <Table.Root>
                     <Table.Header>
-                        <Table.Row>
+                        <Table.Row class="hover:bg-transparent">
                             <Table.Head>Borrower</Table.Head>
                             <Table.Head>Tag</Table.Head>
                             <Table.Head>Contact</Table.Head>
                             <Table.Head>Status</Table.Head>
-                            <Table.Head class="text-right"
-                                ><span class="sr-only">Actions</span
-                                ></Table.Head
-                            >
+
+                            <Table.Head class="text-right">
+                                <span class="sr-only">Actions</span>
+                            </Table.Head>
                         </Table.Row>
                     </Table.Header>
+
                     <Table.Body>
                         {#if listQuery.isPending}
                             {#each SKELETON_ROWS as row (row)}
-                                <Table.Row>
-                                    <Table.Cell colspan={5}
-                                        ><Skeleton
-                                            class="h-6 w-full"
-                                        /></Table.Cell
-                                    >
+                                <Table.Row class="hover:bg-transparent">
+                                    <Table.Cell colspan={5}>
+                                        <Skeleton class="h-6 w-full" />
+                                    </Table.Cell>
                                 </Table.Row>
                             {/each}
                         {:else if rows.length}
                             {#each rows as borrower (borrower.publicId)}
-                                <Table.Row>
+                                <Table.Row
+                                    class="group/row transition-colors duration-150 hover:bg-amber-50/60 dark:hover:bg-amber-500/5"
+                                >
                                     <Table.Cell>
                                         <button
-                                            class="group text-left"
+                                            class="group min-w-0 text-left"
                                             onclick={() =>
                                                 void handleViewBorrower(
                                                     borrower.publicId,
@@ -460,79 +492,96 @@
                                         >
                                             <span
                                                 class="block text-sm font-semibold text-zinc-900 transition-colors group-hover:text-amber-700 dark:text-zinc-100 dark:group-hover:text-amber-300"
-                                                >{borrower.fullName}</span
                                             >
+                                                {borrower.fullName}
+                                            </span>
+
                                             <span
                                                 class="mt-0.5 block font-mono text-[10px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500"
-                                                >{borrower.borrowerNumber}</span
                                             >
+                                                {borrower.borrowerNumber}
+                                            </span>
                                         </button>
                                     </Table.Cell>
-                                    <Table.Cell
-                                        ><PaymentTagBadge
+
+                                    <Table.Cell>
+                                        <PaymentTagBadge
                                             source={borrower.paymentTagSource}
                                             tag={borrower.paymentTag}
-                                        /></Table.Cell
-                                    >
-                                    <Table.Cell
-                                        ><span
+                                        />
+                                    </Table.Cell>
+
+                                    <Table.Cell>
+                                        <span
                                             class="text-xs font-medium text-zinc-700 tabular-nums dark:text-zinc-300"
-                                            >{borrower.contactNumber}</span
-                                        ></Table.Cell
-                                    >
+                                        >
+                                            {borrower.contactNumber}
+                                        </span>
+                                    </Table.Cell>
+
                                     <Table.Cell>
                                         {#if borrower.status === 'ACTIVE'}
                                             <span
                                                 class="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 uppercase dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-300"
-                                                >Active</span
                                             >
+                                                Active
+                                            </span>
                                         {:else if borrower.status === 'INACTIVE'}
                                             <span
                                                 class="inline-flex rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300"
-                                                >Inactive</span
                                             >
+                                                Inactive
+                                            </span>
                                         {:else if borrower.status === 'BLOCKED'}
                                             <span
                                                 class="inline-flex rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-700 uppercase dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
-                                                >Blocked</span
                                             >
+                                                Blocked
+                                            </span>
                                         {:else}
                                             <span
                                                 class="inline-flex rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 uppercase dark:border-amber-800/60 dark:bg-amber-950/20 dark:text-amber-300"
-                                                >Archived</span
                                             >
+                                                Archived
+                                            </span>
                                         {/if}
                                     </Table.Cell>
+
                                     <Table.Cell class="text-right">
                                         <Button
-                                            class="h-7 border-zinc-200 px-2.5 text-[11px] font-semibold hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:border-zinc-700 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
+                                            class="h-7 border-zinc-200 px-2.5 text-[11px] font-semibold transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:border-zinc-700 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
                                             onclick={() =>
                                                 void handleViewBorrower(
                                                     borrower.publicId,
                                                 )}
                                             size="sm"
-                                            variant="outline">View</Button
+                                            variant="outline"
                                         >
+                                            View
+                                        </Button>
                                     </Table.Cell>
                                 </Table.Row>
                             {/each}
                         {:else}
-                            <Table.Row>
+                            <Table.Row class="hover:bg-transparent">
                                 <Table.Cell colspan={5}>
                                     <Empty.Root class="border-0 py-12">
                                         <Empty.Header>
                                             <Empty.Media
                                                 class="border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
                                                 variant="icon"
-                                                ><SearchIcon /></Empty.Media
                                             >
-                                            <Empty.Title
-                                                >No borrowers found</Empty.Title
-                                            >
-                                            <Empty.Description
-                                                >Adjust the filters or create a
-                                                borrower record.</Empty.Description
-                                            >
+                                                <SearchIcon />
+                                            </Empty.Media>
+
+                                            <Empty.Title>
+                                                No borrowers found
+                                            </Empty.Title>
+
+                                            <Empty.Description>
+                                                Adjust the filters or create a
+                                                borrower record.
+                                            </Empty.Description>
                                         </Empty.Header>
                                     </Empty.Root>
                                 </Table.Cell>
@@ -559,105 +608,124 @@
         </div>
     </div>
 </section>
+
 <Dialog.Root bind:open={() => createOpen, handleCreateOpenChange}>
     <Dialog.Content
-        class="flex max-h-[calc(100svh-2rem)] flex-col gap-0 overflow-hidden border-zinc-200 bg-white p-0 shadow-2xl sm:max-w-3xl dark:border-zinc-800 dark:bg-[#202020]"
+        class="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden rounded-xl border border-zinc-200 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:w-[92vw] sm:max-w-6xl dark:border-zinc-800 dark:bg-[#202020]"
     >
         <form
-            class="flex min-h-0 flex-col"
+            class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
             onsubmit={handleCreate}
         >
             <div
-                class="h-0.5 shrink-0 bg-linear-to-r from-amber-300 via-amber-500 to-amber-600"
+                class="h-0.5 shrink-0 bg-linear-to-r from-amber-500 via-yellow-400 to-amber-600"
             ></div>
+
             <Dialog.Header
-                class="shrink-0 border-b border-zinc-200/80 bg-zinc-50/70 p-4 pr-14 text-left sm:px-5 sm:pr-14 dark:border-zinc-800 dark:bg-[#171717]"
+                class="shrink-0 border-b border-zinc-200 bg-white px-4 py-3 pr-12 text-left sm:px-5 sm:pr-14 dark:border-zinc-800 dark:bg-[#202020]"
             >
-                <div class="mb-1.5 flex items-center gap-2">
-                    <span
-                        class="inline-flex rounded-md border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-amber-800 uppercase dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
-                        >New Record</span
+                <div class="flex flex-wrap items-center gap-2">
+                    <Dialog.Title
+                        class="text-base font-semibold tracking-tight text-zinc-950 sm:text-lg dark:text-zinc-50"
                     >
+                        Create New Borrower
+                    </Dialog.Title>
+
+                    <span
+                        class="inline-flex h-5 items-center rounded-md border border-amber-200 bg-amber-50 px-2 text-[10px] font-semibold tracking-wider text-amber-800 uppercase dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
+                    >
+                        New Record
+                    </span>
                 </div>
-                <Dialog.Title class="text-lg font-bold tracking-tight"
-                    >Create New Borrower</Dialog.Title
+
+                <Dialog.Description
+                    class="mt-0.5 text-xs/5 text-zinc-500 dark:text-zinc-400"
                 >
-                <Dialog.Description class="text-xs/5 "
-                    >A borrower record can be created before any loan is issued.</Dialog.Description
-                >
+                    Register borrower information before issuing a loan.
+                </Dialog.Description>
             </Dialog.Header>
+
             <div
-                class="grid min-h-0 gap-3 overflow-y-auto overscroll-contain p-4 sm:px-5"
+                class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/50 p-3 sm:p-4 dark:bg-[#181818]"
             >
                 <div
-                    class="rounded-xl border border-zinc-200/80 bg-white p-3 dark:border-zinc-800 dark:bg-[#181818]"
+                    class="min-w-0
+                    *:w-full!
+                    *:max-w-none!
+                    *:grid-cols-1!
+                    *:gap-3!
+                    **:data-[slot=field]:min-w-0
+                    **:data-[slot=field]:gap-1
+                    **:data-[slot=field-label]:text-[11px]
+                    **:data-[slot=field-label]:font-semibold
+                    **:data-[slot=field-label]:text-zinc-600
+                    dark:**:data-[slot=field-label]:text-zinc-300
+                    [&_input:not([type=checkbox])]:h-9
+                    [&_input:not([type=checkbox])]:min-w-0
+                    [&_section]:w-full
+                    [&_section]:min-w-0
+                    [&_section]:space-y-2
+                    [&_section+section]:mt-3
+                    [&_section+section]:border-t
+                    [&_section+section]:border-zinc-200
+                    [&_section+section]:pt-3
+                    dark:[&_section+section]:border-zinc-800
+                    [&_textarea]:min-h-20
+                    [&_textarea]:resize-y
+                    [&_textarea]:text-xs"
                 >
                     <BorrowerFormFields
                         bind:draft
-                        disabled={isCreateWorkflowLocked}
+                        disabled={isCreating}
                     />
                 </div>
-                {#if createdBorrowerPublicId}
-                    <Alert.Root
-                        class="border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/20"
-                    >
-                        <Alert.Title>Borrower created successfully</Alert.Title>
-                        <Alert.Description
-                            >The borrower record exists without a loan and can
-                            be viewed now.</Alert.Description
-                        >
-                    </Alert.Root>
-                {/if}
-                {#if duplicateCandidates.length}
-                    <Alert.Root
-                        class="border-amber-200 bg-amber-50/70 dark:border-amber-800/60 dark:bg-amber-950/20"
-                    >
-                        <AlertCircleIcon />
-                        <Alert.Title>Possible duplicate records</Alert.Title>
-                        <Alert.Description>
-                            <div class="mt-1 grid gap-1.5">
-                                {#each duplicateCandidates as candidate (candidate.publicId)}
-                                    <span
-                                        class="block rounded-md border border-amber-200/80 bg-white/70 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:border-amber-800/40 dark:bg-black/10 dark:text-zinc-300"
-                                        >{candidate.fullName} · {candidate.borrowerNumber}
-                                        · {candidate.contactNumber}</span
-                                    >
-                                {/each}
-                            </div>
-                        </Alert.Description>
-                    </Alert.Root>
-                {/if}
             </div>
+
             <Dialog.Footer
-                class="shrink-0 border-t border-zinc-200/80 bg-zinc-50/70 px-4 py-3 sm:px-5 dark:border-zinc-800 dark:bg-[#171717]"
+                class="shrink-0 border-t border-zinc-200 bg-white px-3 py-2.5 sm:px-5 dark:border-zinc-800 dark:bg-[#202020]"
             >
-                <Button
-                    type="button"
-                    disabled={isCreating}
-                    onclick={() => handleCreateOpenChange(false)}
-                    variant="outline"
-                    >{createdBorrowerPublicId ? 'Close' : 'Cancel'}</Button
+                <div
+                    class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end"
                 >
-                {#if createdBorrowerPublicId}
                     <Button
-                        class="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
+                        class="h-10 w-full px-3 text-xs sm:h-9 sm:w-auto"
                         type="button"
-                        onclick={() =>
-                            void handleViewBorrower(createdBorrowerPublicId!)}
-                        >View Borrower</Button
+                        disabled={isCreating}
+                        onclick={() => handleCreateOpenChange(false)}
+                        variant="outline"
                     >
-                {:else}
+                        Cancel
+                    </Button>
+
                     <Button
-                        class="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
+                        class="h-10 w-full bg-amber-500 px-4 text-xs font-semibold text-zinc-950 shadow-sm hover:bg-amber-400 sm:h-9 sm:w-auto dark:bg-amber-400 dark:hover:bg-amber-300"
                         type="submit"
                         disabled={isCreating}
                     >
-                        {#if isCreating}<Spinner
-                                data-icon="inline-start"
-                            />{/if} Create Borrower
+                        {#if isCreating}
+                            <Spinner data-icon="inline-start" />
+                        {/if}
+
+                        Create Borrower
                     </Button>
-                {/if}
+                </div>
             </Dialog.Footer>
         </form>
+    </Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root
+    bind:open={() => createError !== null, handleCreateErrorOpenChange}
+>
+    <Dialog.Content class="sm:max-w-md">
+        <Dialog.Header>
+            <Dialog.Title>Borrower could not be created</Dialog.Title>
+            <Dialog.Description>{createError}</Dialog.Description>
+        </Dialog.Header>
+        <Dialog.Footer>
+            <Button onclick={() => handleCreateErrorOpenChange(false)}>
+                Back to form
+            </Button>
+        </Dialog.Footer>
     </Dialog.Content>
 </Dialog.Root>

@@ -95,6 +95,12 @@ export function createPaymentCreateMutation(scope: {
                 queryClient.invalidateQueries({
                     queryKey: createTenantKey(
                         scope.organizationSlug,
+                        'overdue',
+                    ),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: createTenantKey(
+                        scope.organizationSlug,
                         'borrower',
                     ),
                 }),
@@ -131,6 +137,12 @@ export function createPaymentReverseMutation(scope: {
                 }),
                 queryClient.invalidateQueries({
                     queryKey: createTenantKey(scope.organizationSlug, 'loan'),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: createTenantKey(
+                        scope.organizationSlug,
+                        'overdue',
+                    ),
                 }),
                 queryClient.invalidateQueries({
                     queryKey: createTenantKey(

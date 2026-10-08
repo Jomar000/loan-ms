@@ -135,7 +135,7 @@
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div class="mb-2 flex items-center">
         <Button
@@ -430,7 +430,42 @@
                         <div
                             class="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/60 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400"
                         >
-                            No cash has been released for this loan.
+                            <p>No cash has been released for this loan.</p>
+                            {#if loan.status === 'PENDING_APPROVAL'}
+                                {#if canManageLoan}
+                                    <p class="mt-2">
+                                        Approve this loan before releasing cash.
+                                    </p>
+                                    <Button
+                                        class="mt-3 bg-amber-500 text-xs font-semibold text-zinc-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
+                                        disabled={isActionLocked}
+                                        onclick={() => (approveOpen = true)}
+                                        size="sm"
+                                    >
+                                        Approve this loan
+                                    </Button>
+                                {:else}
+                                    <p class="mt-2">
+                                        An owner or admin must approve this loan
+                                        before cash can be released.
+                                    </p>
+                                {/if}
+                            {:else if loan.status === 'APPROVED'}
+                                <p class="mt-2">
+                                    This loan is approved and ready for cash
+                                    release.
+                                </p>
+                                {#if canManageLoan}
+                                    <Button
+                                        class="mt-3 bg-amber-500 text-xs font-semibold text-zinc-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
+                                        disabled={isActionLocked}
+                                        onclick={() => (releaseOpen = true)}
+                                        size="sm"
+                                    >
+                                        Release cash
+                                    </Button>
+                                {/if}
+                            {/if}
                         </div>
                     {/if}
                 </Card.Content>
@@ -459,7 +494,9 @@
                     </span>
                 </div>
             </Card.Header>
-            <Card.Content class="min-h-0 flex-1 overflow-hidden p-0">
+            <Card.Content
+                class="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+            >
                 {#if loan.installments.length === 0}
                     <div class="flex h-full min-h-0 flex-1 p-3">
                         <Empty.Root class="min-h-full w-full border-0 py-8">
@@ -473,9 +510,7 @@
                         </Empty.Root>
                     </div>
                 {:else}
-                    <div
-                        class="min-h-0 min-w-0 flex-1 **:data-[slot=table-container]:h-full **:data-[slot=table-container]:overflow-auto"
-                    >
+                    <div class="h-full min-h-0 table-scroll min-w-0 flex-1">
                         <Table.Root class="min-w-170 text-xs">
                             <Table.Header
                                 class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95"

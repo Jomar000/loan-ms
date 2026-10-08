@@ -330,7 +330,7 @@
 </script>
 
 <div
-    class="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-contain bg-zinc-50/80 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 dark:bg-[#171717]"
 >
     <div class="flex min-h-full flex-col gap-3 p-3 md:p-4">
         <header
@@ -506,7 +506,7 @@
                 </div>
             {/if}
             <div
-                class="relative max-h-[min(65vh,42rem)] min-h-56 flex-1 overflow-auto bg-white **:data-[slot=table-container]:overflow-visible dark:bg-[#202020]"
+                class="relative max-h-[min(65vh,42rem)] min-h-56 table-scroll flex-1 bg-white dark:bg-[#202020]"
             >
                 <Table.Root
                     class="min-w-[830px] bg-white text-xs dark:bg-[#202020]"

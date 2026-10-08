@@ -151,9 +151,7 @@
         </div>
     {:else}
         <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div
-                class="min-h-0 flex-1 overflow-auto **:data-[slot=table-container]:overflow-visible"
-            >
+            <div class="min-h-0 table-scroll flex-1">
                 <Table.Root class="min-w-[860px] text-xs">
                     <Table.Caption class="sr-only">
                         Loans for this borrower

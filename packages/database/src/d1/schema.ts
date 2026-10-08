@@ -1435,6 +1435,7 @@ export const loanFormulaProfile = sqliteTable(
             mode: 'timestamp_ms',
         }).notNull(),
         retiredAt: integer('retired_at', { mode: 'timestamp_ms' }),
+        deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
         createdAt: integer('created_at', { mode: 'timestamp_ms' })
             .notNull()
             .default(sql`(CAST(unixepoch('subsec') * 1000 AS INTEGER))`),
@@ -1726,10 +1727,7 @@ export const borrower = sqliteTable(
             'borrower_check_borrower_number',
             sql`length(trim(${t.borrowerNumber})) > 0`,
         ),
-        check(
-            'borrower_check_names',
-            sql`length(trim(${t.firstName})) > 0 AND length(trim(${t.lastName})) > 0`,
-        ),
+        check('borrower_check_names', sql`length(trim(${t.firstName})) > 0`),
         check(
             'borrower_check_birth_date',
             sql`${t.birthDate} IS NULL OR (length(${t.birthDate}) = 10 AND ${t.birthDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')`,

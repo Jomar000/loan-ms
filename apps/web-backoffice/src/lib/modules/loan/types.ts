@@ -106,6 +106,8 @@ export type LoanListItem = {
     totalPayableMinor: number
 }
 
+export type LoanTableItem = LoanListItem & { borrowerName: string }
+
 export type Loan = LoanListItem & {
     actualOutstandingBalanceMinor: number
     approvedAt: string | null

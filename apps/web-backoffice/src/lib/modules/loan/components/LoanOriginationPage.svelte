@@ -45,7 +45,6 @@
     ///////////////
     // 03. State //
     ///////////////
-    let firstPaymentDate = $state(today())
     let isCreating = $state(false)
     let isQuoting = $state(false)
     let loanProductPublicId = $state('')
@@ -55,6 +54,7 @@
     /////////////////
     // 04. Derived //
     /////////////////
+    const firstPaymentDate = $derived(nextCalendarDay(releaseDate))
     const isLocked = $derived(isCreating || isQuoting)
     /////////////////
     // 05. Queries //
@@ -118,7 +118,7 @@
         const payload = getQuoteInput()
         if (!payload) {
             toast.error(
-                'Enter a borrower, loan product, principal, and first payment date.',
+                'Enter a borrower, loan product, principal, and release date.',
             )
             return
         }
@@ -163,12 +163,26 @@
         }
     }
     function today(): string {
-        return new Date().toISOString().slice(0, 10)
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            day: '2-digit',
+            month: '2-digit',
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+        }).formatToParts(new Date())
+        const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
+            parts.find((part) => part.type === type)!.value
+        return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`
+    }
+    function nextCalendarDay(date: string): string {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ''
+        const timestamp = new Date(`${date}T00:00:00.000Z`).getTime()
+        if (Number.isNaN(timestamp)) return ''
+        return new Date(timestamp + 86_400_000).toISOString().slice(0, 10)
     }
 </script>
 
 <section
-    class="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
+    class="flex min-h-0 page-scroll flex-1 flex-col bg-zinc-50/80 p-3 md:p-4 dark:bg-[#171717]"
 >
     <div class="mb-2 flex items-center">
         <Button
@@ -220,7 +234,7 @@
     </div>
     {#if productsQuery.isPending}
         <div
-            class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)]"
+            class="grid min-w-0 grow gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)]"
         >
             <Skeleton class="min-h-96 w-full rounded-xl" />
             <Skeleton class="min-h-96 w-full rounded-xl" />
@@ -259,7 +273,7 @@
         </div>
     {:else}
         <div
-            class="grid min-h-0 flex-1 gap-3 overflow-auto xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)] xl:overflow-hidden"
+            class="grid min-w-0 grow gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.8fr)]"
         >
             <Card.Root
                 class="flex min-h-0 flex-col overflow-hidden border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
@@ -367,18 +381,19 @@
                             </div>
                             <Field.Field>
                                 <Field.Label for="first-payment-date"
-                                    >First payment date</Field.Label
+                                    >Estimated first collection date</Field.Label
                                 >
                                 <Input
                                     class="h-9"
                                     id="first-payment-date"
-                                    bind:value={firstPaymentDate}
-                                    disabled={isLocked}
-                                    min={releaseDate}
-                                    oninput={handleDetailsChange}
-                                    required
+                                    value={firstPaymentDate}
+                                    disabled
                                     type="date"
                                 />
+                                <Field.Description class="text-xs">
+                                    Collection starts the day after cash is
+                                    actually released.
+                                </Field.Description>
                             </Field.Field>
                         </Field.Group>
                         <div

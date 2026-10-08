@@ -9,6 +9,7 @@ import {
     approveLoan,
     createLoan,
     createLoanProduct,
+    deleteLoan,
     fetchLoan,
     fetchLoanProducts,
     fetchLoans,
@@ -86,6 +87,22 @@ export function createLoanProductCreateMutation(scope: {
                     scope.organizationSlug,
                     'loanProduct',
                 ),
+            })
+        },
+    }))
+}
+
+export function createLoanDeleteMutation(scope: {
+    readonly organizationSlug: string
+}) {
+    const queryClient = useQueryClient()
+
+    return createMutation(() => ({
+        mutationKey: createTenantKey(scope.organizationSlug, 'loan', 'delete'),
+        mutationFn: deleteLoan,
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: createTenantKey(scope.organizationSlug, 'loan'),
             })
         },
     }))

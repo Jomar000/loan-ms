@@ -24,7 +24,11 @@ const paymentFieldsSchema = z.object({
     loanPublicId: publicIdSchema,
     notes: field.vText({ fieldName: 'Notes', max: 500 }).optional(),
     paymentDate: field.vIsoDate('Payment date'),
-    paymentMethod: field.vText({ fieldName: 'Payment method', max: 64 }),
+    paymentMethod: z.enum([
+        'CASH',
+        'GCASH',
+        'BANK',
+    ]),
     referenceNumber: field
         .vText({ fieldName: 'Reference number', max: 128 })
         .optional(),
@@ -70,7 +74,26 @@ const paymentOutputDataSchema = z.object({
     status: paymentStatusSchema,
 })
 
-export const paymentQuoteInputSchema = paymentFieldsSchema.strict()
+const requireElectronicReference = <T extends z.ZodType>(schema: T) =>
+    schema.check((ctx) => {
+        const input = ctx.value as {
+            paymentMethod: string
+            referenceNumber?: string
+        }
+        if (input.paymentMethod !== 'CASH' && !input.referenceNumber?.trim()) {
+            ctx.issues.push({
+                code: 'custom',
+                input: input.referenceNumber,
+                message:
+                    'Reference number is required for GCash and bank payments.',
+                path: ['referenceNumber'],
+            })
+        }
+    })
+
+export const paymentQuoteInputSchema = requireElectronicReference(
+    paymentFieldsSchema.strict(),
+)
 export const paymentQuoteOutputSchema = base.outputSchema(
     paymentOutputDataSchema.omit({
         paymentNumber: true,
@@ -79,9 +102,9 @@ export const paymentQuoteOutputSchema = base.outputSchema(
     }),
 )
 
-export const paymentCreateInputSchema = paymentFieldsSchema
-    .extend({ idempotencyKey: z.uuidv7() })
-    .strict()
+export const paymentCreateInputSchema = requireElectronicReference(
+    paymentFieldsSchema.extend({ idempotencyKey: z.uuidv7() }).strict(),
+)
 export const paymentCreateOutputSchema = base.outputSchema(
     paymentOutputDataSchema,
 )

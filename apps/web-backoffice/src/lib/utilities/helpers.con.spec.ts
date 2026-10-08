@@ -4,6 +4,7 @@ import {
     debounce,
     debounceLeading,
     getErrorMessage,
+    getUserFacingSaveErrorMessage,
 } from '$lib/utilities/helpers.js'
 
 describe('getErrorMessage', () => {
@@ -36,6 +37,52 @@ describe('getErrorMessage', () => {
         ],
     ])('returns the fallback for %s', (_label, error) => {
         expect(getErrorMessage(error, 'Fallback.')).toBe('Fallback.')
+    })
+})
+
+describe('getUserFacingSaveErrorMessage', () => {
+    const messages = {
+        invalid: 'Please check the details.',
+        network: 'Check the list before trying again.',
+        unexpected: 'Please try again later.',
+    }
+
+    it('hides technical validation and database errors', () => {
+        expect(
+            getUserFacingSaveErrorMessage(
+                new Error('[{"code":"custom","path":["fullName"]}]'),
+                messages,
+            ),
+        ).toBe(messages.invalid)
+        expect(
+            getUserFacingSaveErrorMessage(
+                new Error('SQLITE_CONSTRAINT_FOREIGNKEY'),
+                messages,
+            ),
+        ).toBe(messages.unexpected)
+        expect(
+            getUserFacingSaveErrorMessage(
+                new Error('This idempotency key was already used.'),
+                messages,
+            ),
+        ).toBe(messages.unexpected)
+    })
+
+    it('explains uncertain network failures and keeps clear API messages', () => {
+        expect(
+            getUserFacingSaveErrorMessage(
+                new Error('TypeError: Failed to fetch'),
+                messages,
+            ),
+        ).toBe(messages.network)
+        expect(
+            getUserFacingSaveErrorMessage(
+                new Error(
+                    'A borrower with this contact number already exists.',
+                ),
+                messages,
+            ),
+        ).toBe('A borrower with this contact number already exists.')
     })
 })
 
