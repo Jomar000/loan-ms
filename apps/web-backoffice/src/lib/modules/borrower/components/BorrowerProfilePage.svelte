@@ -9,8 +9,8 @@
     import * as NativeSelect from '@loanms/ui/components/native-select'
     import { Skeleton } from '@loanms/ui/components/skeleton'
     import { Spinner } from '@loanms/ui/components/spinner'
-    import * as Tabs from '@loanms/ui/components/tabs'
     import { Textarea } from '@loanms/ui/components/textarea'
+    import * as Tabs from '@loanms/ui/overrides/tabs'
     import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
     import ArchiveIcon from '@lucide/svelte/icons/archive'
     import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left'
@@ -20,7 +20,11 @@
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
-    import { createLoanListQuery } from '$lib/modules/loan/queries'
+    import {
+        createLoanDetailQuery,
+        createLoanListQuery,
+    } from '$lib/modules/loan/queries'
+    import type { CollectionItem } from '$lib/modules/payment/types'
     import { useSessionContext } from '$lib/states/session'
     import { getErrorMessage } from '$lib/utilities/helpers'
     import PaymentHistoryTable from '../../payment/components/PaymentHistoryTable.svelte'
@@ -63,10 +67,12 @@
     let editOpen = $state(false)
     let editDraft = $state<BorrowerCreateInput | null>(null)
     let isActionLocked = $state(false)
+    let isLoadingPayment = $state(false)
     let overrideOpen = $state(false)
     let overrideReason = $state('')
     let overrideTag = $state<BorrowerPaymentTag>('GOOD_PAYER')
     let paymentOpen = $state(false)
+    let selectedCollection = $state<CollectionItem | null>(null)
     let selectedTab = $state('overview')
     /////////////////
     // 05. Queries //
@@ -132,6 +138,18 @@
         ),
     )
     const paymentTag = $derived(paymentTagQuery.data)
+    const activeLoanQuery = createLoanDetailQuery(
+        {
+            get organizationSlug() {
+                return session.data.organizationSlug
+            },
+        },
+        {
+            get publicId() {
+                return activeLoan?.publicId ?? ''
+            },
+        },
+    )
     ///////////////////
     // 06. Mutations //
     ///////////////////
@@ -244,14 +262,54 @@
             `/app/${role}/loans/new?borrowerPublicId=${encodeURIComponent(publicId)}`,
         )
     }
-    function handleRecordPayment() {
+    async function handleRecordPayment() {
+        if (isLoadingPayment) return
         if (!activeLoan) {
             toast.error(
                 'This borrower has no active loan available for payment.',
             )
             return
         }
-        paymentOpen = true
+        const loanPublicId = activeLoan.publicId
+        isLoadingPayment = true
+        try {
+            const result = await activeLoanQuery.refetch()
+            if (result.error) throw result.error
+            const loan = result.data
+            if (!loan || loan.publicId !== loanPublicId) {
+                throw new Error('Could not load the loan collection amount.')
+            }
+            const installment = loan.installments.find(
+                (item) =>
+                    item.status !== 'WAIVED' &&
+                    item.amountPaidMinor < item.amountDueMinor,
+            )
+            if (
+                !installment ||
+                (loan.status !== 'ACTIVE' && loan.status !== 'OVERDUE')
+            ) {
+                toast.error('This loan has no unpaid collection available.')
+                return
+            }
+            selectedCollection = {
+                ...installment,
+                borrowerName: borrower?.fullName ?? '',
+                borrowerPublicId: loan.borrowerPublicId,
+                loanNumber: loan.loanNumber,
+                loanPublicId: loan.publicId,
+                loanStatus: loan.status,
+                paymentFrequency: loan.formulaSnapshot.paymentFrequency,
+                remainingAmountMinor:
+                    installment.amountDueMinor - installment.amountPaidMinor,
+            }
+            paymentOpen = true
+        } catch (error) {
+            toast.error(
+                getErrorMessage(error, 'Could not load the collection amount.'),
+            )
+        } finally {
+            isLoadingPayment = false
+        }
     }
     /////////////////
     // 10. Helpers //
@@ -384,11 +442,14 @@
                 <div class="flex flex-wrap items-center gap-1.5">
                     <Button
                         class="h-8 border-zinc-200 bg-white px-2.5 text-xs shadow-none hover:border-amber-300 hover:bg-amber-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10"
-                        disabled={loansQuery.isPending}
+                        disabled={loansQuery.isPending || isLoadingPayment}
                         onclick={handleRecordPayment}
                         size="sm"
                         variant="outline"
                     >
+                        {#if isLoadingPayment}
+                            <Spinner data-icon="inline-start" />
+                        {/if}
                         Record Payment
                     </Button>
                     {#if borrower.status === 'ACTIVE'}
@@ -435,28 +496,28 @@
             bind:value={selectedTab}
         >
             <Tabs.List
-                class="mb-3 h-10 w-full shrink-0 justify-start gap-1 overflow-x-auto rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
+                class="mb-3 h-11 w-full shrink-0 justify-start gap-1 overflow-x-auto p-1"
             >
                 <Tabs.Trigger
-                    class="h-7 rounded-md px-3 text-xs font-medium text-zinc-600 transition-colors data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-300 dark:data-[state=active]:bg-amber-400"
+                    class="h-9 flex-none shrink-0 px-4"
                     value="overview"
                 >
                     Overview
                 </Tabs.Trigger>
                 <Tabs.Trigger
-                    class="h-7 rounded-md px-3 text-xs font-medium text-zinc-600 transition-colors data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-300 dark:data-[state=active]:bg-amber-400"
+                    class="h-9 flex-none shrink-0 px-4"
                     value="documents"
                 >
                     Documents
                 </Tabs.Trigger>
                 <Tabs.Trigger
-                    class="h-7 rounded-md px-3 text-xs font-medium text-zinc-600 transition-colors data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-300 dark:data-[state=active]:bg-amber-400"
+                    class="h-9 flex-none shrink-0 px-4"
                     value="loans"
                 >
                     Loans
                 </Tabs.Trigger>
                 <Tabs.Trigger
-                    class="h-7 rounded-md px-3 text-xs font-medium text-zinc-600 transition-colors data-[state=active]:bg-amber-500 data-[state=active]:text-zinc-950 data-[state=active]:shadow-sm dark:text-zinc-300 dark:data-[state=active]:bg-amber-400"
+                    class="h-9 flex-none shrink-0 px-4"
                     value="payments"
                 >
                     Payments
@@ -768,10 +829,11 @@
         </Tabs.Root>
     {/if}
 </section>
-{#if activeLoan}
+{#if selectedCollection}
     <PaymentWorkflowDialog
         bind:open={paymentOpen}
-        loanPublicId={activeLoan.publicId}
+        collection={selectedCollection}
+        loanPublicId={selectedCollection.loanPublicId}
         onRecorded={async () => {
             await Promise.all([
                 detailQuery.refetch(),

@@ -13,14 +13,13 @@
     import { FormFieldLabel } from '@loanms/ui/shared/form-field-label'
     import { calculationFormulaProfileInputSchema } from '@loanms/validator/backoffice/loanCalculation'
     import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
-    import BadgeCheckIcon from '@lucide/svelte/icons/badge-check'
     import CalculatorIcon from '@lucide/svelte/icons/calculator'
-    import CircleDotIcon from '@lucide/svelte/icons/circle-dot'
     import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical'
     import PlusIcon from '@lucide/svelte/icons/plus'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { toast } from 'svelte-sonner'
 
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import { useSessionContext } from '$lib/states/session'
     import {
         getErrorMessage,
@@ -94,7 +93,7 @@
     }
 
     const collectionHelp =
-        'Uses this principal and interest to calculate a fixed term. Actual collection may vary for a different loan principal.'
+        'Keeps this collection amount for each payment. Each new loan uses its own principal and interest to calculate the term. The final payment covers the remaining balance.'
 
     const renewalPrincipalHelp =
         'Permit the renewed loan principal to differ from the previous loan.'
@@ -257,8 +256,10 @@
 
     function handleNewVersion(profile: FormulaProfile) {
         editingSource = profile
-        scheduleMode = 'MANUAL'
-        collectionAmount = ''
+        scheduleMode = profile.collectionAmountMinor ? 'COLLECTION' : 'MANUAL'
+        collectionAmount = profile.collectionAmountMinor
+            ? String(profile.collectionAmountMinor / 100)
+            : ''
 
         draft = {
             allowRenewalPrincipalChange: profile.allowRenewalPrincipalChange,
@@ -651,6 +652,10 @@
 
         const common = {
             allowRenewalPrincipalChange: draft.allowRenewalPrincipalChange,
+            collectionAmountMinor:
+                scheduleMode === 'COLLECTION'
+                    ? toMinorUnits(collectionAmount)
+                    : null,
             effectiveDate: draft.effectiveDate,
             installmentCount: generatedTerm ?? Number(draft.installmentCount),
             minimumRenewalCompletedInstallments: Number(
@@ -825,27 +830,18 @@
                                 </Table.Cell>
 
                                 <Table.Cell>
-                                    <span
-                                        class={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                                            profile.isDefault
-                                                ? 'border-foreground/15 bg-foreground text-background'
-                                                : profile.isActive
-                                                  ? 'border-border bg-muted text-foreground'
-                                                  : 'border-border/70 bg-background text-muted-foreground'
-                                        }`}
-                                    >
-                                        {#if profile.isDefault}
-                                            <BadgeCheckIcon class="size-3.5" />
-                                        {:else}
-                                            <CircleDotIcon class="size-3.5" />
-                                        {/if}
-
-                                        {profile.isDefault
+                                    <StatusBadge
+                                        status={profile.isDefault
+                                            ? 'DEFAULT'
+                                            : profile.isActive
+                                              ? 'ACTIVE'
+                                              : 'INACTIVE'}
+                                        label={profile.isDefault
                                             ? 'Default'
                                             : profile.isActive
                                               ? 'Active'
                                               : 'Inactive'}
-                                    </span>
+                                    />
                                 </Table.Cell>
 
                                 <Table.Cell>

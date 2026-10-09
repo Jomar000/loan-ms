@@ -17,6 +17,7 @@
         formatDate,
         toMinorUnits,
     } from '$lib/modules/loan/utilities/format'
+    import { getFirstPaymentDate } from '$lib/modules/loan/utilities/schedule'
     import { useSessionContext } from '$lib/states/session'
     import { getErrorMessage } from '$lib/utilities/helpers'
     import { createIdempotencyKeyLifecycle } from '$lib/utilities/idempotencyKey'
@@ -44,7 +45,6 @@
     // 03. State //
     ///////////////
     let confirmOpen = $state(false)
-    let firstPaymentDate = $state(manilaDate())
     let isCreating = $state(false)
     let isQuoting = $state(false)
     let loanPublicId = $state('')
@@ -55,9 +55,10 @@
     // 04. Derived //
     /////////////////
     const isLocked = $derived(isCreating || isQuoting)
-    const isFirstPaymentBeforeRelease = $derived(
-        Boolean(
-            firstPaymentDate && releaseDate && firstPaymentDate < releaseDate,
+    const firstPaymentDate = $derived.by(() =>
+        getFirstPaymentDate(
+            releaseDate,
+            existingLoan?.formulaSnapshot.paymentFrequency,
         ),
     )
     const resolvedLoanPublicId = $derived(loanPublicId || previousLoanPublicId)
@@ -180,8 +181,7 @@
             renewalPrincipalMinor === null ||
             renewalPrincipalMinor <= 0 ||
             !releaseDate ||
-            !firstPaymentDate ||
-            isFirstPaymentBeforeRelease
+            !firstPaymentDate
         ) {
             return null
         }
@@ -368,19 +368,15 @@
                                 <Input
                                     class="h-9"
                                     id="renewal-first-payment-date"
-                                    bind:value={firstPaymentDate}
-                                    disabled={isLocked}
-                                    min={releaseDate}
-                                    oninput={handleDetailsChange}
-                                    required
+                                    value={firstPaymentDate}
+                                    disabled
                                     type="date"
                                 />
-                                {#if isFirstPaymentBeforeRelease}
-                                    <Field.Error>
-                                        First payment must be on or after
-                                        release.
-                                    </Field.Error>
-                                {/if}
+                                <Field.Description class="text-xs">
+                                    Collection starts one day, one week, or one
+                                    month after cash release, according to the
+                                    payment type.
+                                </Field.Description>
                             </Field.Field>
                         </div>
                     </Field.Group>
@@ -390,7 +386,7 @@
                         <Button
                             class="h-8 bg-amber-500 px-3 text-xs font-semibold text-zinc-950 hover:bg-amber-400 dark:bg-amber-400 dark:hover:bg-amber-300"
                             type="submit"
-                            disabled={isLocked || isFirstPaymentBeforeRelease}
+                            disabled={isLocked || !firstPaymentDate}
                             size="sm"
                         >
                             {#if isQuoting}

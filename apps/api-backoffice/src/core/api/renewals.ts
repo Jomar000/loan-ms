@@ -12,6 +12,7 @@ import {
     calculateLoan,
     calculateRenewalQuote,
     createInstallmentSchedule,
+    getFirstPaymentDate,
     type TLoanCalculationInput,
 } from '../../services/loanCalculation/index.js'
 import { readRuntimeSystemSettings } from '../../services/systemSettings.js'
@@ -75,6 +76,7 @@ const primaryFundRequired = defineError(
 )
 
 type TStoredLoan = {
+    collectionAmountMinor: number | null
     actualOutstandingBalanceMinor: number
     allowRenewalPrincipalChange: boolean
     borrowerId: number
@@ -137,6 +139,7 @@ const calculationInputFor = (
 ): TLoanCalculationInput =>
     loan.interestMethod === 'FLAT_PERCENTAGE'
         ? {
+              collectionAmountMinor: loan.collectionAmountMinor,
               installmentCount: loan.installmentCount,
               interestMethod: loan.interestMethod,
               interestRateBasisPoints: loan.interestRateBasisPoints,
@@ -146,6 +149,7 @@ const calculationInputFor = (
               termDays: loan.termDays,
           }
         : {
+              collectionAmountMinor: loan.collectionAmountMinor,
               fixedInterestAmountMinor: loan.fixedInterestAmountMinor!,
               installmentCount: loan.installmentCount,
               interestMethod: loan.interestMethod,
@@ -180,6 +184,7 @@ async function readRenewalLoan(
             allowRenewalPrincipalChange: loan.allowRenewalPrincipalChange,
             borrowerId: loan.borrowerId,
             borrowerPublicId: borrower.publicId,
+            collectionAmountMinor: loanFormulaProfile.collectionAmountMinor,
             completedInstallmentCount: loan.completedInstallmentCount,
             dailyPaymentAmountMinor: loan.dailyPaymentAmountMinor,
             finalInstallmentResiduePolicy: loan.finalInstallmentResiduePolicy,
@@ -304,8 +309,12 @@ async function quoteRenewal(
         calculationInputFor(loan, input.renewalPrincipalMinor),
     )
     const newInstallments = createInstallmentSchedule({
-        firstDueDate: input.firstPaymentDate,
-        installmentCount: loan.installmentCount,
+        firstDueDate: getFirstPaymentDate(
+            input.releaseDate,
+            loan.paymentFrequency,
+        ),
+        installmentAmountCents: calculation.baseInstallmentAmountCents,
+        installmentCount: calculation.installmentCount,
         paymentFrequency: loan.paymentFrequency,
         totalPayableAmountCents: calculation.totalPayableAmountCents,
     })
@@ -360,7 +369,7 @@ function quoteOutput(
         cashReleaseAmountMinor: quote.settlement.cashReleaseAmountCents,
         dailyPaymentAmountMinor: quote.calculation.dailyPaymentAmountCents,
         expectedCompletionDate: quote.expectedCompletionDate,
-        firstPaymentDate: input.firstPaymentDate,
+        firstPaymentDate: quote.installments[0]!.dueDate,
         installments: quote.installments.map((installment) => ({
             amountDueMinor: installment.amountDueCents,
             dueDate: installment.dueDate,
@@ -375,7 +384,11 @@ function quoteOutput(
         previousPartialCreditMinor: quote.settlement.partialPaymentCreditCents,
         previousRemainingInstallmentCount:
             quote.settlement.remainingInstallmentCount,
-        renewalFormulaSnapshot: formulaSnapshot(quote.loan),
+        renewalFormulaSnapshot: formulaSnapshot({
+            ...quote.loan,
+            installmentCount: quote.calculation.installmentCount,
+            termDays: quote.calculation.termDays,
+        }),
         renewalPrincipalMinor: input.renewalPrincipalMinor,
         renewalSettlementBalanceMinor:
             quote.settlement.renewalSettlementBalanceCents,
@@ -602,10 +615,10 @@ export const renewalsRoute = new Hono<THonoInstance>()
                                   formula_profile_id, loan_product_name_snapshot, formula_profile_name_snapshot,
                                   formula_profile_version_snapshot, interest_method, interest_rate_basis_points,
                                   fixed_interest_amount_minor, ?, minimum_principal_amount_minor_snapshot,
-                                  maximum_principal_amount_minor_snapshot, ?, ?, term_days, payment_frequency,
-                                  installment_count, ?, ?, timezone, rounding_mode,
+                                  maximum_principal_amount_minor_snapshot, ?, ?, ?, payment_frequency,
+                                  ?, ?, ?, timezone, rounding_mode,
                                   final_installment_residue_policy, renewal_settlement_method,
-                                  partial_credit_policy, min_completed_installments,
+                                  partial_credit_policy, ?,
                                   allow_renewal_principal_change, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?, ?
                            FROM loan
                           WHERE organization_id = ? AND public_id = ?
@@ -617,10 +630,16 @@ export const renewalsRoute = new Hono<THonoInstance>()
                         input.renewalPrincipalMinor,
                         quote.calculation.interestAmountCents,
                         quote.calculation.totalPayableAmountCents,
+                        quote.calculation.termDays,
+                        quote.calculation.installmentCount,
                         quote.calculation.baseInstallmentAmountCents,
                         quote.calculation.dailyPaymentAmountCents,
+                        Math.min(
+                            quote.loan.minCompletedInstallments,
+                            quote.calculation.installmentCount,
+                        ),
                         input.releaseDate,
-                        input.firstPaymentDate,
+                        quote.installments[0]!.dueDate,
                         quote.expectedCompletionDate,
                         carriedCredit,
                         initialAllocation?.completedInstallmentCount ?? 0,

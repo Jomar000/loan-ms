@@ -59,6 +59,65 @@ beforeAll(async () => {
 })
 
 describe('Formula profile management API', () => {
+    it.each([
+        0,
+        -1,
+        1.5,
+        1,
+    ])(
+        'rejects an invalid or unsupported collection per payment of %s',
+        async (collectionAmountMinor) => {
+            const response = await postTestingRequest(
+                '/api/settings/formulaProfile/preview',
+                {
+                    body: {
+                        firstPaymentDate: '2026-10-10',
+                        formulaProfile: {
+                            ...profileInput(1),
+                            collectionAmountMinor,
+                        },
+                        principalMinor: 300_000,
+                        releaseDate: '2026-10-09',
+                    },
+                    cookie: ownerCookie,
+                },
+            )
+            expect(response.status).toBe(400)
+            const json = await response.json<TApiResponseError>()
+            expect(json.error.code).toBe(
+                collectionAmountMinor === 1 ? 'BAD_REQUEST' : 'DATA_VALIDATION',
+            )
+        },
+    )
+    it('previews collection schedules using the requested principal instead of the example term', async () => {
+        const response = await postTestingRequest(
+            '/api/settings/formulaProfile/preview',
+            {
+                body: {
+                    firstPaymentDate: '2026-10-10',
+                    formulaProfile: {
+                        ...profileInput(1),
+                        collectionAmountMinor: 14_000,
+                    },
+                    principalMinor: 300_000,
+                    releaseDate: '2026-10-09',
+                    totalPaidMinor: 350_000,
+                },
+                cookie: ownerCookie,
+            },
+        )
+        expect(response.status).toBe(200)
+        const json =
+            await response.json<TApiResponseOk<Record<string, number>>>()
+        expect(json.data).toMatchObject({
+            totalPayableMinor: 360_000,
+            interestAmountMinor: 60_000,
+            installmentAmountMinor: 14_000,
+            completedInstallmentCount: 25,
+            remainingInstallmentCount: 1,
+            actualOutstandingBalanceMinor: 10_000,
+        })
+    })
     it('previews through the authoritative calculation engine and protects the management surface', async () => {
         const body = {
             firstPaymentDate: '2026-10-05',

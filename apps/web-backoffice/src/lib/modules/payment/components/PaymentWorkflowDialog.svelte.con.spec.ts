@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 
+import type { CollectionItem } from '../types'
 import PaymentWorkflowDialog from './PaymentWorkflowDialog.svelte'
 
 const mocks = vi.hoisted(() => ({
@@ -75,6 +76,67 @@ vi.mock('../queries', () => ({
 }))
 
 describe('Payment workflow dialog', () => {
+    it.each([
+        {
+            amountPaidMinor: 0,
+            remainingAmountMinor: 14_000,
+            expected: '₱140.00',
+        },
+        {
+            amountPaidMinor: 6_000,
+            remainingAmountMinor: 8_000,
+            expected: '₱80.00',
+        },
+        { amountPaidMinor: 14_000, remainingAmountMinor: 0, expected: '₱0.00' },
+    ])(
+        'shows $expected remaining for the selected collection',
+        async ({ amountPaidMinor, remainingAmountMinor, expected }) => {
+            const collection: CollectionItem = {
+                amountDueMinor: 14_000,
+                amountPaidMinor,
+                borrowerName: '__TEST-Collection Borrower',
+                borrowerPublicId: '019936e2-b837-7000-8000-000000000001',
+                dueDate: '2026-10-04',
+                installmentNumber: 2,
+                loanNumber: 'LN-000001',
+                loanPublicId: '019936e2-b837-7000-8000-000000000101',
+                loanStatus: 'ACTIVE',
+                paymentFrequency: 'DAILY',
+                remainingAmountMinor,
+                status:
+                    amountPaidMinor === 0
+                        ? 'UPCOMING'
+                        : remainingAmountMinor === 0
+                          ? 'PAID'
+                          : 'PARTIAL',
+            }
+            const screen = await render(PaymentWorkflowDialog, {
+                props: {
+                    collection,
+                    loanPublicId: collection.loanPublicId,
+                    open: true,
+                },
+            })
+            const summary = screen.getByRole('region', {
+                name: 'Selected collection',
+            })
+
+            await expect
+                .element(summary.getByText('Amount due for this collection'))
+                .toBeVisible()
+            await expect
+                .element(summary.getByText(expected, { exact: true }).first())
+                .toBeVisible()
+            await expect
+                .element(summary.getByText(/Installment 2 · Due/))
+                .toBeVisible()
+            await expect.element(summary.getByText('Scheduled')).toBeVisible()
+            await expect
+                .element(summary.getByText('Already paid'))
+                .toBeVisible()
+        },
+    )
+
     it('shows a generated Cash reference and requires an entered GCash or bank reference', async () => {
         mocks.quote.mockClear()
         const screen = await render(PaymentWorkflowDialog, {
@@ -83,6 +145,11 @@ describe('Payment workflow dialog', () => {
                 open: true,
             },
         })
+        await expect
+            .element(
+                screen.getByRole('region', { name: 'Selected collection' }),
+            )
+            .not.toBeInTheDocument()
         await expect
             .element(screen.getByLabelText('Reference number'))
             .toBeDisabled()

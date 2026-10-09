@@ -82,6 +82,9 @@ const formulaProfilePolicySchema = z.object({
 })
 
 const formulaProfileBaseSchema = z.object({
+    collectionAmountMinor: minorMoneySchema('Collection per payment', 1)
+        .nullable()
+        .optional(),
     effectiveDate: field.vIsoDate('Effective date'),
     installmentCount: installmentCountSchema,
     name: field.vText({ fieldName: 'Formula profile name', max: 96 }),
@@ -161,6 +164,9 @@ export const formulaProfileActivateInputSchema = z
 
 const formulaProfileOutputDataSchema = z.object({
     allowRenewalPrincipalChange: z.boolean(),
+    collectionAmountMinor: minorMoneySchema('Collection per payment', 1)
+        .nullable()
+        .optional(),
     createdAt: z.string(),
     effectiveDate: field.vIsoDate('Effective date'),
     fixedInterestAmountMinor: z.number().int().nonnegative().nullable(),

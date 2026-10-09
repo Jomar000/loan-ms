@@ -13,6 +13,7 @@
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import type { AppRole } from '$lib/modules/app/utilities/navigation'
     import PaymentWorkflowDialog from '$lib/modules/payment/components/PaymentWorkflowDialog.svelte'
     import { useSessionContext } from '$lib/states/session'
@@ -22,6 +23,7 @@
         createLoanDetailQuery,
         createLoanReleaseMutation,
     } from '../queries'
+    import type { LoanInstallment } from '../types'
     import { formatCurrency, formatDate } from '../utilities/format'
     import LoanStatusBadge from './LoanStatusBadge.svelte'
     ////////////////////
@@ -131,6 +133,29 @@
         await goto(
             `/app/${role}/renewals/new?previousLoanPublicId=${encodeURIComponent(publicId)}`,
         )
+    }
+    /////////////////
+    // 10. Helpers //
+    /////////////////
+    function installmentStatus(installment: LoanInstallment): string {
+        if (
+            (installment.status !== 'UPCOMING' &&
+                installment.status !== 'PARTIAL') ||
+            installment.amountPaidMinor >= installment.amountDueMinor
+        ) {
+            return installment.status
+        }
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            day: '2-digit',
+            month: '2-digit',
+            timeZone: 'Asia/Manila',
+            year: 'numeric',
+        }).formatToParts(new Date())
+        function part(type: Intl.DateTimeFormatPartTypes): string {
+            return parts.find((entry) => entry.type === type)!.value
+        }
+        const today = `${part('year')}-${part('month')}-${part('day')}`
+        return installment.dueDate < today ? 'OVERDUE' : installment.status
     }
 </script>
 
@@ -563,11 +588,11 @@
                                             )}
                                         </Table.Cell>
                                         <Table.Cell class="h-10 px-3 py-1.5">
-                                            <span
-                                                class="inline-flex h-6 items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                                            >
-                                                {installment.status}
-                                            </span>
+                                            <StatusBadge
+                                                status={installmentStatus(
+                                                    installment,
+                                                )}
+                                            />
                                         </Table.Cell>
                                     </Table.Row>
                                 {/each}

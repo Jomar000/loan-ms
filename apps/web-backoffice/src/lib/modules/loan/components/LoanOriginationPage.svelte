@@ -27,6 +27,7 @@
         formatDate,
         toMinorUnits,
     } from '../utilities/format'
+    import { getFirstPaymentDate } from '../utilities/schedule'
     ////////////////////
     // 01. Properties //
     ////////////////////
@@ -54,7 +55,14 @@
     /////////////////
     // 04. Derived //
     /////////////////
-    const firstPaymentDate = $derived(nextCalendarDay(releaseDate))
+    const firstPaymentDate = $derived.by(() =>
+        getFirstPaymentDate(
+            releaseDate,
+            productsQuery.data?.find(
+                (product) => product.publicId === loanProductPublicId,
+            )?.paymentFrequency,
+        ),
+    )
     const isLocked = $derived(isCreating || isQuoting)
     /////////////////
     // 05. Queries //
@@ -172,12 +180,6 @@
         const valueFor = (type: Intl.DateTimeFormatPartTypes) =>
             parts.find((part) => part.type === type)!.value
         return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`
-    }
-    function nextCalendarDay(date: string): string {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ''
-        const timestamp = new Date(`${date}T00:00:00.000Z`).getTime()
-        if (Number.isNaN(timestamp)) return ''
-        return new Date(timestamp + 86_400_000).toISOString().slice(0, 10)
     }
 </script>
 
@@ -391,8 +393,9 @@
                                     type="date"
                                 />
                                 <Field.Description class="text-xs">
-                                    Collection starts the day after cash is
-                                    actually released.
+                                    Collection starts one day, one week, or one
+                                    month after cash is actually released,
+                                    according to the payment type.
                                 </Field.Description>
                             </Field.Field>
                         </Field.Group>
@@ -523,7 +526,19 @@
                                     {formatCurrency(
                                         quote.installmentAmountMinor,
                                     )} × {quote.formulaSnapshot
-                                        .installmentCount}
+                                        .installmentCount -
+                                        (quote.installmentResidueMinor > 0
+                                            ? 1
+                                            : 0)}
+                                    {#if quote.installmentResidueMinor > 0}
+                                        + {formatCurrency(
+                                            quote.totalPayableMinor -
+                                                quote.installmentAmountMinor *
+                                                    (quote.formulaSnapshot
+                                                        .installmentCount -
+                                                        1),
+                                        )} final
+                                    {/if}
                                 </dd>
                             </div>
                             <div

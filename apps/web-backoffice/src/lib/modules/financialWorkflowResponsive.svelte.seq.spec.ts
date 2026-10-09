@@ -94,7 +94,11 @@ vi.mock('./borrower/queries', () => ({
 vi.mock('./loan/queries', () => ({
     createLoanCreateMutation: () => ({ mutateAsync: vi.fn() }),
     createLoanDetailQuery: () => ({
-        data: { loanNumber: 'LN-000001', principalMinor: 700_000 },
+        data: {
+            formulaSnapshot: { paymentFrequency: 'DAILY' },
+            loanNumber: 'LN-000001',
+            principalMinor: 700_000,
+        },
         isPending: false,
     }),
     createLoanProductsQuery: () => ({
@@ -105,6 +109,7 @@ vi.mock('./loan/queries', () => ({
                 maximumPrincipalMinor: 1_000_000,
                 minimumPrincipalMinor: 100_000,
                 name: 'Regular 60-Day Loan',
+                paymentFrequency: 'DAILY',
                 publicId: '019936e2-b837-7000-8000-000000000010',
             },
         ],
@@ -243,6 +248,20 @@ describe('financial workflow responsive verification', () => {
         await page.viewport(BREAKPOINTS.mobile.width, BREAKPOINTS.mobile.height)
         const screen = await render(PaymentWorkflowDialog, {
             props: {
+                collection: {
+                    amountDueMinor: 14_000,
+                    amountPaidMinor: 6_000,
+                    borrowerName: '__TEST-Collection Borrower',
+                    borrowerPublicId: '019936e2-b837-7000-8000-000000000001',
+                    dueDate: '2026-10-04',
+                    installmentNumber: 2,
+                    loanNumber: 'LN-000001',
+                    loanPublicId: '019936e2-b837-7000-8000-000000000101',
+                    loanStatus: 'ACTIVE',
+                    paymentFrequency: 'DAILY',
+                    remainingAmountMinor: 8_000,
+                    status: 'PARTIAL',
+                },
                 loanPublicId: '019936e2-b837-7000-8000-000000000101',
                 open: true,
             },
@@ -252,6 +271,9 @@ describe('financial workflow responsive verification', () => {
             screen.getByRole('dialog', { name: 'Record payment' }).element(),
         )
         expectElementsFitViewport(
+            screen
+                .getByRole('region', { name: 'Selected collection' })
+                .element(),
             screen.getByLabelText('Payment date').element(),
             screen.getByLabelText('Payment method').element(),
         )

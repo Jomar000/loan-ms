@@ -16,6 +16,7 @@
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import PaginationFooter from '$lib/components/dataWorkspace/PaginationFooter.svelte'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import { useSessionContext } from '$lib/states/session'
     import {
         debounce,
@@ -520,31 +521,13 @@
                                     </Table.Cell>
 
                                     <Table.Cell>
-                                        {#if borrower.status === 'ACTIVE'}
-                                            <span
-                                                class="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 uppercase dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-300"
-                                            >
-                                                Active
-                                            </span>
-                                        {:else if borrower.status === 'INACTIVE'}
-                                            <span
-                                                class="inline-flex rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300"
-                                            >
-                                                Inactive
-                                            </span>
-                                        {:else if borrower.status === 'BLOCKED'}
-                                            <span
-                                                class="inline-flex rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-700 uppercase dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
-                                            >
-                                                Blocked
-                                            </span>
-                                        {:else}
-                                            <span
-                                                class="inline-flex rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 uppercase dark:border-amber-800/60 dark:bg-amber-950/20 dark:text-amber-300"
-                                            >
-                                                Archived
-                                            </span>
-                                        {/if}
+                                        <StatusBadge
+                                            status={borrower.status}
+                                            label={borrower.status.charAt(0) +
+                                                borrower.status
+                                                    .slice(1)
+                                                    .toLowerCase()}
+                                        />
                                     </Table.Cell>
 
                                     <Table.Cell class="text-right">

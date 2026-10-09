@@ -1,7 +1,6 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
     import * as Avatar from '@loanms/ui/components/avatar'
-    import { Badge } from '@loanms/ui/components/badge'
     import { Button } from '@loanms/ui/components/button'
     import * as Card from '@loanms/ui/components/card'
     import * as DropdownMenu from '@loanms/ui/components/dropdown-menu'
@@ -23,6 +22,7 @@
     import { onDestroy } from 'svelte'
     import { toast } from 'svelte-sonner'
 
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import { useSessionContext } from '$lib/states/session'
     import { createTenantKey } from '$lib/states/session/tenant'
     import { formatBytes, getErrorMessage } from '$lib/utilities/helpers'
@@ -484,27 +484,30 @@
                                 </Table.Cell>
                                 <Table.Cell>
                                     {#if file.status === 'UPLOADED'}
-                                        <Badge variant="secondary">
+                                        <StatusBadge status="UPLOADED">
                                             <CircleCheckIcon
                                                 aria-hidden="true"
                                             />
                                             Uploaded
-                                        </Badge>
+                                        </StatusBadge>
                                     {:else if file.status === 'FAILED'}
-                                        <Badge variant="destructive">
+                                        <StatusBadge status="FAILED">
                                             <CircleXIcon aria-hidden="true" />
                                             Failed
-                                        </Badge>
+                                        </StatusBadge>
                                     {:else if file.status === 'UPLOADING'}
-                                        <Badge variant="secondary">
+                                        <StatusBadge status="UPLOADING">
                                             <LoaderCircleIcon
                                                 aria-hidden="true"
                                                 class="animate-spin motion-reduce:animate-none"
                                             />
                                             Uploading
-                                        </Badge>
+                                        </StatusBadge>
                                     {:else}
-                                        <Badge variant="outline">Queued</Badge>
+                                        <StatusBadge
+                                            status="QUEUED"
+                                            label="Queued"
+                                        />
                                     {/if}
                                 </Table.Cell>
                                 <Table.Cell class="text-right">

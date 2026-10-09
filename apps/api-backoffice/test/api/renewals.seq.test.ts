@@ -96,13 +96,13 @@ beforeAll(async () => {
     loanProductPublicId = productJson.data.publicId
 })
 
-async function createActiveLoan() {
+async function createActiveLoan(productPublicId = loanProductPublicId) {
     const create = await postTestingRequest('/api/loans/create', {
         body: {
             borrowerPublicId,
             firstPaymentDate: '2026-10-10',
             idempotencyKey: uuidv7(),
-            loanProductPublicId,
+            loanProductPublicId: productPublicId,
             principalMinor: 7_000_00,
             releaseDate: '2026-10-09',
         },
@@ -411,4 +411,228 @@ describe('Renewal API', () => {
             ]),
         )
     })
+    it('recomputes a collection schedule when renewal changes the principal', async () => {
+        const db = dbClient(env.LOANMSBOFC_D1)
+        const collectionProfilePublicId = uuidv7()
+        await db.insert(dbSchema.loanFormulaProfile).values({
+            allowRenewalPrincipalChange: true,
+            collectionAmountMinor: 14_000,
+            effectiveAt: new Date(0),
+            finalInstallmentResiduePolicy: 'LAST_INSTALLMENT_ABSORBS_RESIDUE',
+            installmentCount: 60,
+            interestMethod: 'FLAT_PERCENTAGE',
+            interestRateBasisPoints: 2_000,
+            isActive: true,
+            minCompletedInstallments: 0,
+            name: '__TEST-Renewal Collection Formula',
+            organizationId: TEST_PRIMARY_ORGANIZATION_ID,
+            partialCreditPolicy: 'APPLY_TO_SETTLEMENT',
+            paymentFrequency: 'DAILY',
+            publicId: collectionProfilePublicId,
+            renewalSettlementMethod: 'EXACT_OUTSTANDING_BALANCE',
+            roundingMode: 'HALF_UP',
+            termDays: 60,
+            version: 1,
+        })
+        const product = await postTestingRequest('/api/loans/product/create', {
+            body: {
+                formulaProfilePublicId: collectionProfilePublicId,
+                idempotencyKey: uuidv7(),
+                maximumPrincipalMinor: 20_000_00,
+                minimumPrincipalMinor: 1_000_00,
+                name: '__TEST Renewal Collection',
+            },
+            cookie: ownerCookie,
+        })
+        expect(product.status).toBe(201)
+        const productJson =
+            await product.json<TApiResponseOk<{ publicId: string }>>()
+        const oldLoanPublicId = await createActiveLoan(
+            productJson.data.publicId,
+        )
+        const payment = await postTestingRequest('/api/payments/create', {
+            body: {
+                amountReceivedMinor: 600_000,
+                idempotencyKey: uuidv7(),
+                loanPublicId: oldLoanPublicId,
+                paymentDate: '2026-10-10',
+                paymentMethod: 'CASH',
+            },
+            cookie: ownerCookie,
+        })
+        expect(payment.status).toBe(201)
+        const input = {
+            firstPaymentDate: '2026-10-20',
+            previousLoanPublicId: oldLoanPublicId,
+            releaseDate: '2026-10-19',
+            renewalPrincipalMinor: 300_000,
+        }
+        const quote = await postTestingRequest('/api/renewals/quote', {
+            body: input,
+            cookie: ownerCookie,
+        })
+        expect(quote.status).toBe(200)
+        const quoted = await quote.json<
+            TApiResponseOk<{
+                renewalFormulaSnapshot: {
+                    installmentCount: number
+                    termDays: number
+                }
+                totalPayableMinor: number
+            }>
+        >()
+        expect(quoted.data).toMatchObject({
+            renewalFormulaSnapshot: { installmentCount: 26, termDays: 26 },
+            totalPayableMinor: 360_000,
+        })
+        const create = await postTestingRequest('/api/renewals', {
+            body: { ...input, idempotencyKey: uuidv7() },
+            cookie: ownerCookie,
+        })
+        expect(create.status).toBe(201)
+        const created =
+            await create.json<TApiResponseOk<{ newLoanPublicId: string }>>()
+        const [stored] = await db
+            .select()
+            .from(dbSchema.loan)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loan.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loan.publicId, created.data.newLoanPublicId),
+                ),
+            )
+        expect(stored).toMatchObject({
+            installmentCount: 26,
+            termDays: 26,
+            installmentAmountMinor: 14_000,
+        })
+        const schedule = await db
+            .select({ amountDueMinor: dbSchema.loanInstallment.amountDueMinor })
+            .from(dbSchema.loanInstallment)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loanInstallment.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loanInstallment.loanId, stored.id),
+                ),
+            )
+            .orderBy(dbSchema.loanInstallment.installmentNumber)
+        expect(
+            schedule.map((installment) => installment.amountDueMinor),
+        ).toEqual([
+            ...Array<number>(25).fill(14_000),
+            10_000,
+        ])
+    })
+
+    it.each([
+        [
+            'WEEKLY',
+            '2026-02-07',
+        ],
+        [
+            'MONTHLY',
+            '2026-02-28',
+        ],
+    ] as const)(
+        'starts %s renewal collection one period after cash release',
+        async (paymentFrequency, firstPaymentDate) => {
+            const db = dbClient(env.LOANMSBOFC_D1)
+            const [profile] = await db
+                .select()
+                .from(dbSchema.loanFormulaProfile)
+                .where(
+                    eq(
+                        dbSchema.loanFormulaProfile.publicId,
+                        formulaProfilePublicId,
+                    ),
+                )
+            const profilePublicId = uuidv7()
+            await db.insert(dbSchema.loanFormulaProfile).values({
+                ...profile,
+                id: undefined,
+                isDefault: false,
+                minCompletedInstallments: 0,
+                name: `__TEST-${paymentFrequency} Renewal Formula`,
+                paymentFrequency,
+                publicId: profilePublicId,
+            })
+            const product = await postTestingRequest(
+                '/api/loans/product/create',
+                {
+                    body: {
+                        formulaProfilePublicId: profilePublicId,
+                        idempotencyKey: uuidv7(),
+                        maximumPrincipalMinor: 2_000_000,
+                        minimumPrincipalMinor: 100_000,
+                        name: `__TEST-${paymentFrequency} Renewal Product`,
+                    },
+                    cookie: ownerCookie,
+                },
+            )
+            expect(product.status).toBe(201)
+            const productJson =
+                await product.json<TApiResponseOk<{ publicId: string }>>()
+            const previousLoanPublicId = await createActiveLoan(
+                productJson.data.publicId,
+            )
+            const payment = await postTestingRequest('/api/payments/create', {
+                body: {
+                    amountReceivedMinor: 400_000,
+                    idempotencyKey: uuidv7(),
+                    loanPublicId: previousLoanPublicId,
+                    paymentDate: '2026-10-10',
+                    paymentMethod: 'CASH',
+                },
+                cookie: ownerCookie,
+            })
+            expect(payment.status).toBe(201)
+            const input = {
+                previousLoanPublicId,
+                firstPaymentDate: '2026-02-01',
+                releaseDate: '2026-01-31',
+                renewalPrincipalMinor: 700_000,
+            }
+            const quote = await postTestingRequest('/api/renewals/quote', {
+                body: input,
+                cookie: ownerCookie,
+            })
+            expect(quote.status).toBe(200)
+            const quoted = await quote.json<
+                TApiResponseOk<{
+                    firstPaymentDate: string
+                    installments: { dueDate: string }[]
+                }>
+            >()
+            expect(quoted.data.firstPaymentDate).toBe(firstPaymentDate)
+            expect(quoted.data.installments[0]?.dueDate).toBe(firstPaymentDate)
+            const create = await postTestingRequest('/api/renewals', {
+                body: { ...input, idempotencyKey: uuidv7() },
+                cookie: ownerCookie,
+            })
+            expect(create.status).toBe(201)
+            const created =
+                await create.json<TApiResponseOk<{ newLoanPublicId: string }>>()
+            const detail = await getTestingRequest(
+                `/api/loans/read/${created.data.newLoanPublicId}`,
+                { cookie: ownerCookie },
+            )
+            expect(detail.status).toBe(200)
+            const loan = await detail.json<
+                TApiResponseOk<{
+                    firstPaymentDate: string
+                    releaseDate: string
+                    installments: { dueDate: string }[]
+                }>
+            >()
+            expect(loan.data.releaseDate).toBe(input.releaseDate)
+            expect(loan.data.firstPaymentDate).toBe(firstPaymentDate)
+            expect(loan.data.installments[0]?.dueDate).toBe(firstPaymentDate)
+        },
+    )
 })

@@ -1,6 +1,5 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
-    import { Badge } from '@loanms/ui/components/badge'
     import { Button } from '@loanms/ui/components/button'
     import * as Empty from '@loanms/ui/components/empty'
     import * as NativeSelect from '@loanms/ui/components/native-select'
@@ -10,6 +9,7 @@
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { goto } from '$app/navigation'
     import PaginationFooter from '$lib/components/dataWorkspace/PaginationFooter.svelte'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import {
         formatCurrency,
         formatDate,
@@ -314,12 +314,7 @@
                                     {formatDate(renewal.processedAt)}
                                 </Table.Cell>
                                 <Table.Cell class="h-11 px-3 py-1.5">
-                                    <Badge
-                                        variant="outline"
-                                        class="h-6 rounded-full border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                                    >
-                                        {renewal.status}
-                                    </Badge>
+                                    <StatusBadge status={renewal.status} />
                                 </Table.Cell>
                                 <Table.Cell class="h-11 px-3 py-1.5 text-right">
                                     {#if renewal.newLoanPublicId}

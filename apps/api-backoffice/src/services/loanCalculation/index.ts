@@ -1,3 +1,5 @@
+import { AppError, defineError } from '@loanms/errors'
+
 /**
  * Pure, deterministic financial calculations for the backoffice API.
  *
@@ -7,6 +9,12 @@
  */
 
 export const BASIS_POINTS_PER_WHOLE = 10_000
+
+const collectionScheduleInvalid = defineError(
+    'LOAN_COLLECTION_SCHEDULE_INVALID',
+    'BAD_REQUEST',
+    'Collection per payment must produce a repayment term of at most 3,660 days.',
+)
 
 export type TPaymentFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
@@ -21,6 +29,7 @@ export type TRenewalSettlementMethod =
     'COMPLETED_INSTALLMENT_BALANCE' | 'EXACT_OUTSTANDING_BALANCE'
 
 type TLoanCalculationBaseInput = {
+    collectionAmountMinor?: number | null
     principalAmountCents: number
     termDays: number
     installmentCount: number
@@ -51,6 +60,7 @@ export type TInstallmentScheduleInput = Pick<
     'installmentCount' | 'paymentFrequency' | 'totalPayableAmountCents'
 > & {
     firstDueDate: string
+    installmentAmountCents?: number
 }
 
 export type TInstallment = {
@@ -236,6 +246,16 @@ function addCalendarMonths(date: string, months: number) {
     )
 }
 
+export function getFirstPaymentDate(
+    releaseDate: string,
+    paymentFrequency: TPaymentFrequency,
+) {
+    assertPaymentFrequency(paymentFrequency)
+    return paymentFrequency === 'MONTHLY'
+        ? addCalendarMonths(releaseDate, 1)
+        : addCalendarDays(releaseDate, paymentFrequency === 'WEEKLY' ? 7 : 1)
+}
+
 function installmentAmounts(
     totalPayableAmountCents: number,
     installmentCount: number,
@@ -340,17 +360,50 @@ export function calculateLoan(input: TLoanCalculationInput): TLoanCalculation {
         interestAmountCents,
         'Total payable amount',
     )
-    const { baseInstallmentAmountCents, installmentResidueCents } =
-        installmentAmounts(totalPayableAmountCents, input.installmentCount)
+    let installmentCount = input.installmentCount
+    let termDays = input.termDays
+    const collectionAmountMinor = input.collectionAmountMinor ?? null
+    if (collectionAmountMinor !== null) {
+        assertPositiveSafeInteger(
+            collectionAmountMinor,
+            'Collection per payment',
+        )
+        installmentCount = Math.ceil(
+            totalPayableAmountCents / collectionAmountMinor,
+        )
+        termDays =
+            installmentCount *
+            (input.paymentFrequency === 'WEEKLY'
+                ? 7
+                : input.paymentFrequency === 'MONTHLY'
+                  ? 30
+                  : 1)
+        if (termDays > 3_660) {
+            throw new AppError(collectionScheduleInvalid)
+        }
+    }
+    const baseInstallmentAmountCents =
+        collectionAmountMinor === null
+            ? installmentAmounts(totalPayableAmountCents, installmentCount)
+                  .baseInstallmentAmountCents
+            : Math.min(collectionAmountMinor, totalPayableAmountCents)
+    // The residue is the magnitude of the final payment adjustment.
+    const installmentResidueCents = Math.abs(
+        totalPayableAmountCents - baseInstallmentAmountCents * installmentCount,
+    )
 
     return {
         ...input,
+        installmentCount,
+        termDays,
         interestAmountCents,
         totalPayableAmountCents,
         baseInstallmentAmountCents,
         installmentResidueCents,
         dailyPaymentAmountCents: Math.floor(
-            totalPayableAmountCents / input.termDays,
+            input.paymentFrequency === 'DAILY' && collectionAmountMinor !== null
+                ? baseInstallmentAmountCents
+                : totalPayableAmountCents / termDays,
         ),
     }
 }
@@ -371,11 +424,25 @@ export function createInstallmentSchedule(
     assertPaymentFrequency(input.paymentFrequency)
     parseDateOnly(input.firstDueDate)
 
-    const { baseInstallmentAmountCents, installmentResidueCents } =
+    const { baseInstallmentAmountCents: defaultInstallmentAmountCents } =
         installmentAmounts(
             input.totalPayableAmountCents,
             input.installmentCount,
         )
+    const baseInstallmentAmountCents =
+        input.installmentAmountCents ?? defaultInstallmentAmountCents
+    assertPositiveSafeInteger(baseInstallmentAmountCents, 'Installment amount')
+    const finalInstallmentAmountCents =
+        input.totalPayableAmountCents -
+        safeMultiply(
+            baseInstallmentAmountCents,
+            input.installmentCount - 1,
+            'Scheduled installments',
+        )
+    assertPositiveSafeInteger(
+        finalInstallmentAmountCents,
+        'Final installment amount',
+    )
 
     return Array.from(
         { length: input.installmentCount },
@@ -391,10 +458,9 @@ export function createInstallmentSchedule(
                 installmentNumber: offset,
                 dueDate,
                 amountDueCents:
-                    baseInstallmentAmountCents +
-                    (index === input.installmentCount - 1
-                        ? installmentResidueCents
-                        : 0),
+                    index === input.installmentCount - 1
+                        ? finalInstallmentAmountCents
+                        : baseInstallmentAmountCents,
             }
         },
     )

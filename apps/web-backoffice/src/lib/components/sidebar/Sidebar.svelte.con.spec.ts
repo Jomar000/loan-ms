@@ -132,6 +132,46 @@ afterEach(() => {
     expect(warnings).not.toContain('state_proxy_equality_mismatch')
 })
 
+describe('Sidebar branding', () => {
+    it('uses the logo and LoanMS name in the expanded header and retains the logo when collapsed', async () => {
+        const screen = await render(SidebarTestHarness, {
+            session: createSessionFixture(),
+            transitionSessionBoundary: mocks.transitionSessionBoundary,
+        })
+        const image = screen.getByRole('img', {
+            name: 'Loan Management System logo',
+        })
+
+        await expect
+            .element(screen.getByText('LoanMS', { exact: true }))
+            .toBeVisible()
+        await expect
+            .element(screen.getByText('Management System', { exact: true }))
+            .toBeVisible()
+        await expect.element(image).toBeVisible()
+        await vi.waitFor(() => {
+            expect(
+                (image.element() as HTMLImageElement).naturalWidth,
+            ).toBeGreaterThan(0)
+        })
+        await screen.getByRole('button', { name: 'Collapse sidebar' }).click()
+
+        await expect
+            .element(screen.getByRole('button', { name: 'Expand sidebar' }))
+            .toBeVisible()
+        await expect
+            .element(
+                screen.getByRole('img', {
+                    name: 'Loan Management System logo',
+                }),
+            )
+            .toBeVisible()
+        await expect
+            .element(screen.getByText('LoanMS', { exact: true }))
+            .not.toBeInTheDocument()
+    })
+})
+
 describe('Sidebar mobile drawer motion', () => {
     it('uses Vega sheet motion and closes after navigation', async () => {
         await browserPage.viewport(MOBILE_WIDTH, MOBILE_HEIGHT)
@@ -186,7 +226,7 @@ describe('Sidebar collapsed navigation', () => {
         const sidebarContainer = document.querySelector(
             '[data-slot="sidebar-container"]',
         )
-        const expandIcon = expandButton.element().querySelector('svg')
+        const expandLogo = expandButton.element().querySelector('img')
         const dashboardIcon = dashboardLink.element().querySelector('svg')
 
         await expect.element(expandButton).toHaveClass(/mx-auto/)
@@ -201,7 +241,7 @@ describe('Sidebar collapsed navigation', () => {
         )
         expect(sidebarContainer).not.toBeNull()
         expect(dashboardLabel).not.toBeNull()
-        expect(expandIcon).not.toBeNull()
+        expect(expandLogo).not.toBeNull()
         expect(dashboardIcon).not.toBeNull()
         expect(getComputedStyle(dashboardLabel!).display).toBe('none')
         expectHorizontalCentersToMatch(
@@ -212,7 +252,7 @@ describe('Sidebar collapsed navigation', () => {
             sidebarContainer!,
             dashboardLink.element(),
         )
-        expectHorizontalCentersToMatch(expandButton.element(), expandIcon!)
+        expectHorizontalCentersToMatch(expandButton.element(), expandLogo!)
         expectHorizontalCentersToMatch(dashboardLink.element(), dashboardIcon!)
         await dashboardLink.click()
 

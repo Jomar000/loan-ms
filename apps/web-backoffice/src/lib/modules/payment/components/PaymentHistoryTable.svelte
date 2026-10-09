@@ -8,6 +8,7 @@
     import * as Table from '@loanms/ui/components/table'
     import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import {
         formatCurrency,
         formatDate,
@@ -402,11 +403,7 @@
                                 )}
                             </Table.Cell>
                             <Table.Cell class="h-11 px-3 py-1.5">
-                                <span
-                                    class="inline-flex h-6 items-center rounded-full border border-amber-200 bg-amber-50 px-2 text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
-                                >
-                                    {payment.status}
-                                </span>
+                                <StatusBadge status={payment.status} />
                             </Table.Cell>
                             <Table.Cell class="h-11 px-3 py-1.5 text-right">
                                 {#if payment.status === 'POSTED'}

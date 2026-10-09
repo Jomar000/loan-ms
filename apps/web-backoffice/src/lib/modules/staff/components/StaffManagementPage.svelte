@@ -14,6 +14,7 @@
     import UnlockIcon from '@lucide/svelte/icons/unlock'
     import { toast } from 'svelte-sonner'
 
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import { useSessionContext } from '$lib/states/session'
     import { getErrorMessage } from '$lib/utilities/helpers'
     import {
@@ -292,13 +293,14 @@
                                 </div>
                             </Table.Cell>
                             <Table.Cell>
-                                <Badge
-                                    variant={member.isLocked
-                                        ? 'destructive'
-                                        : 'secondary'}
-                                >
-                                    {member.isLocked ? 'Disabled' : 'Enabled'}
-                                </Badge>
+                                <StatusBadge
+                                    status={member.isLocked
+                                        ? 'DISABLED'
+                                        : 'ENABLED'}
+                                    label={member.isLocked
+                                        ? 'Disabled'
+                                        : 'Enabled'}
+                                />
                             </Table.Cell>
                             <Table.Cell>
                                 <div class="flex justify-end gap-2">

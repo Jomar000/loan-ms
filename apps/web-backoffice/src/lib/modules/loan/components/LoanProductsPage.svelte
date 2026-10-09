@@ -1,6 +1,5 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
-    import { Badge } from '@loanms/ui/components/badge'
     import { Button } from '@loanms/ui/components/button'
     import * as Dialog from '@loanms/ui/components/dialog'
     import * as Empty from '@loanms/ui/components/empty'
@@ -14,6 +13,7 @@
     import PlusIcon from '@lucide/svelte/icons/plus'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { toast } from 'svelte-sonner'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import { useSessionContext } from '$lib/states/session'
     import { getErrorMessage } from '$lib/utilities/helpers'
     import { createIdempotencyKeyLifecycle } from '$lib/utilities/idempotencyKey'
@@ -327,14 +327,11 @@
                                     {product.formulaProfilePublicId}
                                 </Table.Cell>
                                 <Table.Cell class="h-11 px-3 py-1.5">
-                                    <Badge
-                                        variant="outline"
-                                        class="h-6 rounded-full border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                                    >
-                                        {product.isActive
-                                            ? 'Active'
-                                            : 'Inactive'}
-                                    </Badge>
+                                    <StatusBadge
+                                        status={product.isActive
+                                            ? 'ACTIVE'
+                                            : 'INACTIVE'}
+                                    />
                                 </Table.Cell>
                             </Table.Row>
                         {/each}

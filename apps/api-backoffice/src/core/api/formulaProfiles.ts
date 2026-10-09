@@ -60,6 +60,7 @@ type TFormulaProfileInput =
 
 type TFormulaProfileRow = {
     allowRenewalPrincipalChange: boolean
+    collectionAmountMinor: number | null
     createdAt: Date
     deletedAt: Date | null
     effectiveAt: Date
@@ -87,6 +88,7 @@ type TFormulaProfileRow = {
 
 const profileSelection = (table: typeof dbSchema.loanFormulaProfile) => ({
     allowRenewalPrincipalChange: table.allowRenewalPrincipalChange,
+    collectionAmountMinor: table.collectionAmountMinor,
     createdAt: table.createdAt,
     deletedAt: table.deletedAt,
     effectiveAt: table.effectiveAt,
@@ -125,6 +127,7 @@ function formatManilaDate(value: Date) {
 function profileOutput(row: TFormulaProfileRow) {
     return {
         allowRenewalPrincipalChange: row.allowRenewalPrincipalChange,
+        collectionAmountMinor: row.collectionAmountMinor,
         createdAt: row.createdAt.toISOString(),
         effectiveDate: formatManilaDate(row.effectiveAt),
         fixedInterestAmountMinor: row.fixedInterestAmountMinor,
@@ -188,6 +191,7 @@ function calculationInputFor(
 ): TLoanCalculationInput {
     return profile.interestMethod === 'FLAT_PERCENTAGE'
         ? {
+              collectionAmountMinor: profile.collectionAmountMinor,
               installmentCount: profile.installmentCount,
               interestMethod: profile.interestMethod,
               interestRateBasisPoints: profile.interestRateBasisPoints,
@@ -197,6 +201,7 @@ function calculationInputFor(
               termDays: profile.termDays,
           }
         : {
+              collectionAmountMinor: profile.collectionAmountMinor,
               fixedInterestAmountMinor: profile.fixedInterestAmountMinor,
               installmentCount: profile.installmentCount,
               interestMethod: profile.interestMethod,
@@ -215,7 +220,8 @@ function previewCalculation(
     )
     const schedule = createInstallmentSchedule({
         firstDueDate: input.firstPaymentDate,
-        installmentCount: input.formulaProfile.installmentCount,
+        installmentAmountCents: calculation.baseInstallmentAmountCents,
+        installmentCount: calculation.installmentCount,
         paymentFrequency: input.formulaProfile.paymentFrequency,
         totalPayableAmountCents: calculation.totalPayableAmountCents,
     })
@@ -326,10 +332,10 @@ async function persistProfile(
                     rounding_mode, final_installment_residue_policy,
                     renewal_settlement_method, partial_credit_policy,
                     min_completed_installments, allow_renewal_principal_change,
-                    effective_at
+                    effective_at, collection_amount_minor
                 ) VALUES (?, ?, ?, ?, ?, ?, FALSE, FALSE, ?, ?, ?, ?, ?, ?,
                           'Asia/Manila', ?, 'LAST_INSTALLMENT_ABSORBS_RESIDUE',
-                          ?, ?, ?, ?, ?)`,
+                          ?, ?, ?, ?, ?, ?)`,
             )
             .bind(
                 publicId,
@@ -354,6 +360,7 @@ async function persistProfile(
                 input.minimumRenewalCompletedInstallments,
                 input.allowRenewalPrincipalChange,
                 Date.parse(`${input.effectiveDate}T00:00:00+08:00`),
+                input.collectionAmountMinor ?? null,
             ),
         auditTrailAfterChangeStatement(ctx, auditData, database),
     ])

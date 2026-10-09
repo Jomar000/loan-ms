@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Badge } from '@loanms/ui/components/badge'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
 
     import type { BorrowerPaymentTag, BorrowerPaymentTagSource } from '../types'
 
@@ -28,6 +28,7 @@
     )
 </script>
 
-<Badge variant={tag === 'SCAMMER' ? 'destructive' : 'secondary'}>
-    {label}{source === 'MANUAL_OVERRIDE' ? ' · Manual' : ''}
-</Badge>
+<StatusBadge
+    status={tag}
+    label={`${label}${source === 'MANUAL_OVERRIDE' ? ' · Manual' : ''}`}
+/>

@@ -86,6 +86,7 @@ const loanProductOutputDataSchema = z.object({
     maximumPrincipalMinor: z.number().int(),
     minimumPrincipalMinor: z.number().int(),
     name: z.string(),
+    paymentFrequency: paymentFrequencySchema,
     publicId: publicIdSchema,
 })
 

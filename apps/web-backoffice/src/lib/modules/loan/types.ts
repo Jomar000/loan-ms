@@ -17,6 +17,7 @@ export type LoanProduct = {
     maximumPrincipalMinor: number
     minimumPrincipalMinor: number
     name: string
+    paymentFrequency: LoanPaymentFrequency
     publicId: string
 }
 

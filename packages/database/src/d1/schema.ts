@@ -1402,6 +1402,9 @@ export const loanFormulaProfile = sqliteTable(
             .notNull()
             .default(0),
         fixedInterestAmountMinor: integer('fixed_interest_amount_minor'),
+        // Null retains a fixed term; otherwise each loan derives its term
+        // from its own principal and this collection amount.
+        collectionAmountMinor: integer('collection_amount_minor'),
         termDays: integer('term_days').notNull(),
         paymentFrequency: text('payment_frequency', {
             enum: loanFormulaPaymentFrequencyValues,

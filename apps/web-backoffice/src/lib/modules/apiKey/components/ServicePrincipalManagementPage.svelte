@@ -23,6 +23,7 @@
     import { tick } from 'svelte'
     import { toast } from 'svelte-sonner'
 
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import { useSessionContext } from '$lib/states/session'
     import { createTenantKey } from '$lib/states/session/tenant'
     import { getErrorMessage } from '$lib/utilities/helpers'
@@ -772,15 +773,14 @@
                                         </div>
                                     </Table.Cell>
                                     <Table.Cell>
-                                        <Badge
-                                            variant={principal.enabled
-                                                ? 'secondary'
-                                                : 'outline'}
-                                        >
-                                            {principal.enabled
+                                        <StatusBadge
+                                            status={principal.enabled
+                                                ? 'ENABLED'
+                                                : 'DISABLED'}
+                                            label={principal.enabled
                                                 ? 'Enabled'
                                                 : 'Disabled'}
-                                        </Badge>
+                                        />
                                     </Table.Cell>
                                     <Table.Cell>
                                         <Badge variant="outline">

@@ -7,9 +7,9 @@ import { createMiddleware } from 'hono/factory'
 import { v7 as uuidv7 } from 'uuid'
 
 import {
-    addCalendarDays,
     calculateLoan,
     createInstallmentSchedule,
+    getFirstPaymentDate,
     type TLoanCalculationInput,
 } from '../../services/loanCalculation/index.js'
 import { readRuntimeSystemSettings } from '../../services/systemSettings.js'
@@ -95,6 +95,7 @@ type TFormulaSnapshot = {
 }
 
 type TLoanProduct = TFormulaSnapshot & {
+    collectionAmountMinor: number | null
     id: number
     isActive: boolean
     maximumPrincipalAmountMinor: number
@@ -186,6 +187,7 @@ const productOutput = (product: TLoanProduct) => ({
     maximumPrincipalMinor: product.maximumPrincipalAmountMinor,
     minimumPrincipalMinor: product.minimumPrincipalAmountMinor,
     name: product.name,
+    paymentFrequency: product.paymentFrequency,
     publicId: product.publicId,
 })
 
@@ -201,8 +203,10 @@ const loanOutput = (loan: TLoan) => ({
     firstPaymentDate: loan.firstPaymentDate,
     formulaSnapshot: formulaSnapshot(loan),
     installmentAmountMinor: loan.installmentAmountMinor,
-    installmentResidueMinor:
-        loan.totalPayableAmountMinor % loan.installmentCount,
+    installmentResidueMinor: Math.abs(
+        loan.totalPayableAmountMinor -
+            loan.installmentAmountMinor * loan.installmentCount,
+    ),
     interestAmountMinor: loan.interestAmountMinor,
     loanNumber: loan.loanNumber,
     loanProductPublicId: loan.loanProductPublicId,
@@ -232,6 +236,7 @@ async function readProduct(
         .select({
             allowRenewalPrincipalChange:
                 loanProduct.allowRenewalPrincipalChange,
+            collectionAmountMinor: loanFormulaProfile.collectionAmountMinor,
             finalInstallmentResiduePolicy:
                 loanProduct.finalInstallmentResiduePolicy,
             fixedInterestAmountMinor: loanProduct.fixedInterestAmountMinor,
@@ -403,6 +408,7 @@ const calculationInputFor = (
 ): TLoanCalculationInput =>
     product.interestMethod === 'FLAT_PERCENTAGE'
         ? {
+              collectionAmountMinor: product.collectionAmountMinor,
               installmentCount: product.installmentCount,
               interestMethod: product.interestMethod,
               interestRateBasisPoints: product.interestRateBasisPoints,
@@ -412,6 +418,7 @@ const calculationInputFor = (
               termDays: product.termDays,
           }
         : {
+              collectionAmountMinor: product.collectionAmountMinor,
               fixedInterestAmountMinor: product.fixedInterestAmountMinor!,
               installmentCount: product.installmentCount,
               interestMethod: product.interestMethod,
@@ -427,6 +434,7 @@ async function quoteLoan(
         firstPaymentDate: string
         loanProductPublicId: string
         principalMinor: number
+        releaseDate: string
     },
 ) {
     const product = await readProduct(ctx, input.loanProductPublicId)
@@ -448,13 +456,30 @@ async function quoteLoan(
         calculationInputFor(product, input.principalMinor),
     )
     const installments = createInstallmentSchedule({
-        firstDueDate: input.firstPaymentDate,
-        installmentCount: product.installmentCount,
+        firstDueDate: getFirstPaymentDate(
+            input.releaseDate,
+            product.paymentFrequency,
+        ),
+        installmentAmountCents: calculation.baseInstallmentAmountCents,
+        installmentCount: calculation.installmentCount,
         paymentFrequency: product.paymentFrequency,
         totalPayableAmountCents: calculation.totalPayableAmountCents,
     })
     const expectedCompletionDate = installments.at(-1)!.dueDate
-    return { calculation, expectedCompletionDate, installments, product }
+    return {
+        calculation,
+        expectedCompletionDate,
+        installments,
+        product: {
+            ...product,
+            installmentCount: calculation.installmentCount,
+            termDays: calculation.termDays,
+            minCompletedInstallments: Math.min(
+                product.minCompletedInstallments,
+                calculation.installmentCount,
+            ),
+        },
+    }
 }
 
 export const loansRoute = new Hono<THonoInstance>()
@@ -630,7 +655,7 @@ export const loansRoute = new Hono<THonoInstance>()
                     dailyPaymentAmountMinor:
                         quote.calculation.dailyPaymentAmountCents,
                     expectedCompletionDate: quote.expectedCompletionDate,
-                    firstPaymentDate: input.firstPaymentDate,
+                    firstPaymentDate: quote.installments[0]!.dueDate,
                     formulaSnapshot: formulaSnapshot(quote.product),
                     installmentAmountMinor:
                         quote.calculation.baseInstallmentAmountCents,
@@ -746,7 +771,7 @@ export const loansRoute = new Hono<THonoInstance>()
                             quote.product.partialCreditPolicy,
                             quote.product.minCompletedInstallments,
                             quote.product.allowRenewalPrincipalChange,
-                            input.firstPaymentDate,
+                            quote.installments[0]!.dueDate,
                             quote.expectedCompletionDate,
                             quote.calculation.totalPayableAmountCents,
                             input.idempotencyKey,
@@ -1009,9 +1034,13 @@ export const loansRoute = new Hono<THonoInstance>()
             if (!fund) throw new AppError(primaryFundRequired)
             const releasedAt = Date.now()
             const releaseDate = manilaDate(releasedAt)
-            const firstPaymentDate = addCalendarDays(releaseDate, 1)
+            const firstPaymentDate = getFirstPaymentDate(
+                releaseDate,
+                existing.paymentFrequency,
+            )
             const schedule = createInstallmentSchedule({
                 firstDueDate: firstPaymentDate,
+                installmentAmountCents: existing.installmentAmountMinor,
                 installmentCount: existing.installmentCount,
                 paymentFrequency: existing.paymentFrequency,
                 totalPayableAmountCents: existing.totalPayableAmountMinor,

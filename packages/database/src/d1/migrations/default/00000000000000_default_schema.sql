@@ -582,6 +582,7 @@ CREATE TABLE `loan_formula_profile` (
 	`interest_method` text NOT NULL,
 	`interest_rate_basis_points` integer DEFAULT 0 NOT NULL,
 	`fixed_interest_amount_minor` integer,
+	`collection_amount_minor` integer,
 	`term_days` integer NOT NULL,
 	`payment_frequency` text NOT NULL,
 	`installment_count` integer NOT NULL,

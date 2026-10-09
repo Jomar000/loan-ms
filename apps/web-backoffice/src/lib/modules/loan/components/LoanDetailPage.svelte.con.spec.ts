@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 
+import type { LoanInstallment } from '../types'
 import LoanDetailPage from './LoanDetailPage.svelte'
 
 const mocks = vi.hoisted(() => {
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => {
                 }),
         ),
         goto: vi.fn(async () => undefined),
+        installments: [] as LoanInstallment[],
         refetch: vi.fn(async () => undefined),
         release: vi.fn(async () => undefined),
         resolveApprove() {
@@ -57,15 +59,7 @@ vi.mock('../queries', () => ({
             },
             installmentAmountMinor: 14_000,
             installmentResidueMinor: 0,
-            installments: [
-                {
-                    amountDueMinor: 14_000,
-                    amountPaidMinor: 0,
-                    dueDate: '2026-10-04',
-                    installmentNumber: 1,
-                    status: 'UPCOMING',
-                },
-            ],
+            installments: mocks.installments,
             interestAmountMinor: 140_000,
             loanNumber: 'LN-000001',
             loanProductPublicId: '019936e2-b837-7000-8000-000000000010',
@@ -88,7 +82,100 @@ vi.mock('../queries', () => ({
 describe('Loan detail page', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        vi.useFakeTimers({ toFake: ['Date'] })
+        vi.setSystemTime(new Date('2026-10-08T16:00:00.000Z'))
+        mocks.installments = [
+            {
+                amountDueMinor: 14_000,
+                amountPaidMinor: 0,
+                dueDate: '2026-10-04',
+                installmentNumber: 1,
+                status: 'UPCOMING',
+            },
+        ]
     })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
+    it.each<{
+        amountPaidMinor: number
+        dueDate: string
+        expected: string
+        status: LoanInstallment['status']
+    }>([
+        {
+            amountPaidMinor: 0,
+            dueDate: '2026-10-08',
+            expected: 'OVERDUE',
+            status: 'UPCOMING',
+        },
+        {
+            amountPaidMinor: 7_000,
+            dueDate: '2026-10-08',
+            expected: 'OVERDUE',
+            status: 'PARTIAL',
+        },
+        {
+            amountPaidMinor: 0,
+            dueDate: '2026-10-09',
+            expected: 'UPCOMING',
+            status: 'UPCOMING',
+        },
+        {
+            amountPaidMinor: 7_000,
+            dueDate: '2026-10-09',
+            expected: 'PARTIAL',
+            status: 'PARTIAL',
+        },
+        {
+            amountPaidMinor: 0,
+            dueDate: '2026-10-10',
+            expected: 'UPCOMING',
+            status: 'UPCOMING',
+        },
+        {
+            amountPaidMinor: 14_000,
+            dueDate: '2026-10-08',
+            expected: 'PAID',
+            status: 'PAID',
+        },
+        {
+            amountPaidMinor: 0,
+            dueDate: '2026-10-08',
+            expected: 'WAIVED',
+            status: 'WAIVED',
+        },
+        {
+            amountPaidMinor: 0,
+            dueDate: '2026-10-08',
+            expected: 'OVERDUE',
+            status: 'OVERDUE',
+        },
+    ])(
+        'shows $expected for a $status installment due $dueDate',
+        async ({ amountPaidMinor, dueDate, expected, status }) => {
+            mocks.installments[0] = {
+                ...mocks.installments[0]!,
+                amountPaidMinor,
+                dueDate,
+                status,
+            }
+            const screen = await render(LoanDetailPage, {
+                props: {
+                    publicId: '019936e2-b837-7000-8000-000000000101',
+                    role: 'owner',
+                },
+            })
+
+            await expect
+                .element(
+                    screen.getByRole('cell', { name: expected, exact: true }),
+                )
+                .toBeVisible()
+        },
+    )
 
     it('keeps the approval confirmation locked while approval is pending', async () => {
         const screen = await render(LoanDetailPage, {

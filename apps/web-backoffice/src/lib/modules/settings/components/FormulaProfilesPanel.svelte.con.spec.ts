@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
     delete: vi.fn(async () => undefined),
     profile: {
         allowRenewalPrincipalChange: false,
+        collectionAmountMinor: null as number | null,
         createdAt: '2026-10-05T00:00:00.000Z',
         effectiveDate: '2026-10-05',
         fixedInterestAmountMinor: null,
@@ -85,6 +86,7 @@ describe('Formula profiles panel', () => {
         mocks.preview.mockClear()
         mocks.version.mockClear()
         mocks.profile.isActive = true
+        mocks.profile.collectionAmountMinor = null
         mocks.profile.isDefault = true
         mocks.profile.installmentCount = 60
         mocks.profile.paymentFrequency = 'DAILY'
@@ -239,6 +241,7 @@ describe('Formula profiles panel', () => {
                 .poll(() => mocks.create)
                 .toHaveBeenCalledWith({
                     formulaProfile: expect.objectContaining({
+                        collectionAmountMinor: 14_000,
                         installmentCount: 70,
                         termDays: (termDays / 60) * 70,
                     }),
@@ -437,9 +440,39 @@ describe('Formula profiles panel', () => {
                 }),
             )
             .toHaveTextContent(
-                /Uses this principal and interest to calculate a fixed term/,
+                /Each new loan uses its own principal and interest/,
             )
         expect(mocks.create).not.toHaveBeenCalled()
+    })
+
+    it('preserves collection per payment when creating a new version', async () => {
+        mocks.profile.collectionAmountMinor = 14_000
+        const screen = await render(FormulaProfilesPanel)
+
+        await screen.getByRole('button', { name: 'New version' }).click()
+        await expect
+            .element(screen.getByLabelText('Set repayment schedule by'))
+            .toHaveValue('COLLECTION')
+        await expect
+            .element(
+                screen.getByLabelText('Collection per payment (PHP)', {
+                    exact: true,
+                }),
+            )
+            .toHaveValue(140)
+        await screen
+            .getByRole('button', { name: 'Save immutable version' })
+            .click()
+        await expect
+            .poll(() => mocks.version)
+            .toHaveBeenCalledWith({
+                input: expect.objectContaining({
+                    formulaProfile: expect.objectContaining({
+                        collectionAmountMinor: 14_000,
+                    }),
+                }),
+                publicId: mocks.profile.publicId,
+            })
     })
 
     it('shows a plain-language save error in a dialog and keeps the draft', async () => {

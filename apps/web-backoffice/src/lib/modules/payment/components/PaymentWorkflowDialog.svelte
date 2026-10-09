@@ -23,17 +23,24 @@
         createPaymentCreateMutation,
         createPaymentQuoteMutation,
     } from '../queries'
-    import type { Payment, PaymentDraft, PaymentQuote } from '../types'
+    import type {
+        CollectionItem,
+        Payment,
+        PaymentDraft,
+        PaymentQuote,
+    } from '../types'
 
     ////////////////////
     // 01. Properties //
     ////////////////////
 
     let {
+        collection,
         loanPublicId,
         onRecorded,
         open = $bindable(false),
     }: {
+        collection?: CollectionItem
         loanPublicId: string
         onRecorded?: (payment: Payment) => void | Promise<void>
         open?: boolean
@@ -301,6 +308,30 @@
                     class="grid gap-5"
                     onsubmit={handleQuote}
                 >
+                    {#if collection}
+                        <section
+                            aria-label="Selected collection"
+                            class="grid gap-2 rounded-xl border border-border bg-muted/50 p-3"
+                        >
+                            <dl>
+                                <dt class="text-sm font-medium">
+                                    Amount due for this collection
+                                </dt>
+                                <dd
+                                    class="mt-1 font-mono text-2xl font-semibold tabular-nums"
+                                >
+                                    {formatCurrency(
+                                        collection.remainingAmountMinor,
+                                    )}
+                                </dd>
+                            </dl>
+                            <p class="text-xs text-muted-foreground">
+                                Installment {collection.installmentNumber} · Due {formatDate(
+                                    collection.dueDate,
+                                )}
+                            </p>
+                        </section>
+                    {/if}
                     <Field.Group>
                         <Field.Field>
                             <Field.Label for="payment-amount"

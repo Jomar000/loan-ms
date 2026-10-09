@@ -94,36 +94,43 @@ These shared semantic tokens are implemented in both themes and mapped through `
 | ----------------------- | --------------------------- | --------------------------- | ---------------------------------- |
 | `--environment-staging` | `oklch(0.852 0.199 91.936)` | `oklch(0.852 0.199 91.936)` | Staging environment viewport frame |
 
-### Reserved semantic tokens
+### Status tokens
+
+These complete token families provide soft green, yellow, red, and blue status badges in both themes. Paid and positive states use success; upcoming and pending states use warning; overdue and failures use danger; informational states use info. Status labels remain visible alongside color.
+
+| Token                     | Light     | Dark      | Role                          |
+| ------------------------- | --------- | --------- | ----------------------------- |
+| `--danger`                | `#fff1f2` | `#3b131d` | Danger status surface         |
+| `--danger-active`         | `#ffe4e6` | `#4c0519` | Danger selected surface       |
+| `--danger-active-border`  | `#fecdd3` | `#881337` | Danger border                 |
+| `--danger-active-ring`    | `#f43f5e` | `#fb7185` | Danger focus ring             |
+| `--danger-foreground`     | `#9f1239` | `#fda4af` | Danger status text and icons  |
+| `--info`                  | `#eff6ff` | `#172554` | Info status surface           |
+| `--info-active`           | `#dbeafe` | `#1e3a8a` | Info selected surface         |
+| `--info-active-border`    | `#bfdbfe` | `#1e40af` | Info border                   |
+| `--info-active-ring`      | `#3b82f6` | `#60a5fa` | Info focus ring               |
+| `--info-foreground`       | `#1e40af` | `#bfdbfe` | Info status text and icons    |
+| `--success`               | `#ecfdf5` | `#052e24` | Success status surface        |
+| `--success-active`        | `#d1fae5` | `#064e3b` | Success selected surface      |
+| `--success-active-border` | `#a7f3d0` | `#065f46` | Success border                |
+| `--success-active-ring`   | `#10b981` | `#34d399` | Success focus ring            |
+| `--success-foreground`    | `#065f46` | `#a7f3d0` | Success status text and icons |
+| `--warning`               | `#fffbeb` | `#302714` | Warning status surface        |
+| `--warning-active`        | `#fef3c7` | `#422006` | Warning selected surface      |
+| `--warning-active-border` | `#fde68a` | `#713f12` | Warning border                |
+| `--warning-active-ring`   | `#eab308` | `#facc15` | Warning focus ring            |
+| `--warning-foreground`    | `#854d0e` | `#fde68a` | Warning status text and icons |
+
+### Remaining reserved semantic tokens
 
 Define both theme values and add their corresponding shared-theme mappings before using these tokens. A status family is complete only when its surface, foreground, active surface, active border, and active ring tokens are all defined in both themes.
 
 | Token                     | Light | Dark  | Role                            |
 | ------------------------- | ----- | ----- | ------------------------------- |
 | `--brand-link`            | `TBD` | `TBD` | Branded links and link emphasis |
-| `--danger`                | `TBD` | `TBD` | Danger status surface           |
-| `--danger-active`         | `TBD` | `TBD` | Selected danger surface         |
-| `--danger-active-border`  | `TBD` | `TBD` | Selected danger border          |
-| `--danger-active-ring`    | `TBD` | `TBD` | Selected danger ring            |
-| `--danger-foreground`     | `TBD` | `TBD` | Danger status text and icon     |
-| `--info`                  | `TBD` | `TBD` | Information surface             |
-| `--info-active`           | `TBD` | `TBD` | Selected information surface    |
-| `--info-active-border`    | `TBD` | `TBD` | Selected information border     |
-| `--info-active-ring`      | `TBD` | `TBD` | Selected information ring       |
-| `--info-foreground`       | `TBD` | `TBD` | Information text and icon       |
 | `--neutral-active`        | `TBD` | `TBD` | Selected neutral surface        |
 | `--neutral-active-border` | `TBD` | `TBD` | Selected neutral border         |
 | `--neutral-active-ring`   | `TBD` | `TBD` | Selected neutral ring           |
-| `--success`               | `TBD` | `TBD` | Success surface                 |
-| `--success-active`        | `TBD` | `TBD` | Selected success surface        |
-| `--success-active-border` | `TBD` | `TBD` | Selected success border         |
-| `--success-active-ring`   | `TBD` | `TBD` | Selected success ring           |
-| `--success-foreground`    | `TBD` | `TBD` | Success text and icon           |
-| `--warning`               | `TBD` | `TBD` | Warning surface                 |
-| `--warning-active`        | `TBD` | `TBD` | Selected warning surface        |
-| `--warning-active-border` | `TBD` | `TBD` | Selected warning border         |
-| `--warning-active-ring`   | `TBD` | `TBD` | Selected warning ring           |
-| `--warning-foreground`    | `TBD` | `TBD` | Warning text and icon           |
 
 ### Component color exceptions
 

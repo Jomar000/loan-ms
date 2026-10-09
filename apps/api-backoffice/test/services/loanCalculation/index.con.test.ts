@@ -5,9 +5,150 @@ import {
     calculateLoan,
     calculateRenewalQuote,
     createInstallmentSchedule,
+    getFirstPaymentDate,
 } from '../../../src/services/loanCalculation/index.js'
 
 describe('loan calculation service', () => {
+    it.each([
+        [
+            'DAILY',
+            '2026-12-31',
+            '2027-01-01',
+        ],
+        [
+            'WEEKLY',
+            '2026-12-31',
+            '2027-01-07',
+        ],
+        [
+            'MONTHLY',
+            '2026-10-09',
+            '2026-11-09',
+        ],
+        [
+            'MONTHLY',
+            '2026-01-31',
+            '2026-02-28',
+        ],
+        [
+            'MONTHLY',
+            '2028-01-31',
+            '2028-02-29',
+        ],
+        [
+            'MONTHLY',
+            '2026-12-31',
+            '2027-01-31',
+        ],
+    ] as const)(
+        'starts %s collection after release on %s at %s',
+        (paymentFrequency, releaseDate, expected) => {
+            expect(getFirstPaymentDate(releaseDate, paymentFrequency)).toBe(
+                expected,
+            )
+        },
+    )
+
+    it.each([
+        [
+            'DAILY',
+            26,
+        ],
+        [
+            'WEEKLY',
+            182,
+        ],
+        [
+            'MONTHLY',
+            780,
+        ],
+    ] as const)(
+        'derives a %s term from the actual principal and preserves collection per payment',
+        (paymentFrequency, termDays) => {
+            const calculation = calculateLoan({
+                collectionAmountMinor: 14_000,
+                principalAmountCents: 300_000,
+                interestMethod: 'FLAT_PERCENTAGE',
+                interestRateBasisPoints: 2_000,
+                termDays: 60,
+                installmentCount: 60,
+                paymentFrequency,
+                roundingMode: 'HALF_UP',
+            })
+            const schedule = createInstallmentSchedule({
+                ...calculation,
+                firstDueDate: '2026-01-01',
+                installmentAmountCents: calculation.baseInstallmentAmountCents,
+            })
+            expect(calculation).toMatchObject({
+                interestAmountCents: 60_000,
+                totalPayableAmountCents: 360_000,
+                installmentCount: 26,
+                termDays,
+                baseInstallmentAmountCents: 14_000,
+            })
+            expect(
+                schedule.map((installment) => installment.amountDueCents),
+            ).toEqual([
+                ...Array<number>(25).fill(14_000),
+                10_000,
+            ])
+            expect(
+                schedule.reduce(
+                    (sum, installment) => sum + installment.amountDueCents,
+                    0,
+                ),
+            ).toBe(360_000)
+        },
+    )
+
+    it('handles fixed interest and a collection greater than the total as one final payment', () => {
+        const calculation = calculateLoan({
+            collectionAmountMinor: 500_000,
+            principalAmountCents: 300_000,
+            fixedInterestAmountMinor: 20_000,
+            interestMethod: 'FIXED_AMOUNT',
+            termDays: 60,
+            installmentCount: 60,
+            paymentFrequency: 'DAILY',
+            roundingMode: 'HALF_UP',
+        })
+        expect(calculation).toMatchObject({
+            installmentCount: 1,
+            termDays: 1,
+            baseInstallmentAmountCents: 320_000,
+        })
+        expect(
+            createInstallmentSchedule({
+                ...calculation,
+                firstDueDate: '2026-01-01',
+                installmentAmountCents: calculation.baseInstallmentAmountCents,
+            }),
+        ).toEqual([
+            {
+                installmentNumber: 1,
+                dueDate: '2026-01-01',
+                amountDueCents: 320_000,
+            },
+        ])
+    })
+
+    it('rejects collection amounts that exceed the supported repayment term', () => {
+        expect(() =>
+            calculateLoan({
+                collectionAmountMinor: 1,
+                principalAmountCents: 300_000,
+                interestMethod: 'FLAT_PERCENTAGE',
+                interestRateBasisPoints: 2_000,
+                termDays: 60,
+                installmentCount: 60,
+                paymentFrequency: 'DAILY',
+                roundingMode: 'HALF_UP',
+            }),
+        ).toThrow(
+            'Collection per payment must produce a repayment term of at most 3,660 days.',
+        )
+    })
     it('calculates a ₱5,000 loan with the locked 20% 60-day daily profile', () => {
         const calculation = calculateLoan({
             principalAmountCents: 500_000,

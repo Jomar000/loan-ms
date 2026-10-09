@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { cn } from '@loanms/ui/utils'
+    import { Badge } from '@loanms/ui/components/badge'
     import ArchiveIcon from '@lucide/svelte/icons/archive'
     import CircleCheckIcon from '@lucide/svelte/icons/circle-check'
     import CirclePauseIcon from '@lucide/svelte/icons/circle-pause'
+    import type { Snippet } from 'svelte'
 
     ////////////////////
     // 01. Properties //
@@ -10,43 +11,123 @@
 
     let {
         archived = false,
+        children,
+        label,
         status,
     }: {
         archived?: boolean
-        status: 'ACTIVE' | 'INACTIVE'
+        children?: Snippet
+        label?: string
+        status: string
     } = $props()
+
+    ///////////////////
+    // 02. Constants //
+    ///////////////////
+
+    const tones: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
+        ACTIVE: 'success',
+        APPROVED: 'success',
+        ARCHIVED: 'danger',
+        BAD_PAYER: 'warning',
+        BLOCKED: 'danger',
+        CANCELLED: 'danger',
+        DEFAULT: 'info',
+        DISABLED: 'warning',
+        DRAFT: 'info',
+        ENABLED: 'success',
+        FAILED: 'danger',
+        FULLY_PAID: 'success',
+        GOOD_PAYER: 'success',
+        INACTIVE: 'warning',
+        OVERDUE: 'danger',
+        PAID: 'success',
+        PARTIAL: 'warning',
+        PENDING_APPROVAL: 'warning',
+        POSTED: 'success',
+        QUEUED: 'warning',
+        RELEASED: 'success',
+        RENEWED: 'info',
+        REVERSED: 'danger',
+        REVOKED: 'danger',
+        SCAMMER: 'danger',
+        UPCOMING: 'warning',
+        UPLOADED: 'success',
+        UPLOADING: 'info',
+        WAIVED: 'info',
+        WRITTEN_OFF: 'danger',
+    }
 
     /////////////////
     // 04. Derived //
     /////////////////
 
     const state = $derived(archived ? 'ARCHIVED' : status)
-    const label = $derived(
-        state === 'ACTIVE'
-            ? 'Active'
-            : state === 'INACTIVE'
-              ? 'Inactive'
-              : 'Archived',
+    const displayLabel = $derived(
+        archived
+            ? 'Archived'
+            : (label ??
+                  (state === 'ACTIVE'
+                      ? 'Active'
+                      : state === 'INACTIVE'
+                        ? 'Inactive'
+                        : state.replaceAll('_', ' '))),
     )
+    const tone = $derived(tones[state] ?? 'neutral')
 </script>
 
 <span
-    class={cn(
-        'inline-flex h-6 items-center gap-1 rounded-sm border px-2 text-[11px] font-medium',
-        state === 'ACTIVE' &&
-            'border-success-active-border bg-success text-success-foreground',
-        state === 'INACTIVE' &&
-            'border-warning-active-border bg-warning text-warning-foreground',
-        state === 'ARCHIVED' &&
-            'border-danger-active-border bg-danger text-danger-foreground',
-    )}
+    class="status-badge"
+    data-tone={tone}
 >
-    {#if state === 'ACTIVE'}
-        <CircleCheckIcon class="size-3" />
-    {:else if state === 'INACTIVE'}
-        <CirclePauseIcon class="size-3" />
-    {:else}
-        <ArchiveIcon class="size-3" />
-    {/if}
-    {label}
+    <Badge
+        class="h-6 rounded-full"
+        variant="outline"
+    >
+        {#if children}
+            {@render children()}
+        {:else}
+            {#if state === 'ACTIVE'}
+                <CircleCheckIcon aria-hidden="true" />
+            {:else if state === 'INACTIVE'}
+                <CirclePauseIcon aria-hidden="true" />
+            {:else if state === 'ARCHIVED'}
+                <ArchiveIcon aria-hidden="true" />
+            {/if}
+            {displayLabel}
+        {/if}
+    </Badge>
 </span>
+
+<style>
+    .status-badge {
+        display: inline-flex;
+        border-radius: 9999px;
+        background-color: var(--muted);
+        --foreground: var(--muted-foreground);
+    }
+
+    .status-badge[data-tone='success'] {
+        background-color: var(--success);
+        --foreground: var(--success-foreground);
+        --border: var(--success-active-border);
+    }
+
+    .status-badge[data-tone='warning'] {
+        background-color: var(--warning);
+        --foreground: var(--warning-foreground);
+        --border: var(--warning-active-border);
+    }
+
+    .status-badge[data-tone='danger'] {
+        background-color: var(--danger);
+        --foreground: var(--danger-foreground);
+        --border: var(--danger-active-border);
+    }
+
+    .status-badge[data-tone='info'] {
+        background-color: var(--info);
+        --foreground: var(--info-foreground);
+        --border: var(--info-active-border);
+    }
+</style>

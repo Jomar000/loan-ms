@@ -1,6 +1,5 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
-    import { Badge } from '@loanms/ui/components/badge'
     import { Button } from '@loanms/ui/components/button'
     import * as Card from '@loanms/ui/components/card'
     import * as Empty from '@loanms/ui/components/empty'
@@ -10,6 +9,7 @@
     import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import { goto } from '$app/navigation'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import type { AppRole } from '$lib/modules/app/utilities/navigation'
     import {
         formatCurrency,
@@ -347,11 +347,7 @@
                                     >{formatProgress(collection)}</Table.Cell
                                 >
                                 <Table.Cell class="h-11 px-3 py-1.5">
-                                    <Badge
-                                        variant="outline"
-                                        class="h-6 rounded-full border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                                        >{collection.status}</Badge
-                                    >
+                                    <StatusBadge status={collection.status} />
                                 </Table.Cell>
                                 {#if canRecordPayment || canViewBorrower}
                                     <Table.Cell
@@ -393,6 +389,7 @@
 {#if canRecordPayment && selectedCollection}
     <PaymentWorkflowDialog
         bind:open={paymentOpen}
+        collection={selectedCollection}
         loanPublicId={selectedCollection.loanPublicId}
         onRecorded={() => void collectionQuery.refetch()}
     />

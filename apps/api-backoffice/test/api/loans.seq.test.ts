@@ -292,6 +292,347 @@ describe('Loan origination API', () => {
         expect(cashTransactions).toEqual([{ amountMinor: 7_000_00 }])
     })
 
+    it.each([
+        'WEEKLY',
+        'MONTHLY',
+    ] as const)(
+        'starts %s collection one period after actual cash release',
+        async (paymentFrequency) => {
+            const db = dbClient(env.LOANMSBOFC_D1)
+            const [profile] = await db
+                .select()
+                .from(dbSchema.loanFormulaProfile)
+                .where(
+                    eq(
+                        dbSchema.loanFormulaProfile.publicId,
+                        formulaProfilePublicId,
+                    ),
+                )
+            const profilePublicId = uuidv7()
+            await db.insert(dbSchema.loanFormulaProfile).values({
+                ...profile,
+                id: undefined,
+                installmentCount: 2,
+                isDefault: false,
+                name: `__TEST-${paymentFrequency} Collection Formula`,
+                paymentFrequency,
+                publicId: profilePublicId,
+            })
+            const product = await postTestingRequest(
+                '/api/loans/product/create',
+                {
+                    body: {
+                        formulaProfilePublicId: profilePublicId,
+                        idempotencyKey: uuidv7(),
+                        maximumPrincipalMinor: 2_000_000,
+                        minimumPrincipalMinor: 100_000,
+                        name: `__TEST-${paymentFrequency} Collection Product`,
+                    },
+                    cookie: ownerCookie,
+                },
+            )
+            expect(product.status).toBe(201)
+            const productJson = await product.json<
+                TApiResponseOk<{
+                    publicId: string
+                    paymentFrequency: string
+                }>
+            >()
+            expect(productJson.data.paymentFrequency).toBe(paymentFrequency)
+            const input = {
+                borrowerPublicId,
+                firstPaymentDate: '2026-10-10',
+                loanProductPublicId: productJson.data.publicId,
+                principalMinor: 100_000,
+                releaseDate: '2026-10-09',
+            }
+            const quote = await postTestingRequest('/api/loans/quote', {
+                body: input,
+                cookie: ownerCookie,
+            })
+            expect(quote.status).toBe(200)
+            const quoteJson = await quote.json<
+                TApiResponseOk<{
+                    firstPaymentDate: string
+                    installments: { dueDate: string }[]
+                }>
+            >()
+            const estimatedFirstDate =
+                paymentFrequency === 'WEEKLY' ? '2026-10-16' : '2026-11-09'
+            expect(quoteJson.data.firstPaymentDate).toBe(estimatedFirstDate)
+            expect(quoteJson.data.installments[0]?.dueDate).toBe(
+                estimatedFirstDate,
+            )
+            const create = await postTestingRequest('/api/loans/create', {
+                body: { ...input, idempotencyKey: uuidv7() },
+                cookie: ownerCookie,
+            })
+            expect(create.status).toBe(201)
+            const created = await create.json<
+                TApiResponseOk<{
+                    publicId: string
+                    firstPaymentDate: string
+                }>
+            >()
+            expect(created.data.firstPaymentDate).toBe(estimatedFirstDate)
+            const approve = await postTestingRequest(
+                `/api/loans/${created.data.publicId}/approve`,
+                { body: {}, cookie: ownerCookie },
+            )
+            expect(approve.status).toBe(200)
+            const release = await postTestingRequest(
+                `/api/loans/${created.data.publicId}/release`,
+                { body: {}, cookie: ownerCookie },
+            )
+            expect(release.status).toBe(200)
+            const released = await release.json<
+                TApiResponseOk<{
+                    releaseDate: string
+                    firstPaymentDate: string
+                    expectedCompletionDate: string
+                    installments: { dueDate: string }[]
+                }>
+            >()
+            const releaseDate = released.data.releaseDate
+            const date = new Date(`${releaseDate}T00:00:00.000Z`)
+            const collectionDate = new Date(date)
+            if (paymentFrequency === 'WEEKLY') {
+                collectionDate.setUTCDate(date.getUTCDate() + 7)
+            } else {
+                collectionDate.setUTCDate(1)
+                collectionDate.setUTCMonth(date.getUTCMonth() + 1)
+                const lastDay = new Date(
+                    Date.UTC(
+                        collectionDate.getUTCFullYear(),
+                        collectionDate.getUTCMonth() + 1,
+                        0,
+                    ),
+                ).getUTCDate()
+                collectionDate.setUTCDate(Math.min(date.getUTCDate(), lastDay))
+            }
+            const firstPaymentDate = collectionDate.toISOString().slice(0, 10)
+            const finalDate = new Date(collectionDate)
+            if (paymentFrequency === 'WEEKLY') {
+                finalDate.setUTCDate(finalDate.getUTCDate() + 7)
+            } else {
+                finalDate.setUTCDate(1)
+                finalDate.setUTCMonth(collectionDate.getUTCMonth() + 1)
+                const lastDay = new Date(
+                    Date.UTC(
+                        finalDate.getUTCFullYear(),
+                        finalDate.getUTCMonth() + 1,
+                        0,
+                    ),
+                ).getUTCDate()
+                finalDate.setUTCDate(
+                    Math.min(collectionDate.getUTCDate(), lastDay),
+                )
+            }
+            const lastDueDate = finalDate.toISOString().slice(0, 10)
+            expect(released.data.firstPaymentDate).toBe(firstPaymentDate)
+            expect(
+                released.data.installments.map(
+                    (installment) => installment.dueDate,
+                ),
+            ).toEqual([
+                firstPaymentDate,
+                lastDueDate,
+            ])
+            expect(released.data.expectedCompletionDate).toBe(lastDueDate)
+            const [storedLoan] = await db
+                .select({
+                    firstPaymentDate: dbSchema.loan.firstPaymentDate,
+                    releaseDate: dbSchema.loan.releaseDate,
+                    expectedCompletionDate:
+                        dbSchema.loan.expectedCompletionDate,
+                })
+                .from(dbSchema.loan)
+                .where(
+                    and(
+                        eq(
+                            dbSchema.loan.organizationId,
+                            TEST_PRIMARY_ORGANIZATION_ID,
+                        ),
+                        eq(dbSchema.loan.publicId, created.data.publicId),
+                    ),
+                )
+            expect(storedLoan).toEqual({
+                firstPaymentDate,
+                releaseDate,
+                expectedCompletionDate: lastDueDate,
+            })
+        },
+    )
+
+    it('uses the new loan principal for a saved collection profile through quote, create, and release', async () => {
+        const profile = await postTestingRequest(
+            '/api/settings/formulaProfile/create',
+            {
+                body: {
+                    idempotencyKey: uuidv7(),
+                    formulaProfile: {
+                        allowRenewalPrincipalChange: true,
+                        collectionAmountMinor: 14_000,
+                        effectiveDate: '2026-10-01',
+                        installmentCount: 60,
+                        interestMethod: 'FLAT_PERCENTAGE',
+                        interestRateBasisPoints: 2_000,
+                        minimumRenewalCompletedInstallments: 30,
+                        name: '__TEST-Collection Formula',
+                        partialCreditPolicy: 'CARRY_FORWARD',
+                        paymentFrequency: 'DAILY',
+                        renewalSettlementMethod:
+                            'COMPLETED_INSTALLMENT_BALANCE',
+                        roundingMode: 'HALF_UP',
+                        roundingPrecision: 0,
+                        termDays: 60,
+                        version: 1,
+                    },
+                },
+                cookie: ownerCookie,
+            },
+        )
+        expect(profile.status).toBe(201)
+        const profileJson = await profile.json<
+            TApiResponseOk<{
+                publicId: string
+                collectionAmountMinor: number
+            }>
+        >()
+        expect(profileJson.data.collectionAmountMinor).toBe(14_000)
+        const activate = await postTestingRequest(
+            `/api/settings/formulaProfile/${profileJson.data.publicId}/activate`,
+            {
+                body: { isDefault: false },
+                cookie: ownerCookie,
+            },
+        )
+        expect(activate.status).toBe(200)
+        const product = await postTestingRequest('/api/loans/product/create', {
+            body: {
+                formulaProfilePublicId: profileJson.data.publicId,
+                idempotencyKey: uuidv7(),
+                maximumPrincipalMinor: 20_000_00,
+                minimumPrincipalMinor: 1_000_00,
+                name: '__TEST-Collection Product',
+            },
+            cookie: ownerCookie,
+        })
+        expect(product.status).toBe(201)
+        const productJson =
+            await product.json<TApiResponseOk<{ publicId: string }>>()
+        const input = {
+            borrowerPublicId,
+            firstPaymentDate: '2026-10-10',
+            loanProductPublicId: productJson.data.publicId,
+            principalMinor: 300_000,
+            releaseDate: '2026-10-09',
+        }
+        const quote = await postTestingRequest('/api/loans/quote', {
+            body: input,
+            cookie: ownerCookie,
+        })
+        expect(quote.status).toBe(200)
+        const quoted = await quote.json<
+            TApiResponseOk<{
+                formulaSnapshot: { installmentCount: number; termDays: number }
+                installments: { amountDueMinor: number }[]
+                installmentAmountMinor: number
+                interestAmountMinor: number
+                principalMinor: number
+                totalPayableMinor: number
+            }>
+        >()
+        expect(quoted.data).toMatchObject({
+            formulaSnapshot: { installmentCount: 26, termDays: 26 },
+            installmentAmountMinor: 14_000,
+            interestAmountMinor: 60_000,
+            principalMinor: 300_000,
+            totalPayableMinor: 360_000,
+        })
+        const expectedAmounts = [
+            ...Array<number>(25).fill(14_000),
+            10_000,
+        ]
+        expect(
+            quoted.data.installments.map(
+                (installment) => installment.amountDueMinor,
+            ),
+        ).toEqual(expectedAmounts)
+        const create = await postTestingRequest('/api/loans/create', {
+            body: { ...input, idempotencyKey: uuidv7() },
+            cookie: ownerCookie,
+        })
+        expect(create.status).toBe(201)
+        const created = await create.json<
+            TApiResponseOk<{
+                publicId: string
+                formulaSnapshot: {
+                    installmentCount: number
+                    termDays: number
+                }
+            }>
+        >()
+        expect(created.data.formulaSnapshot).toMatchObject({
+            installmentCount: 26,
+            termDays: 26,
+        })
+        const approve = await postTestingRequest(
+            `/api/loans/${created.data.publicId}/approve`,
+            { body: {}, cookie: ownerCookie },
+        )
+        expect(approve.status).toBe(200)
+        const release = await postTestingRequest(
+            `/api/loans/${created.data.publicId}/release`,
+            { body: {}, cookie: ownerCookie },
+        )
+        expect(release.status).toBe(200)
+        const released =
+            await release.json<
+                TApiResponseOk<{ installments: { amountDueMinor: number }[] }>
+            >()
+        expect(
+            released.data.installments.map(
+                (installment) => installment.amountDueMinor,
+            ),
+        ).toEqual(expectedAmounts)
+        const db = dbClient(env.LOANMSBOFC_D1)
+        const [stored] = await db
+            .select()
+            .from(dbSchema.loan)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loan.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loan.publicId, created.data.publicId),
+                ),
+            )
+        expect(stored).toMatchObject({
+            installmentCount: 26,
+            termDays: 26,
+            minCompletedInstallments: 26,
+            installmentAmountMinor: 14_000,
+        })
+        const schedule = await db
+            .select({ amountDueMinor: dbSchema.loanInstallment.amountDueMinor })
+            .from(dbSchema.loanInstallment)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loanInstallment.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loanInstallment.loanId, stored.id),
+                ),
+            )
+            .orderBy(dbSchema.loanInstallment.installmentNumber)
+        expect(
+            schedule.map((installment) => installment.amountDueMinor),
+        ).toEqual(expectedAmounts)
+    })
+
     it('deletes pending loans regardless of product availability', async () => {
         const createPending = async () => {
             const response = await postTestingRequest('/api/loans/create', {

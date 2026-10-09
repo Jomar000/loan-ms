@@ -9,14 +9,13 @@
     import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
     import ChevronRightIcon from '@lucide/svelte/icons/chevron-right'
     import PanelLeftCloseIcon from '@lucide/svelte/icons/panel-left-close'
-    import PanelLeftOpenIcon from '@lucide/svelte/icons/panel-left-open'
     import { useQueryClient } from '@tanstack/svelte-query'
     import { onDestroy } from 'svelte'
     import { toast } from 'svelte-sonner'
     import { SvelteSet } from 'svelte/reactivity'
 
     import { page } from '$app/state'
-    import { PUBLIC_NAME } from '$env/static/public'
+    import { IMG_logo } from '$lib/assets/image'
     import {
         createOrganizationListQuery,
         createSetActiveOrganizationMutation,
@@ -253,7 +252,13 @@
                                     class="mx-auto size-9 justify-center rounded-md p-0 text-sidebar-foreground/60 transition-colors group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-0! hover:bg-sidebar-accent/60 hover:text-sidebar-foreground active:translate-y-0"
                                     onclick={() => sidebar.toggle()}
                                 >
-                                    <PanelLeftOpenIcon />
+                                    <img
+                                        alt="Loan Management System logo"
+                                        class="size-8 object-contain"
+                                        height="32"
+                                        src={IMG_logo}
+                                        width="32"
+                                    />
                                 </Sidebar.MenuButton>
                             {/snippet}
                         </Tooltip.Trigger>
@@ -265,21 +270,23 @@
             </Sidebar.Menu>
         {:else}
             <div class="flex w-full items-center gap-3 pr-2 pl-4">
-                <div
-                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground"
-                >
-                    H
-                </div>
+                <img
+                    alt="Loan Management System logo"
+                    class="size-10 shrink-0 object-contain"
+                    height="40"
+                    src={IMG_logo}
+                    width="40"
+                />
                 <div class="flex min-w-0 flex-1 flex-col">
                     <span
                         class="text-sm/tight font-semibold tracking-tight text-sidebar-foreground"
                     >
-                        {PUBLIC_NAME}
+                        LoanMS
                     </span>
                     <span
                         class="truncate text-[10px] leading-tight text-sidebar-foreground/50"
                     >
-                        Application Platform
+                        Management System
                     </span>
                 </div>
                 {#if !sidebar.isMobile}

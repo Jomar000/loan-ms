@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Badge } from '@loanms/ui/components/badge'
+    import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
 
     import type { LoanStatus } from '../types'
 
@@ -14,13 +14,9 @@
     /////////////////
 
     const label = $derived(status.replaceAll('_', ' '))
-    const variant = $derived(
-        status === 'CANCELLED' || status === 'WRITTEN_OFF'
-            ? 'destructive'
-            : status === 'ACTIVE' || status === 'APPROVED'
-              ? 'default'
-              : 'secondary',
-    )
 </script>
 
-<Badge {variant}>{label}</Badge>
+<StatusBadge
+    {status}
+    {label}
+/>
