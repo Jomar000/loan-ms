@@ -71,3 +71,16 @@ export async function fetchCollectionsForDate(
     if (!responseJson.success) throw new Error(responseJson.error.message)
     return responseJson.data
 }
+
+export async function fetchCollectionsForBorrower(
+    borrowerPublicId: string,
+): Promise<CollectionItem[]> {
+    const param = paymentValidator.collectionBorrowerInputSchema.parse({
+        borrowerPublicId,
+    })
+    const responseJson = await (
+        await collectionsClient.borrower[':borrowerPublicId'].$get({ param })
+    ).json()
+    if (!responseJson.success) throw new Error(responseJson.error.message)
+    return responseJson.data
+}

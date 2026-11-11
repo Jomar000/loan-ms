@@ -119,6 +119,17 @@ vi.mock('./loan/queries', () => ({
     createLoanQuoteMutation: () => ({ mutateAsync: vi.fn() }),
 }))
 vi.mock('./payment/queries', () => ({
+    createCollectionsBorrowerQuery: () => ({
+        data: Array.from({ length: 5 }, (_, index) => ({
+            dueDate: `2026-10-0${index + 4}`,
+            installmentNumber: index + 1,
+            loanPublicId: '019936e2-b837-7000-8000-000000000101',
+            remainingAmountMinor: 10_000,
+            status: 'UPCOMING',
+        })),
+        isError: false,
+        isPending: false,
+    }),
     createPaymentCreateMutation: () => ({ mutateAsync: mocks.paymentCreate }),
     createPaymentQuoteMutation: () => ({ mutateAsync: mocks.paymentQuote }),
 }))
@@ -244,41 +255,103 @@ describe('financial workflow responsive verification', () => {
         await screen.unmount()
     })
 
-    it('fits payment collection and paired fields in the mobile viewport', async () => {
-        await page.viewport(BREAKPOINTS.mobile.width, BREAKPOINTS.mobile.height)
-        const screen = await render(PaymentWorkflowDialog, {
-            props: {
-                collection: {
-                    amountDueMinor: 14_000,
-                    amountPaidMinor: 6_000,
-                    borrowerName: '__TEST-Collection Borrower',
-                    borrowerPublicId: '019936e2-b837-7000-8000-000000000001',
-                    dueDate: '2026-10-04',
-                    installmentNumber: 2,
-                    loanNumber: 'LN-000001',
+    it.each([
+        { name: 'mobile', ...BREAKPOINTS.mobile },
+        { name: 'laptop', ...BREAKPOINTS.laptop },
+    ])(
+        'fits payment collection and covered-date selectors in the $name viewport',
+        async ({ name, width, height }) => {
+            await page.viewport(width, height)
+            const screen = await render(PaymentWorkflowDialog, {
+                props: {
+                    collection: {
+                        amountDueMinor: 14_000,
+                        amountPaidMinor: 6_000,
+                        borrowerName: '__TEST-Collection Borrower',
+                        borrowerPublicId:
+                            '019936e2-b837-7000-8000-000000000001',
+                        dueDate: '2026-10-04',
+                        installmentNumber: 2,
+                        loanNumber: 'LN-000001',
+                        loanPublicId: '019936e2-b837-7000-8000-000000000101',
+                        loanStatus: 'ACTIVE',
+                        paymentFrequency: 'DAILY',
+                        remainingAmountMinor: 8_000,
+                        status: 'PARTIAL',
+                    },
                     loanPublicId: '019936e2-b837-7000-8000-000000000101',
-                    loanStatus: 'ACTIVE',
-                    paymentFrequency: 'DAILY',
-                    remainingAmountMinor: 8_000,
-                    status: 'PARTIAL',
+                    open: true,
                 },
-                loanPublicId: '019936e2-b837-7000-8000-000000000101',
-                open: true,
-            },
-        })
+            })
 
-        expectDialogFitsViewport(
-            screen.getByRole('dialog', { name: 'Record payment' }).element(),
-        )
-        expectElementsFitViewport(
-            screen
-                .getByRole('region', { name: 'Selected collection' })
-                .element(),
-            screen.getByLabelText('Payment date').element(),
-            screen.getByLabelText('Payment method').element(),
-        )
-        await screen.unmount()
-    })
+            expectDialogFitsViewport(
+                screen
+                    .getByRole('dialog', { name: 'Record payment' })
+                    .element(),
+            )
+            expect(
+                screen
+                    .getByRole('dialog', { name: 'Record payment' })
+                    .element()
+                    .getBoundingClientRect().height,
+            ).toBeLessThanOrEqual(650)
+            const calculate = screen
+                .getByRole('button', { name: 'Calculate allocation' })
+                .element()
+            expect(
+                calculate.getBoundingClientRect().bottom,
+            ).toBeLessThanOrEqual(height)
+            if (name === 'laptop') {
+                const form = screen
+                    .getByLabelText('Amount received (PHP)')
+                    .element()
+                    .closest('form')!
+                expect(
+                    getCard(screen, 'Payment quote').getBoundingClientRect()
+                        .left,
+                ).toBeGreaterThanOrEqual(form.getBoundingClientRect().right)
+            }
+            expectElementsFitViewport(
+                screen
+                    .getByRole('region', { name: 'Selected collection' })
+                    .element(),
+                screen.getByLabelText('Payment date').element(),
+                screen.getByLabelText('Payment method').element(),
+            )
+            await screen.getByLabelText('Date selection').selectOptions('range')
+            await screen.getByLabelText('Cover from').fill('2026-10-04')
+            await screen.getByLabelText('Cover through').fill('2026-10-08')
+            expectElementsFitViewport(
+                screen.getByLabelText('Cover from').element(),
+                screen.getByLabelText('Cover through').element(),
+            )
+            await expect
+                .element(screen.getByRole('status'))
+                .toHaveTextContent('5 installment dates selected')
+            await screen.getByLabelText('Date selection').selectOptions('dates')
+            expectElementsFitViewport(
+                screen
+                    .getByRole('checkbox', { name: 'Cover 2026-10-04' })
+                    .element(),
+            )
+            expectDialogFitsViewport(
+                screen
+                    .getByRole('dialog', { name: 'Record payment' })
+                    .element(),
+            )
+            await expect
+                .element(
+                    screen.getByRole('button', {
+                        name: 'Calculate allocation',
+                    }),
+                )
+                .toBeVisible()
+            expect(
+                calculate.getBoundingClientRect().bottom,
+            ).toBeLessThanOrEqual(height)
+            await screen.unmount()
+        },
+    )
 
     it('keeps renewal dates contained and stacks settlement cards on mobile', async () => {
         await page.viewport(BREAKPOINTS.mobile.width, BREAKPOINTS.mobile.height)

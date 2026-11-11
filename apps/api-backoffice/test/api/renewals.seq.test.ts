@@ -1,10 +1,14 @@
 import { dbClient, dbSchema } from '@loanms/database/d1'
-import type { TApiResponseOk } from '@loanms/types/shared'
+import type {
+    TApiResponseOk,
+    TApiResponsePaginatedOk,
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { currentManilaDate } from '../../src/services/borrowerPaymentTag.js'
 import {
     getTestingRequest,
     postTestingRequest,
@@ -12,6 +16,7 @@ import {
     seedTestingCookies,
     TEST_PRIMARY_ORGANIZATION_ID,
 } from '../utilities.js'
+import { traceQueryRequest } from './queryPerformance.shared.js'
 
 let borrowerPublicId: string
 let loanProductPublicId: string
@@ -196,11 +201,68 @@ describe('Renewal API', () => {
             `/api/renewals/read/${createJson.data.publicId}`,
             { cookie: ownerCookie },
         )
-        const list = await queryTestingRequest(
+        const tracedList = await traceQueryRequest(
             '/api/renewals/readMany',
             { filters: { previousLoanPublicId: oldLoanPublicId } },
-            { cookie: ownerCookie },
+            ownerCookie,
         )
+        const list = tracedList.response
+        expect(
+            tracedList.statements.filter((query) =>
+                /from "loan_renewal"/i.test(query),
+            ),
+        ).toHaveLength(2)
+        const page = await list.clone().json<
+            TApiResponsePaginatedOk<
+                {
+                    publicId: string
+                    previousLoanPublicId: string
+                    newLoanPublicId: string
+                    processedAt: string
+                }[]
+            >
+        >()
+        expect(page.data).toEqual([
+            expect.objectContaining({
+                publicId: createJson.data.publicId,
+                previousLoanPublicId: oldLoanPublicId,
+                newLoanPublicId: createJson.data.newLoanPublicId,
+                processedAt: expect.any(String),
+            }),
+        ])
+        for (const [
+            filters,
+            renewalCount,
+            releasedMinor,
+        ] of [
+            [
+                { dateFrom: currentManilaDate(), dateTo: currentManilaDate() },
+                1,
+                700_000,
+            ],
+            [
+                { dateTo: '1900-01-01' },
+                0,
+                0,
+            ],
+        ] as const) {
+            const report = await queryTestingRequest(
+                '/api/reports/renewals',
+                { filters },
+                { cookie: ownerCookie },
+            )
+            expect(report.status).toBe(200)
+            expect(
+                (
+                    await report.json<
+                        TApiResponseOk<{
+                            renewalCount: number
+                            releasedMinor: number
+                        }>
+                    >()
+                ).data,
+            ).toMatchObject({ renewalCount, releasedMinor })
+        }
         const oldLoan = await getTestingRequest(
             `/api/loans/read/${oldLoanPublicId}`,
             { cookie: ownerCookie },
@@ -243,6 +305,7 @@ describe('Renewal API', () => {
                     eq(dbSchema.capitalTransaction.loanRenewalId, renewal!.id),
                 ),
             )
+            .orderBy(asc(dbSchema.capitalTransaction.id))
         const [
             fund,
             report,

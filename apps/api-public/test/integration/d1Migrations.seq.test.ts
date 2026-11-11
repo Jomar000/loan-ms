@@ -36,9 +36,11 @@ const expectedLoanManagementIndexes = [
     'borrower_idx_duplicate_secondary_contact',
     'borrower_idx_list',
     'borrower_idx_payment_tag',
+    'borrower_idx_recent',
     'borrower_payment_tag_history_idx_borrower',
     'capital_transaction_idx_fund',
     'capital_transaction_idx_list',
+    'capital_transaction_idx_period',
     'cash_transaction_idx_loan',
     'cash_transaction_idx_renewal',
     'cash_transaction_organization_id_id_unique',
@@ -51,6 +53,7 @@ const expectedLoanManagementIndexes = [
     'loan_formula_profile_organization_id_id_unique',
     'loan_idx_borrower_history',
     'loan_idx_list',
+    'loan_idx_recent',
     'loan_collection_assignment_idx_collector_active',
     'loan_installment_idx_collections',
     'loan_installment_idx_schedule',
@@ -58,8 +61,10 @@ const expectedLoanManagementIndexes = [
     'loan_product_idx_list',
     'loan_renewal_idx_borrower',
     'loan_renewal_idx_list',
+    'loan_renewal_idx_recent',
     'payment_idx_borrower_history',
     'payment_idx_collections',
+    'payment_idx_recent',
     'system_settings_unique_current',
 ] as const
 
@@ -103,6 +108,40 @@ const listSchemaObjects = async (type: 'index' | 'table' | 'trigger') => {
 }
 
 describe('D1 baseline migration compatibility', () => {
+    it.each([
+        { table: 'borrower', date: 'created_at', index: 'borrower_idx_recent' },
+        { table: 'loan', date: 'created_at', index: 'loan_idx_recent' },
+        { table: 'payment', date: 'created_at', index: 'payment_idx_recent' },
+        {
+            table: 'loan_renewal',
+            date: 'processed_at',
+            index: 'loan_renewal_idx_recent',
+        },
+    ])(
+        'uses $index for tenant pages without a temporary sort',
+        async ({ table, date, index }) => {
+            const plan = await env.LOANMSPUB_D1.prepare(
+                `EXPLAIN QUERY PLAN SELECT id FROM ${table} WHERE organization_id = ? ORDER BY ${date} DESC, id DESC LIMIT 25`,
+            )
+                .bind('__TEST-PLAN')
+                .all<{ detail: string }>()
+            const details = plan.results.map((row) => row.detail).join('\n')
+            expect(details).toContain(index)
+            expect(details).not.toContain('TEMP B-TREE')
+        },
+    )
+
+    it('uses the ledger date range index for filtered reports', async () => {
+        const plan = await env.LOANMSPUB_D1.prepare(
+            'EXPLAIN QUERY PLAN SELECT sum(amount_minor) FROM capital_transaction WHERE organization_id = ? AND transaction_at >= ? AND transaction_at <= ?',
+        )
+            .bind('__TEST-PLAN', 1, 2)
+            .all<{ detail: string }>()
+        const details = plan.results.map((row) => row.detail).join('\n')
+        expect(details).toContain('capital_transaction_idx_period')
+        expect(details).toContain('transaction_at>? AND transaction_at<?')
+    })
+
     it('installs the exact source-derived table, explicit index, and runtime trigger inventories.', async () => {
         await expect(listSchemaObjects('table')).resolves.toEqual(
             [

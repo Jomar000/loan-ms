@@ -5,7 +5,7 @@ import type {
     TApiResponsePaginatedOk,
 } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
 import { beforeAll, describe, expect, it } from 'vitest'
 
@@ -16,6 +16,7 @@ import {
     seedTestingCookies,
     TEST_PRIMARY_ORGANIZATION_ID,
 } from '../utilities.js'
+import { traceQueryRequest } from './queryPerformance.shared.js'
 
 let borrowerPublicId: string
 let loanProductPublicId: string
@@ -785,5 +786,184 @@ describe('Loan origination API', () => {
         expect(disabledQuote.status).toBe(409)
         expect(blocked.status).toBe(200)
         expect(blockedQuote.status).toBe(409)
+    })
+    it('keeps loan and product pages within a fixed query budget and paginates tied dates consistently', async () => {
+        const db = dbClient(env.LOANMSBOFC_D1)
+        const borrower = await postTestingRequest('/api/borrowers/create', {
+            body: {
+                addressLine: '1 __TEST-Performance Street',
+                barangay: '__TEST Barangay',
+                birthDate: '1990-01-01',
+                cityMunicipality: '__TEST City',
+                contactNumber: '+639179876548',
+                emergencyContactName: '__TEST Emergency',
+                emergencyContactNumber: '+639178765438',
+                emergencyContactRelationship: 'SIBLING',
+                firstName: '__TEST PERFORMANCE',
+                gender: 'PREFER_NOT_TO_SAY',
+                idempotencyKey: uuidv7(),
+                lastName: 'BORROWER',
+                province: '__TEST Province',
+            },
+            cookie: ownerCookie,
+        })
+        expect(borrower.status).toBe(201)
+        const borrowerPublicId = (
+            await borrower.json<
+                TApiResponseOk<{ borrower: { publicId: string } }>
+            >()
+        ).data.borrower.publicId
+        const product = await postTestingRequest('/api/loans/product/create', {
+            body: {
+                formulaProfilePublicId,
+                idempotencyKey: uuidv7(),
+                maximumPrincipalMinor: 1_000_000,
+                minimumPrincipalMinor: 100_000,
+                name: '__TEST-Performance Loan Product',
+            },
+            cookie: ownerCookie,
+        })
+        expect(product.status).toBe(201)
+        const productId = (
+            await product.json<TApiResponseOk<{ publicId: string }>>()
+        ).data.publicId
+        const ids: string[] = []
+        for (let index = 0; index < 3; index++) {
+            const response = await postTestingRequest('/api/loans/create', {
+                body: {
+                    borrowerPublicId,
+                    firstPaymentDate: '2026-10-04',
+                    idempotencyKey: uuidv7(),
+                    loanProductPublicId: productId,
+                    principalMinor: 100_000,
+                    releaseDate: '2026-10-03',
+                },
+                cookie: ownerCookie,
+            })
+            expect(response.status).toBe(201)
+            ids.push(
+                (await response.json<TApiResponseOk<{ publicId: string }>>())
+                    .data.publicId,
+            )
+        }
+        await db
+            .update(dbSchema.loan)
+            .set({ createdAt: new Date('2099-01-01T00:00:00.000Z') })
+            .where(
+                and(
+                    eq(
+                        dbSchema.loan.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    inArray(dbSchema.loan.publicId, ids),
+                ),
+            )
+        const traced = await traceQueryRequest(
+            '/api/loans/readMany',
+            {
+                filters: { borrowerPublicId },
+                limit: 3,
+                offset: 0,
+                sortOrder: 'desc',
+            },
+            ownerCookie,
+        )
+        expect(traced.response.status).toBe(200)
+        const page = await traced.response.json<
+            TApiResponsePaginatedOk<
+                {
+                    publicId: string
+                    borrowerName: string
+                    formulaSnapshot: unknown
+                }[]
+            >
+        >()
+        expect(page.data.map((row) => row.publicId)).toEqual([...ids].reverse())
+        expect(
+            page.data.every(
+                (row) =>
+                    Boolean(row.borrowerName) && Boolean(row.formulaSnapshot),
+            ),
+        ).toBe(true)
+        expect(
+            page.data.every(
+                (row) =>
+                    !('id' in row) &&
+                    !('borrowerId' in row) &&
+                    !('organizationId' in row),
+            ),
+        ).toBe(true)
+        expect(
+            traced.statements.filter((query) => /from "loan"/i.test(query)),
+        ).toHaveLength(2)
+        const next = await traceQueryRequest(
+            '/api/loans/readMany',
+            {
+                filters: { borrowerPublicId },
+                limit: 1,
+                offset: 1,
+                sortOrder: 'desc',
+            },
+            ownerCookie,
+        )
+        expect(next.response.status).toBe(200)
+        expect(
+            (
+                await next.response.json<
+                    TApiResponsePaginatedOk<{ publicId: string }[]>
+                >()
+            ).data.map((row) => row.publicId),
+        ).toEqual([ids[1]])
+        for (let index = 0; index < 2; index++) {
+            expect(
+                (
+                    await postTestingRequest('/api/loans/product/create', {
+                        body: {
+                            formulaProfilePublicId,
+                            idempotencyKey: uuidv7(),
+                            maximumPrincipalMinor: 1_000_000,
+                            minimumPrincipalMinor: 100_000,
+                            name: `__TEST-Performance Product ${index}`,
+                        },
+                        cookie: ownerCookie,
+                    })
+                ).status,
+            ).toBe(201)
+        }
+        const products = await traceQueryRequest(
+            '/api/loans/product/readMany',
+            {
+                filters: { isActive: true },
+                limit: 100,
+                offset: 0,
+                sortOrder: 'desc',
+            },
+            ownerCookie,
+        )
+        expect(products.response.status).toBe(200)
+        const productPage =
+            await products.response.json<
+                TApiResponsePaginatedOk<{ publicId: string; name: string }[]>
+            >()
+        expect(productPage.data).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: '__TEST-Performance Product 0',
+                }),
+                expect.objectContaining({
+                    name: '__TEST-Performance Product 1',
+                }),
+            ]),
+        )
+        expect(
+            productPage.data.every(
+                (row) => !('id' in row) && !('formulaProfileId' in row),
+            ),
+        ).toBe(true)
+        expect(
+            products.statements.filter((query) =>
+                /from "loan_product"/i.test(query),
+            ),
+        ).toHaveLength(2)
     })
 })

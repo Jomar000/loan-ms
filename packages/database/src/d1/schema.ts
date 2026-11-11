@@ -1182,6 +1182,11 @@ const createPayment = () =>
                 sql`${t.paymentDate} DESC`,
                 t.id,
             ),
+            index('payment_idx_recent').on(
+                t.organizationId,
+                sql`${t.createdAt} DESC`,
+                sql`${t.id} DESC`,
+            ),
             index('payment_idx_collections').on(
                 t.organizationId,
                 t.status,
@@ -1640,6 +1645,11 @@ export const borrower = sqliteTable(
             t.status,
             sql`${t.createdAt} DESC`,
             t.id,
+        ),
+        index('borrower_idx_recent').on(
+            t.organizationId,
+            sql`${t.createdAt} DESC`,
+            sql`${t.id} DESC`,
         ),
         index('borrower_idx_payment_tag').on(
             t.organizationId,
@@ -2400,6 +2410,11 @@ export const loan = sqliteTable(
             sql`${t.createdAt} DESC`,
             t.id,
         ),
+        index('loan_idx_recent').on(
+            t.organizationId,
+            sql`${t.createdAt} DESC`,
+            sql`${t.id} DESC`,
+        ),
         index('loan_idx_borrower_history').on(
             t.organizationId,
             t.borrowerId,
@@ -2880,6 +2895,11 @@ export const loanRenewal = sqliteTable(
             sql`${t.processedAt} DESC`,
             t.id,
         ),
+        index('loan_renewal_idx_recent').on(
+            t.organizationId,
+            sql`${t.processedAt} DESC`,
+            sql`${t.id} DESC`,
+        ),
         index('loan_renewal_idx_borrower').on(
             t.organizationId,
             t.borrowerId,
@@ -3309,6 +3329,11 @@ export const capitalTransaction = sqliteTable(
             t.transactionType,
             sql`${t.transactionAt} DESC`,
             t.id,
+        ),
+        index('capital_transaction_idx_period').on(
+            t.organizationId,
+            sql`${t.transactionAt} DESC`,
+            sql`${t.id} DESC`,
         ),
         index('capital_transaction_idx_fund').on(
             t.organizationId,

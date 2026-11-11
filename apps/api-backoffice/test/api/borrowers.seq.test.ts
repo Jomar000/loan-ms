@@ -1,5 +1,9 @@
 import { dbClient, dbSchema } from '@loanms/database/d1'
-import type { TApiResponseError, TApiResponseOk } from '@loanms/types/shared'
+import type {
+    TApiResponseError,
+    TApiResponseOk,
+    TApiResponsePaginatedOk,
+} from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
 import { and, eq, inArray } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
@@ -15,6 +19,7 @@ import {
     TEST_OWNER_USER_ID,
     TEST_PRIMARY_ORGANIZATION_ID,
 } from '../utilities.js'
+import { traceQueryRequest } from './queryPerformance.shared.js'
 
 type TBorrower = {
     addressLine: string
@@ -62,6 +67,7 @@ let db: ReturnType<typeof dbClient>
 let isolatedOwnerCookie: string
 let memberCookie: string
 let ownerCookie: string
+const performanceBorrowerIds: string[] = []
 
 beforeAll(async () => {
     db = dbClient(env.LOANMSBOFC_D1)
@@ -89,6 +95,7 @@ afterAll(async () => {
         borrowerPublicId,
         duplicateBorrowerPublicId,
         minimalBorrowerPublicId,
+        ...performanceBorrowerIds,
     ].filter(Boolean)
     if (borrowerPublicIds.length > 0) {
         const borrowers = await db
@@ -406,5 +413,80 @@ describe('Borrower management API', () => {
         expect(archive.headers.get('audit-event-recorded')).toBe('true')
         expect(read.status).toBe(200)
         expect(readJson.data.status).toBe('ARCHIVED')
+    })
+
+    it('batches borrower counts and pages with stable ordering for tied timestamps', async () => {
+        for (let index = 0; index < 3; index++) {
+            const response = await postTestingRequest('/api/borrowers/create', {
+                body: {
+                    ...borrowerInput,
+                    fullName: `__TEST PERFORMANCE ${index}`,
+                    idempotencyKey: uuidv7(),
+                },
+                cookie: ownerCookie,
+            })
+            expect(response.status).toBe(201)
+            performanceBorrowerIds.push(
+                (
+                    await response.json<
+                        TApiResponseOk<{ borrower: { publicId: string } }>
+                    >()
+                ).data.borrower.publicId,
+            )
+        }
+        await db
+            .update(dbSchema.borrower)
+            .set({ createdAt: new Date('2099-01-01T00:00:00.000Z') })
+            .where(
+                and(
+                    eq(
+                        dbSchema.borrower.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    inArray(dbSchema.borrower.publicId, performanceBorrowerIds),
+                ),
+            )
+        for (const sortOrder of [
+            'asc',
+            'desc',
+        ] as const) {
+            const traced = await traceQueryRequest(
+                '/api/borrowers/readMany',
+                {
+                    filters: { search: '__TEST PERFORMANCE' },
+                    limit: 2,
+                    offset: 1,
+                    sortOrder,
+                },
+                ownerCookie,
+            )
+            expect(traced.response.status).toBe(200)
+            const page =
+                await traced.response.json<
+                    TApiResponsePaginatedOk<
+                        { publicId: string; fullName: string }[]
+                    >
+                >()
+            expect(page.count).toBe(3)
+            const expected =
+                sortOrder === 'asc'
+                    ? performanceBorrowerIds
+                    : [...performanceBorrowerIds].reverse()
+            expect(page.data.map((row) => row.publicId)).toEqual(
+                expected.slice(1, 3),
+            )
+            expect(
+                page.data.every(
+                    (row) =>
+                        row.fullName.includes('__TEST PERFORMANCE') &&
+                        !('id' in row),
+                ),
+            ).toBe(true)
+            expect(
+                traced.statements.filter((query) =>
+                    /from "borrower"/i.test(query),
+                ),
+            ).toHaveLength(2)
+        }
     })
 })

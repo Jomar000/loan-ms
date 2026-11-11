@@ -1,6 +1,6 @@
 import { AppError, catalog, defineError } from '@loanms/errors'
 import * as companyFundValidator from '@loanms/validator/backoffice/companyFund'
-import { and, desc, eq, gte, lte } from 'drizzle-orm'
+import { and, count as countFn, desc, eq, gte, lte, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import type { ApplyGlobalResponse } from 'hono/client'
 import { createMiddleware } from 'hono/factory'
@@ -728,17 +728,25 @@ export const companyFundRoute = new Hono<THonoInstance>()
                         new Date(`${input.filters.dateTo}T23:59:59.999+08:00`),
                     ),
                 )
-            const records = await ctx
+            const recordsQuery = ctx
                 .get('dbClient')
                 .select({
                     amountMinor: capitalTransaction.amountMinor,
                     direction: capitalTransaction.direction,
-                    fundPublicId: companyFund.publicId,
-                    loanPublicId: loan.publicId,
-                    paymentPublicId: payment.publicId,
+                    fundPublicId: sql<string>`${companyFund.publicId}`.as(
+                        'fund_public_id',
+                    ),
+                    loanPublicId: sql<string | null>`${loan.publicId}`.as(
+                        'loan_public_id',
+                    ),
+                    paymentPublicId: sql<string | null>`${payment.publicId}`.as(
+                        'payment_public_id',
+                    ),
                     publicId: capitalTransaction.publicId,
                     referenceNumber: capitalTransaction.referenceNumber,
-                    renewalPublicId: loanRenewal.publicId,
+                    renewalPublicId: sql<
+                        string | null
+                    >`${loanRenewal.publicId}`.as('renewal_public_id'),
                     transactionAt: capitalTransaction.transactionAt,
                     transactionNumber: capitalTransaction.transactionNumber,
                     transactionType: capitalTransaction.transactionType,
@@ -791,16 +799,22 @@ export const companyFundRoute = new Hono<THonoInstance>()
                 )
                 .limit(input.limit)
                 .offset(input.offset)
-            const allRecords = await ctx
-                .get('dbClient')
-                .select({ id: capitalTransaction.id })
-                .from(capitalTransaction)
-                .where(and(...filters))
+            const [
+                [countRow],
+                records,
+            ] = await ctx.get('dbClient').batch([
+                ctx
+                    .get('dbClient')
+                    .select({ count: countFn() })
+                    .from(capitalTransaction)
+                    .where(and(...filters)),
+                recordsQuery,
+            ])
             return apiResponsePaginatedOkWrapper(ctx, {
                 data: records.map((record) =>
                     transactionOutput(record as TCapitalTransaction),
                 ),
-                count: allRecords.length,
+                count: countRow.count,
                 limit: input.limit,
                 offset: input.offset,
             })

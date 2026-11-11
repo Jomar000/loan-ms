@@ -1,6 +1,15 @@
 import { AppError, catalog, defineError } from '@loanms/errors'
 import * as loanValidator from '@loanms/validator/backoffice/loan'
-import { and, asc, count as countFn, desc, eq, isNull, like } from 'drizzle-orm'
+import {
+    and,
+    asc,
+    count as countFn,
+    desc,
+    eq,
+    isNull,
+    like,
+    sql,
+} from 'drizzle-orm'
 import { Hono } from 'hono'
 import type { ApplyGlobalResponse } from 'hono/client'
 import { createMiddleware } from 'hono/factory'
@@ -284,6 +293,64 @@ async function readProduct(
     return (product as TLoanProduct | undefined) ?? null
 }
 
+function loanSelection(ctx: Parameters<typeof getActiveOrganizationId>[0]) {
+    const { borrower, loan, loanFormulaProfile, loanProduct } =
+        ctx.get('dbSchema')
+    // D1 batch results need unique SQL column names across joined tables.
+    return {
+        actualOutstandingBalanceMinor: loan.actualOutstandingBalanceMinor,
+        allowRenewalPrincipalChange: loan.allowRenewalPrincipalChange,
+        approvedAt: loan.approvedAt,
+        borrowerPublicId: sql<string>`${borrower.publicId}`.as(
+            'borrower_public_id',
+        ),
+        completedInstallmentCount: loan.completedInstallmentCount,
+        createdAt: loan.createdAt,
+        dailyPaymentAmountMinor: loan.dailyPaymentAmountMinor,
+        expectedCompletionDate: loan.expectedCompletionDate,
+        finalInstallmentResiduePolicy: loan.finalInstallmentResiduePolicy,
+        firstPaymentDate: loan.firstPaymentDate,
+        fixedInterestAmountMinor: loan.fixedInterestAmountMinor,
+        formulaProfileId: loan.formulaProfileId,
+        formulaProfileName: loan.formulaProfileNameSnapshot,
+        formulaProfilePublicId: sql<string>`${loanFormulaProfile.publicId}`.as(
+            'formula_profile_public_id',
+        ),
+        formulaProfileVersion: loan.formulaProfileVersionSnapshot,
+        id: loan.id,
+        installmentAmountMinor: loan.installmentAmountMinor,
+        installmentCount: loan.installmentCount,
+        interestAmountMinor: loan.interestAmountMinor,
+        interestMethod: loan.interestMethod,
+        interestRateBasisPoints: loan.interestRateBasisPoints,
+        loanNumber: loan.loanNumber,
+        loanProductNameSnapshot: loan.loanProductNameSnapshot,
+        loanProductPublicId: sql<string>`${loanProduct.publicId}`.as(
+            'loan_product_public_id',
+        ),
+        maximumPrincipalAmountMinorSnapshot:
+            loan.maximumPrincipalAmountMinorSnapshot,
+        minCompletedInstallments: loan.minCompletedInstallments,
+        minimumPrincipalAmountMinorSnapshot:
+            loan.minimumPrincipalAmountMinorSnapshot,
+        partialCreditPolicy: loan.partialCreditPolicy,
+        partialPaymentCreditMinor: loan.partialPaymentCreditMinor,
+        paymentFrequency: loan.paymentFrequency,
+        principalAmountMinor: loan.principalAmountMinor,
+        publicId: loan.publicId,
+        releaseDate: loan.releaseDate,
+        releasedAt: loan.releasedAt,
+        renewalSettlementMethod: loan.renewalSettlementMethod,
+        roundingMode: loan.roundingMode,
+        status: loan.status,
+        termDays: loan.termDays,
+        // Enforced by loan_check_timezone in the D1 schema.
+        timezone: sql<'Asia/Manila'>`${loan.timezone}`,
+        totalAmountPaidMinor: loan.totalAmountPaidMinor,
+        totalPayableAmountMinor: loan.totalPayableAmountMinor,
+    }
+}
+
 async function readLoan(
     ctx: Parameters<typeof getActiveOrganizationId>[0],
     publicId: string,
@@ -292,51 +359,7 @@ async function readLoan(
         ctx.get('dbSchema')
     const [record] = await ctx
         .get('dbClient')
-        .select({
-            actualOutstandingBalanceMinor: loan.actualOutstandingBalanceMinor,
-            allowRenewalPrincipalChange: loan.allowRenewalPrincipalChange,
-            approvedAt: loan.approvedAt,
-            borrowerPublicId: borrower.publicId,
-            completedInstallmentCount: loan.completedInstallmentCount,
-            createdAt: loan.createdAt,
-            dailyPaymentAmountMinor: loan.dailyPaymentAmountMinor,
-            expectedCompletionDate: loan.expectedCompletionDate,
-            finalInstallmentResiduePolicy: loan.finalInstallmentResiduePolicy,
-            firstPaymentDate: loan.firstPaymentDate,
-            fixedInterestAmountMinor: loan.fixedInterestAmountMinor,
-            formulaProfileId: loan.formulaProfileId,
-            formulaProfileName: loan.formulaProfileNameSnapshot,
-            formulaProfilePublicId: loanFormulaProfile.publicId,
-            formulaProfileVersion: loan.formulaProfileVersionSnapshot,
-            id: loan.id,
-            installmentAmountMinor: loan.installmentAmountMinor,
-            installmentCount: loan.installmentCount,
-            interestAmountMinor: loan.interestAmountMinor,
-            interestMethod: loan.interestMethod,
-            interestRateBasisPoints: loan.interestRateBasisPoints,
-            loanNumber: loan.loanNumber,
-            loanProductNameSnapshot: loan.loanProductNameSnapshot,
-            loanProductPublicId: loanProduct.publicId,
-            maximumPrincipalAmountMinorSnapshot:
-                loan.maximumPrincipalAmountMinorSnapshot,
-            minCompletedInstallments: loan.minCompletedInstallments,
-            minimumPrincipalAmountMinorSnapshot:
-                loan.minimumPrincipalAmountMinorSnapshot,
-            partialCreditPolicy: loan.partialCreditPolicy,
-            partialPaymentCreditMinor: loan.partialPaymentCreditMinor,
-            paymentFrequency: loan.paymentFrequency,
-            principalAmountMinor: loan.principalAmountMinor,
-            publicId: loan.publicId,
-            releaseDate: loan.releaseDate,
-            releasedAt: loan.releasedAt,
-            renewalSettlementMethod: loan.renewalSettlementMethod,
-            roundingMode: loan.roundingMode,
-            status: loan.status,
-            termDays: loan.termDays,
-            timezone: loan.timezone,
-            totalAmountPaidMinor: loan.totalAmountPaidMinor,
-            totalPayableAmountMinor: loan.totalPayableAmountMinor,
-        })
+        .select(loanSelection(ctx))
         .from(loan)
         .innerJoin(
             borrower,
@@ -490,7 +513,7 @@ export const loansRoute = new Hono<THonoInstance>()
         validateRequest('json', loanValidator.loanProductReadManyInputSchema),
         async (ctx) => {
             const input = ctx.req.valid('json')
-            const { loanProduct } = ctx.get('dbSchema')
+            const { loanFormulaProfile, loanProduct } = ctx.get('dbSchema')
             const { isActive, search } = input.filters
             const where = and(
                 eq(loanProduct.organizationId, getActiveOrganizationId(ctx)),
@@ -499,31 +522,60 @@ export const loansRoute = new Hono<THonoInstance>()
                     : [eq(loanProduct.isActive, isActive)]),
                 ...(search ? [like(loanProduct.name, `%${search}%`)] : []),
             )
-            const [countRow] = await ctx
-                .get('dbClient')
-                .select({ count: countFn(loanProduct.id) })
-                .from(loanProduct)
-                .where(where)
-            const products = await ctx
-                .get('dbClient')
-                .select({ publicId: loanProduct.publicId })
-                .from(loanProduct)
-                .where(where)
-                .orderBy(
-                    input.sortOrder === 'asc'
-                        ? asc(loanProduct.updatedAt)
-                        : desc(loanProduct.updatedAt),
-                )
-                .limit(input.limit)
-                .offset(input.offset)
-            const data = (
-                await Promise.all(
-                    products.map(({ publicId }) => readProduct(ctx, publicId)),
-                )
-            ).filter((product): product is TLoanProduct => product !== null)
+            const [
+                [countRow],
+                products,
+            ] = await ctx.get('dbClient').batch([
+                ctx
+                    .get('dbClient')
+                    .select({ count: countFn(loanProduct.id) })
+                    .from(loanProduct)
+                    .where(where),
+                ctx
+                    .get('dbClient')
+                    .select({
+                        formulaProfilePublicId:
+                            sql<string>`${loanFormulaProfile.publicId}`.as(
+                                'formula_profile_public_id',
+                            ),
+                        isActive: loanProduct.isActive,
+                        maximumPrincipalMinor:
+                            loanProduct.maximumPrincipalAmountMinor,
+                        minimumPrincipalMinor:
+                            loanProduct.minimumPrincipalAmountMinor,
+                        name: loanProduct.name,
+                        paymentFrequency: loanProduct.paymentFrequency,
+                        publicId: loanProduct.publicId,
+                    })
+                    .from(loanProduct)
+                    .innerJoin(
+                        loanFormulaProfile,
+                        and(
+                            eq(
+                                loanFormulaProfile.organizationId,
+                                loanProduct.organizationId,
+                            ),
+                            eq(
+                                loanFormulaProfile.id,
+                                loanProduct.formulaProfileId,
+                            ),
+                        ),
+                    )
+                    .where(where)
+                    .orderBy(
+                        input.sortOrder === 'asc'
+                            ? asc(loanProduct.updatedAt)
+                            : desc(loanProduct.updatedAt),
+                        input.sortOrder === 'asc'
+                            ? asc(loanProduct.id)
+                            : desc(loanProduct.id),
+                    )
+                    .limit(input.limit)
+                    .offset(input.offset),
+            ])
             return apiResponsePaginatedOkWrapper(ctx, {
                 count: countRow.count,
-                data: data.map(productOutput),
+                data: products,
                 limit: input.limit,
                 offset: input.offset,
             })
@@ -799,7 +851,8 @@ export const loansRoute = new Hono<THonoInstance>()
         validateRequest('json', loanValidator.loanReadManyInputSchema),
         async (ctx) => {
             const input = ctx.req.valid('json')
-            const { borrower, loan } = ctx.get('dbSchema')
+            const { borrower, loan, loanFormulaProfile, loanProduct } =
+                ctx.get('dbSchema')
             const { borrowerPublicId, status } = input.filters
             const where = and(
                 eq(loan.organizationId, getActiveOrganizationId(ctx)),
@@ -808,62 +861,81 @@ export const loansRoute = new Hono<THonoInstance>()
                     ? [eq(borrower.publicId, borrowerPublicId)]
                     : []),
             )
-            const [countRow] = await ctx
-                .get('dbClient')
-                .select({ count: countFn(loan.id) })
-                .from(loan)
-                .innerJoin(
-                    borrower,
-                    and(
-                        eq(borrower.organizationId, loan.organizationId),
-                        eq(borrower.id, loan.borrowerId),
-                    ),
-                )
-                .where(where)
-            const rows = await ctx
-                .get('dbClient')
-                .select({
-                    borrowerFirstName: borrower.firstName,
-                    borrowerLastName: borrower.lastName,
-                    borrowerMiddleName: borrower.middleName,
-                    borrowerSuffix: borrower.suffix,
-                    publicId: loan.publicId,
-                })
-                .from(loan)
-                .innerJoin(
-                    borrower,
-                    and(
-                        eq(borrower.organizationId, loan.organizationId),
-                        eq(borrower.id, loan.borrowerId),
-                    ),
-                )
-                .where(where)
-                .orderBy(
-                    input.sortOrder === 'asc'
-                        ? asc(loan.createdAt)
-                        : desc(loan.createdAt),
-                )
-                .limit(input.limit)
-                .offset(input.offset)
-            const data = (
-                await Promise.all(
-                    rows.map(async (row) => {
-                        const record = await readLoan(ctx, row.publicId)
-                        if (!record) return null
-                        return {
-                            ...loanOutput(record),
-                            borrowerName: [
-                                row.borrowerFirstName,
-                                row.borrowerMiddleName,
-                                row.borrowerLastName,
-                                row.borrowerSuffix,
-                            ]
-                                .filter(Boolean)
-                                .join(' '),
-                        }
-                    }),
-                )
-            ).filter((record) => record !== null)
+            const [
+                [countRow],
+                rows,
+            ] = await ctx.get('dbClient').batch([
+                ctx
+                    .get('dbClient')
+                    .select({ count: countFn(loan.id) })
+                    .from(loan)
+                    .innerJoin(
+                        borrower,
+                        and(
+                            eq(borrower.organizationId, loan.organizationId),
+                            eq(borrower.id, loan.borrowerId),
+                        ),
+                    )
+                    .where(where),
+                ctx
+                    .get('dbClient')
+                    .select({
+                        ...loanSelection(ctx),
+                        borrowerFirstName: borrower.firstName,
+                        borrowerLastName: borrower.lastName,
+                        borrowerMiddleName: borrower.middleName,
+                        borrowerSuffix: borrower.suffix,
+                    })
+                    .from(loan)
+                    .innerJoin(
+                        borrower,
+                        and(
+                            eq(borrower.organizationId, loan.organizationId),
+                            eq(borrower.id, loan.borrowerId),
+                        ),
+                    )
+                    .innerJoin(
+                        loanProduct,
+                        and(
+                            eq(loanProduct.organizationId, loan.organizationId),
+                            eq(loanProduct.id, loan.loanProductId),
+                        ),
+                    )
+                    .innerJoin(
+                        loanFormulaProfile,
+                        and(
+                            eq(
+                                loanFormulaProfile.organizationId,
+                                loan.organizationId,
+                            ),
+                            eq(loanFormulaProfile.id, loan.formulaProfileId),
+                        ),
+                    )
+                    .where(where)
+                    .orderBy(
+                        input.sortOrder === 'asc'
+                            ? asc(loan.createdAt)
+                            : desc(loan.createdAt),
+                        input.sortOrder === 'asc'
+                            ? asc(loan.id)
+                            : desc(loan.id),
+                    )
+                    .limit(input.limit)
+                    .offset(input.offset),
+            ])
+            const data = rows.map((row) => {
+                return {
+                    ...loanOutput(row),
+                    borrowerName: [
+                        row.borrowerFirstName,
+                        row.borrowerMiddleName,
+                        row.borrowerLastName,
+                        row.borrowerSuffix,
+                    ]
+                        .filter(Boolean)
+                        .join(' '),
+                }
+            })
             return apiResponsePaginatedOkWrapper(ctx, {
                 count: countRow.count,
                 data,

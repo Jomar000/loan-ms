@@ -427,7 +427,6 @@
 {#if reversalPayment}
     <PaymentReversalDialog
         bind:open={reversalOpen}
-        onReversed={() => void listQuery.refetch()}
         paymentNumber={reversalPayment.paymentNumber}
         paymentPublicId={reversalPayment.publicId}
     />

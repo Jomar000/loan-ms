@@ -7,6 +7,7 @@ import {
 import { createTenantKey } from '$lib/states/session/tenant'
 import {
     createPayment,
+    fetchCollectionsForBorrower,
     fetchCollectionsForDate,
     fetchPayments,
     quotePayment,
@@ -50,6 +51,22 @@ export function createCollectionsDateQuery(
     }))
 }
 
+export function createCollectionsBorrowerQuery(
+    scope: { readonly organizationSlug: string },
+    options: { readonly borrowerPublicId: string },
+) {
+    return createQuery(() => ({
+        enabled: Boolean(scope.organizationSlug && options.borrowerPublicId),
+        queryKey: createTenantKey(
+            scope.organizationSlug,
+            'collection',
+            'borrower',
+            options.borrowerPublicId,
+        ),
+        queryFn: () => fetchCollectionsForBorrower(options.borrowerPublicId),
+    }))
+}
+
 export function createPaymentQuoteMutation(scope: {
     readonly organizationSlug: string
 }) {
@@ -63,11 +80,33 @@ export function createPaymentQuoteMutation(scope: {
     }))
 }
 
-export function createPaymentCreateMutation(scope: {
+function createPaymentInvalidation(scope: {
     readonly organizationSlug: string
 }) {
     const queryClient = useQueryClient()
+    return async () => {
+        await Promise.all(
+            [
+                'borrower',
+                'collection',
+                'companyFund',
+                'loan',
+                'overdue',
+                'payment',
+                'report',
+            ].map((family) =>
+                queryClient.invalidateQueries({
+                    queryKey: createTenantKey(scope.organizationSlug, family),
+                }),
+            ),
+        )
+    }
+}
 
+export function createPaymentCreateMutation(scope: {
+    readonly organizationSlug: string
+}) {
+    const invalidatePayment = createPaymentInvalidation(scope)
     return createMutation(() => ({
         mutationKey: createTenantKey(
             scope.organizationSlug,
@@ -75,45 +114,14 @@ export function createPaymentCreateMutation(scope: {
             'create',
         ),
         mutationFn: (input: PaymentCreateInput) => createPayment(input),
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'payment',
-                    ),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'collection',
-                    ),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(scope.organizationSlug, 'loan'),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'overdue',
-                    ),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'borrower',
-                    ),
-                }),
-            ])
-        },
+        onSuccess: invalidatePayment,
     }))
 }
 
 export function createPaymentReverseMutation(scope: {
     readonly organizationSlug: string
 }) {
-    const queryClient = useQueryClient()
-
+    const invalidatePayment = createPaymentInvalidation(scope)
     return createMutation(() => ({
         mutationKey: createTenantKey(
             scope.organizationSlug,
@@ -121,36 +129,6 @@ export function createPaymentReverseMutation(scope: {
             'reverse',
         ),
         mutationFn: reversePayment,
-        onSuccess: async () => {
-            await Promise.all([
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'payment',
-                    ),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'collection',
-                    ),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(scope.organizationSlug, 'loan'),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'overdue',
-                    ),
-                }),
-                queryClient.invalidateQueries({
-                    queryKey: createTenantKey(
-                        scope.organizationSlug,
-                        'borrower',
-                    ),
-                }),
-            ])
-        },
+        onSuccess: invalidatePayment,
     }))
 }

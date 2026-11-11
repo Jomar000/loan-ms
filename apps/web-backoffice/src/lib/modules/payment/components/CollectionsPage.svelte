@@ -27,10 +27,11 @@
     // 02. Constants //
     ///////////////////
     const session = useSessionContext()
+    const today = manilaDate()
     ///////////////
     // 03. State //
     ///////////////
-    let date = $state(manilaDate())
+    let date = $state(today)
     let paymentOpen = $state(false)
     let selectedCollection = $state<CollectionItem | null>(null)
     /////////////////
@@ -269,6 +270,10 @@
                                 >Borrower</Table.Head
                             >
                             <Table.Head
+                                class="h-9 px-3 text-right text-xs font-semibold text-foreground"
+                                scope="col">Unpaid collection</Table.Head
+                            >
+                            <Table.Head
                                 class="h-9 px-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                                 >Payment type</Table.Head
                             >
@@ -307,13 +312,53 @@
                     </Table.Header>
                     <Table.Body>
                         {#each collections as collection (`${collection.loanPublicId}-${collection.installmentNumber}`)}
+                            {@const isUnpaid =
+                                collection.remainingAmountMinor > 0 &&
+                                collection.status !== 'PAID' &&
+                                collection.status !== 'WAIVED'}
+                            {@const isOverdue =
+                                isUnpaid && collection.dueDate < today}
                             <Table.Row
                                 class="border-b border-zinc-100 transition-colors hover:bg-amber-50/60 dark:border-zinc-800/80 dark:hover:bg-amber-500/5"
                             >
                                 <Table.Cell
                                     class="h-11 px-3 py-1.5 font-medium text-zinc-900 dark:text-zinc-100"
-                                    >{collection.borrowerName}</Table.Cell
+                                    ><span class="block"
+                                        >{collection.borrowerName}</span
+                                    ><span
+                                        class="mt-1 block text-xs font-normal text-muted-foreground"
+                                        >{collection.loanNumber}</span
+                                    ></Table.Cell
                                 >
+                                <Table.Cell class="h-11 px-3 py-2 text-right">
+                                    <p
+                                        class="font-mono text-base font-bold tabular-nums"
+                                    >
+                                        {formatCurrency(
+                                            isUnpaid
+                                                ? collection.remainingAmountMinor
+                                                : 0,
+                                        )}
+                                    </p>
+                                    <p
+                                        class={[
+                                            'text-xs font-medium',
+                                            isOverdue
+                                                ? 'text-danger-foreground'
+                                                : isUnpaid
+                                                  ? 'text-warning-foreground'
+                                                  : 'text-muted-foreground',
+                                        ]}
+                                    >
+                                        {collection.status === 'WAIVED'
+                                            ? 'Waived'
+                                            : isUnpaid
+                                              ? isOverdue
+                                                  ? 'Overdue'
+                                                  : 'Unpaid'
+                                              : 'Paid'}
+                                    </p>
+                                </Table.Cell>
                                 <Table.Cell class="h-11 px-3 py-1.5">
                                     <span
                                         class="inline-flex h-6 items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 text-[10px] font-semibold tracking-wide text-zinc-600 uppercase dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
@@ -347,7 +392,11 @@
                                     >{formatProgress(collection)}</Table.Cell
                                 >
                                 <Table.Cell class="h-11 px-3 py-1.5">
-                                    <StatusBadge status={collection.status} />
+                                    <StatusBadge
+                                        status={isOverdue
+                                            ? 'OVERDUE'
+                                            : collection.status}
+                                    />
                                 </Table.Cell>
                                 {#if canRecordPayment || canViewBorrower}
                                     <Table.Cell
@@ -391,6 +440,5 @@
         bind:open={paymentOpen}
         collection={selectedCollection}
         loanPublicId={selectedCollection.loanPublicId}
-        onRecorded={() => void collectionQuery.refetch()}
     />
 {/if}

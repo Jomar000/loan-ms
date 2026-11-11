@@ -1,6 +1,6 @@
 import { AppError, catalog, defineError } from '@loanms/errors'
 import * as renewalValidator from '@loanms/validator/backoffice/renewal'
-import { and, asc, count as countFn, desc, eq } from 'drizzle-orm'
+import { and, asc, count as countFn, desc, eq, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/sqlite-core'
 import { Hono } from 'hono'
 import type { ApplyGlobalResponse } from 'hono/client'
@@ -397,26 +397,33 @@ function quoteOutput(
     }
 }
 
-async function readRenewal(
-    ctx: Parameters<typeof getActiveOrganizationId>[0],
-    publicId: string,
-) {
+function renewalReadQuery(ctx: Parameters<typeof getActiveOrganizationId>[0]) {
     const { borrower, loan, loanRenewal } = ctx.get('dbSchema')
     const oldLoan = alias(loan, 'renewal_old_loan')
     const newLoan = alias(loan, 'renewal_new_loan')
-    const [record] = await ctx
+    return ctx
         .get('dbClient')
         .select({
             approvedAt: loanRenewal.approvedAt,
-            borrowerPublicId: borrower.publicId,
+            borrowerPublicId: sql<string>`${borrower.publicId}`.as(
+                'borrower_public_id',
+            ),
             cashReleaseAmountMinor: loanRenewal.cashReleaseAmountMinor,
-            newLoanNumber: newLoan.loanNumber,
-            newLoanPublicId: newLoan.publicId,
+            newLoanNumber: sql<string>`${newLoan.loanNumber}`.as(
+                'new_loan_number',
+            ),
+            newLoanPublicId: sql<string>`${newLoan.publicId}`.as(
+                'new_loan_public_id',
+            ),
             partialCreditHandling: loanRenewal.partialCreditHandling,
             previousCompletedInstallmentCount:
                 loanRenewal.previousCompletedInstallmentCount,
-            previousLoanNumber: oldLoan.loanNumber,
-            previousLoanPublicId: oldLoan.publicId,
+            previousLoanNumber: sql<string>`${oldLoan.loanNumber}`.as(
+                'previous_loan_number',
+            ),
+            previousLoanPublicId: sql<string>`${oldLoan.publicId}`.as(
+                'previous_loan_public_id',
+            ),
             previousPartialCreditMinor: loanRenewal.previousPartialCreditMinor,
             previousRemainingInstallmentCount:
                 loanRenewal.previousRemainingInstallmentCount,
@@ -449,6 +456,24 @@ async function readRenewal(
                 eq(borrower.id, oldLoan.borrowerId),
             ),
         )
+}
+
+function renewalOutput(
+    record: Awaited<ReturnType<typeof renewalReadQuery>>[number],
+) {
+    return {
+        ...record,
+        approvedAt: isoTime(record.approvedAt),
+        processedAt: record.processedAt.toISOString(),
+    }
+}
+
+async function readRenewal(
+    ctx: Parameters<typeof getActiveOrganizationId>[0],
+    publicId: string,
+) {
+    const { loanRenewal } = ctx.get('dbSchema')
+    const [record] = await renewalReadQuery(ctx)
         .where(
             and(
                 eq(loanRenewal.organizationId, getActiveOrganizationId(ctx)),
@@ -456,15 +481,7 @@ async function readRenewal(
             ),
         )
         .limit(1)
-    return record
-        ? {
-              ...record,
-              approvedAt: isoTime(record.approvedAt),
-              newLoanNumber: record.newLoanNumber,
-              newLoanPublicId: record.newLoanPublicId,
-              processedAt: record.processedAt.toISOString(),
-          }
-        : null
+    return record ? renewalOutput(record) : null
 }
 
 export const renewalsRoute = new Hono<THonoInstance>()
@@ -982,7 +999,7 @@ export const renewalsRoute = new Hono<THonoInstance>()
         async (ctx) => {
             const input = ctx.req.valid('json')
             const { borrower, loan, loanRenewal } = ctx.get('dbSchema')
-            const oldLoan = alias(loan, 'renewal_list_old_loan')
+            const oldLoan = alias(loan, 'renewal_old_loan')
             const { borrowerPublicId, previousLoanPublicId, status } =
                 input.filters
             const where = and(
@@ -995,62 +1012,49 @@ export const renewalsRoute = new Hono<THonoInstance>()
                     : []),
                 ...(status ? [eq(loanRenewal.status, status)] : []),
             )
-            const [countRow] = await ctx
-                .get('dbClient')
-                .select({ count: countFn(loanRenewal.id) })
-                .from(loanRenewal)
-                .innerJoin(
-                    oldLoan,
-                    and(
-                        eq(oldLoan.organizationId, loanRenewal.organizationId),
-                        eq(oldLoan.id, loanRenewal.oldLoanId),
-                    ),
-                )
-                .innerJoin(
-                    borrower,
-                    and(
-                        eq(borrower.organizationId, loanRenewal.organizationId),
-                        eq(borrower.id, oldLoan.borrowerId),
-                    ),
-                )
-                .where(where)
-            const rows = await ctx
-                .get('dbClient')
-                .select({ publicId: loanRenewal.publicId })
-                .from(loanRenewal)
-                .innerJoin(
-                    oldLoan,
-                    and(
-                        eq(oldLoan.organizationId, loanRenewal.organizationId),
-                        eq(oldLoan.id, loanRenewal.oldLoanId),
-                    ),
-                )
-                .innerJoin(
-                    borrower,
-                    and(
-                        eq(borrower.organizationId, loanRenewal.organizationId),
-                        eq(borrower.id, oldLoan.borrowerId),
-                    ),
-                )
-                .where(where)
-                .orderBy(
-                    input.sortOrder === 'asc'
-                        ? asc(loanRenewal.processedAt)
-                        : desc(loanRenewal.processedAt),
-                    input.sortOrder === 'asc'
-                        ? asc(loanRenewal.id)
-                        : desc(loanRenewal.id),
-                )
-                .limit(input.limit)
-                .offset(input.offset)
-            const data = (
-                await Promise.all(
-                    rows.map((row) => readRenewal(ctx, row.publicId)),
-                )
-            ).filter(
-                (record): record is NonNullable<typeof record> =>
-                    record !== null,
-            )
+            const [
+                [countRow],
+                rows,
+            ] = await ctx.get('dbClient').batch([
+                ctx
+                    .get('dbClient')
+                    .select({ count: countFn(loanRenewal.id) })
+                    .from(loanRenewal)
+                    .innerJoin(
+                        oldLoan,
+                        and(
+                            eq(
+                                oldLoan.organizationId,
+                                loanRenewal.organizationId,
+                            ),
+                            eq(oldLoan.id, loanRenewal.oldLoanId),
+                        ),
+                    )
+                    .innerJoin(
+                        borrower,
+                        and(
+                            eq(
+                                borrower.organizationId,
+                                loanRenewal.organizationId,
+                            ),
+                            eq(borrower.id, oldLoan.borrowerId),
+                        ),
+                    )
+                    .where(where),
+                renewalReadQuery(ctx)
+                    .where(where)
+                    .orderBy(
+                        input.sortOrder === 'asc'
+                            ? asc(loanRenewal.processedAt)
+                            : desc(loanRenewal.processedAt),
+                        input.sortOrder === 'asc'
+                            ? asc(loanRenewal.id)
+                            : desc(loanRenewal.id),
+                    )
+                    .limit(input.limit)
+                    .offset(input.offset),
+            ])
+            const data = rows.map(renewalOutput)
             return apiResponsePaginatedOkWrapper(ctx, {
                 count: countRow.count,
                 data,

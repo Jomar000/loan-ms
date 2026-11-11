@@ -1,0 +1,25 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 512 512"
+>
+    <title>LoanMS peso coin</title>
+    <rect
+        width="512"
+        height="512"
+        fill="#171717"
+    />
+    <!-- Keep the entire coin inside the maskable safe circle (radius 204.8). -->
+    <circle
+        cx="256"
+        cy="256"
+        r="192"
+        fill="#fbbf24"
+    />
+    <path
+        d="M214 364V148h54a68 68 0 0 1 0 136h-54m-34-90h172m-172 38h172"
+        fill="none"
+        stroke="#171717"
+        stroke-width="26"
+        stroke-linejoin="round"
+    />
+</svg>

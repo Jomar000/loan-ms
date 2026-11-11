@@ -30,11 +30,36 @@ import {
     createLoanDetailQuery,
     createLoanListQuery,
     createLoanProductsQuery,
+    createLoanReleaseMutation,
 } from './queries'
 
 describe('Loan query utilities', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+    })
+
+    it('refreshes affected tenant balances once after releasing a loan', async () => {
+        const release = createLoanReleaseMutation({
+            organizationSlug: 'alpha',
+        }) as unknown as { onSuccess: () => Promise<void> }
+        await release.onSuccess()
+        const families = [
+            'borrower',
+            'collection',
+            'companyFund',
+            'loan',
+            'overdue',
+            'report',
+        ]
+        expect(mocks.invalidateQueries).toHaveBeenCalledTimes(families.length)
+        for (const family of families) {
+            expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+                queryKey: [
+                    'alpha',
+                    family,
+                ],
+            })
+        }
     })
 
     it('uses organization-scoped keys for product, list, and detail reads', async () => {

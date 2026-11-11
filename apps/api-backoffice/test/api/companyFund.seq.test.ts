@@ -1,4 +1,7 @@
-import type { TApiResponseOk } from '@loanms/types/shared'
+import type {
+    TApiResponseOk,
+    TApiResponsePaginatedOk,
+} from '@loanms/types/shared'
 import { v7 as uuidv7 } from 'uuid'
 import { beforeAll, describe, expect, it } from 'vitest'
 
@@ -8,6 +11,7 @@ import {
     queryTestingRequest,
     seedTestingCookies,
 } from '../utilities.js'
+import { traceQueryRequest } from './queryPerformance.shared.js'
 
 let memberCookie: string
 let ownerCookie: string
@@ -307,5 +311,43 @@ describe('Company fund API', () => {
                 'ADJUSTMENT',
             ]),
         )
+        const paged = await traceQueryRequest(
+            '/api/companyFund/transactions',
+            {
+                filters: { transactionType: 'EXPENSE' },
+                limit: 1,
+                offset: 0,
+            },
+            ownerCookie,
+        )
+        expect(paged.response.status).toBe(200)
+        const expensePage = await paged.response.json<
+            TApiResponsePaginatedOk<
+                {
+                    transactionType: string
+                    transactionAt: string
+                    loanPublicId: string | null
+                    paymentPublicId: string | null
+                    renewalPublicId: string | null
+                }[]
+            >
+        >()
+        expect(expensePage.count).toBe(1)
+        expect(expensePage.data).toEqual([
+            expect.objectContaining({
+                transactionType: 'EXPENSE',
+                transactionAt: '2026-10-03T16:00:00.000Z',
+                loanPublicId: null,
+                paymentPublicId: null,
+                renewalPublicId: null,
+            }),
+        ])
+        const ledgerQueries = paged.statements.filter((query) =>
+            /from "capital_transaction"/i.test(query),
+        )
+        expect(ledgerQueries).toHaveLength(2)
+        expect(
+            ledgerQueries.some((query) => /select count\(\*\)/i.test(query)),
+        ).toBe(true)
     })
 })

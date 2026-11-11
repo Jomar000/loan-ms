@@ -314,12 +314,10 @@ function assertInstallments(installments: readonly TInstallmentPaymentState[]) {
 function completedInstallmentCount(
     installments: readonly TInstallmentPaymentState[],
 ) {
-    let completed = 0
-    for (const installment of installments) {
-        if (installment.amountPaidCents !== installment.amountDueCents) break
-        completed += 1
-    }
-    return completed
+    return installments.filter(
+        (installment) =>
+            installment.amountPaidCents === installment.amountDueCents,
+    ).length
 }
 
 /** Calculates a profile-snapshotted interest amount in whole centavos. */
@@ -466,23 +464,28 @@ export function createInstallmentSchedule(
     )
 }
 
-/** Allocates one posted payment to the earliest unpaid installments first. */
+/** Allocates oldest first, optionally restricted to the explicitly covered installments. */
 export function allocatePaymentFifo(
     installments: readonly TInstallmentPaymentState[],
     paymentAmountCents: number,
+    coveredInstallmentNumbers?: readonly number[],
 ): TPaymentAllocationResult {
     assertInstallments(installments)
     assertPositiveSafeInteger(paymentAmountCents, 'Payment amount')
 
     let remainingPaymentCents = paymentAmountCents
+    const covered =
+        coveredInstallmentNumbers === undefined
+            ? undefined
+            : new Set(coveredInstallmentNumbers)
     const allocations: TPaymentAllocation[] = []
     const updatedInstallments = installments.map((installment) => {
         const amountRemainingCents =
             installment.amountDueCents - installment.amountPaidCents
-        const amountAllocatedCents = Math.min(
-            remainingPaymentCents,
-            amountRemainingCents,
-        )
+        const amountAllocatedCents =
+            covered && !covered.has(installment.installmentNumber)
+                ? 0
+                : Math.min(remainingPaymentCents, amountRemainingCents)
         const amountPaidAfterCents = safeAdd(
             installment.amountPaidCents,
             amountAllocatedCents,
@@ -504,7 +507,15 @@ export function allocatePaymentFifo(
         }
     })
     const completed = completedInstallmentCount(updatedInstallments)
-    const firstIncomplete = updatedInstallments[completed]
+    const partialCredit = sumAmounts(
+        updatedInstallments
+            .filter(
+                (installment) =>
+                    installment.amountPaidCents < installment.amountDueCents,
+            )
+            .map((installment) => installment.amountPaidCents),
+        'Partial payment credit',
+    )
     const totalOutstanding = sumAmounts(
         updatedInstallments.map(
             (installment) =>
@@ -520,7 +531,7 @@ export function allocatePaymentFifo(
         amountAppliedCents: paymentAmountCents - remainingPaymentCents,
         unappliedAmountCents: remainingPaymentCents,
         completedInstallmentCount: completed,
-        partialPaymentCreditCents: firstIncomplete?.amountPaidCents ?? 0,
+        partialPaymentCreditCents: partialCredit,
         actualOutstandingBalanceCents: totalOutstanding,
     }
 }
@@ -546,8 +557,14 @@ export function calculateRenewalQuote(
     )
 
     const completed = completedInstallmentCount(input.installments)
-    const firstIncomplete = input.installments[completed]
-    const partialPaymentCreditCents = firstIncomplete?.amountPaidCents ?? 0
+    const incomplete = input.installments.filter(
+        (installment) =>
+            installment.amountPaidCents < installment.amountDueCents,
+    )
+    const partialPaymentCreditCents = sumAmounts(
+        incomplete.map((installment) => installment.amountPaidCents),
+        'Partial payment credit',
+    )
     const totalPayableAmountCents = sumAmounts(
         input.installments.map((installment) => installment.amountDueCents),
         'Total payable amount',
@@ -557,9 +574,7 @@ export function calculateRenewalQuote(
         'Total paid amount',
     )
     const scheduledRemainingBalanceCents = sumAmounts(
-        input.installments
-            .slice(completed)
-            .map((installment) => installment.amountDueCents),
+        incomplete.map((installment) => installment.amountDueCents),
         'Renewal settlement balance',
     )
     const actualOutstandingBalanceCents =

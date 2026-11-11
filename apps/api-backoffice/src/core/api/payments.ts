@@ -9,6 +9,7 @@ import {
     gt,
     inArray,
     isNull,
+    sql,
 } from 'drizzle-orm'
 import { Hono } from 'hono'
 import type { ApplyGlobalResponse } from 'hono/client'
@@ -69,6 +70,16 @@ const paymentFrequencyDisabled = defineError(
     'PAYMENT_FREQUENCY_DISABLED',
     'CONFLICT',
     'Payments for this loan frequency are disabled by system settings.',
+)
+const paymentCoverageInvalid = defineError(
+    'PAYMENT_COVERAGE_INVALID',
+    'CONFLICT',
+    'Paid, waived, and unavailable installment dates cannot be selected. Refresh the schedule and select unpaid dates.',
+)
+const paymentCoverageAmountMismatch = defineError(
+    'PAYMENT_COVERAGE_AMOUNT_MISMATCH',
+    'CONFLICT',
+    'The payment amount must equal the remaining total for the selected dates.',
 )
 const partialPaymentDisabled = defineError(
     'PARTIAL_PAYMENT_DISABLED',
@@ -281,7 +292,35 @@ function quotePayment(
     installments: TInstallment[],
     amountReceivedMinor: number,
     paymentDate: string,
+    coveredDates?: string[],
 ) {
+    if (coveredDates) {
+        const dates = new Set(coveredDates)
+        const covered = installments.filter((installment) =>
+            dates.has(installment.dueDate),
+        )
+        if (
+            covered.length !== dates.size ||
+            covered.some(
+                (installment) =>
+                    installment.amountPaidMinor >= installment.amountDueMinor ||
+                    installment.status === 'PAID' ||
+                    installment.status === 'WAIVED',
+            )
+        ) {
+            throw new AppError(paymentCoverageInvalid)
+        }
+        const expectedAmount = covered.reduce(
+            (total, installment) =>
+                total +
+                installment.amountDueMinor -
+                installment.amountPaidMinor,
+            0,
+        )
+        if (amountReceivedMinor !== expectedAmount) {
+            throw new AppError(paymentCoverageAmountMismatch)
+        }
+    }
     const allocation = allocatePaymentFifo(
         installments.map((installment) => ({
             amountDueCents: installment.amountDueMinor,
@@ -290,6 +329,13 @@ function quotePayment(
             installmentNumber: installment.installmentNumber,
         })),
         amountReceivedMinor,
+        coveredDates
+            ? installments
+                  .filter((installment) =>
+                      coveredDates.includes(installment.dueDate),
+                  )
+                  .map((installment) => installment.installmentNumber)
+            : undefined,
     )
     const allocationByNumber = new Map(
         allocation.allocations.map((entry) => [
@@ -432,6 +478,7 @@ export const paymentsRoute = new Hono<THonoInstance>()
                 installments,
                 input.amountReceivedMinor,
                 input.paymentDate,
+                input.coveredDates,
             )
             assertPaymentPolicy(settings, loan, quote, input.paymentDate)
             return apiResponseOkWrapper(ctx, {
@@ -495,6 +542,7 @@ export const paymentsRoute = new Hono<THonoInstance>()
                 installments,
                 input.amountReceivedMinor,
                 input.paymentDate,
+                input.coveredDates,
             )
             assertPaymentPolicy(settings, loan, quote, input.paymentDate)
             if (quote.amountAllocatedMinor === 0) {
@@ -838,58 +886,65 @@ export const paymentsRoute = new Hono<THonoInstance>()
                 ...(loanPublicId ? [eq(loan.publicId, loanPublicId)] : []),
                 ...(status ? [eq(payment.status, status)] : []),
             )
-            const [count] = await ctx
-                .get('dbClient')
-                .select({ count: countFn(payment.id) })
-                .from(payment)
-                .innerJoin(
-                    borrower,
-                    and(
-                        eq(borrower.organizationId, payment.organizationId),
-                        eq(borrower.id, payment.borrowerId),
-                    ),
-                )
-                .innerJoin(
-                    loan,
-                    and(
-                        eq(loan.organizationId, payment.organizationId),
-                        eq(loan.id, payment.loanId),
-                    ),
-                )
-                .where(where)
-            const records = await ctx
-                .get('dbClient')
-                .select({ publicId: payment.publicId })
-                .from(payment)
-                .innerJoin(
-                    borrower,
-                    and(
-                        eq(borrower.organizationId, payment.organizationId),
-                        eq(borrower.id, payment.borrowerId),
-                    ),
-                )
-                .innerJoin(
-                    loan,
-                    and(
-                        eq(loan.organizationId, payment.organizationId),
-                        eq(loan.id, payment.loanId),
-                    ),
-                )
-                .where(where)
-                .orderBy(
-                    input.sortOrder === 'asc'
-                        ? asc(payment.createdAt)
-                        : desc(payment.createdAt),
-                )
-                .limit(input.limit)
-                .offset(input.offset)
-            const data = (
-                await Promise.all(
-                    records.map((record) => readPayment(ctx, record.publicId)),
-                )
-            ).filter(
-                (record): record is NonNullable<typeof record> =>
-                    record !== null,
+            const [
+                [count],
+                records,
+            ] = await ctx.get('dbClient').batch([
+                ctx
+                    .get('dbClient')
+                    .select({ count: countFn(payment.id) })
+                    .from(payment)
+                    .innerJoin(
+                        borrower,
+                        and(
+                            eq(borrower.organizationId, payment.organizationId),
+                            eq(borrower.id, payment.borrowerId),
+                        ),
+                    )
+                    .innerJoin(
+                        loan,
+                        and(
+                            eq(loan.organizationId, payment.organizationId),
+                            eq(loan.id, payment.loanId),
+                        ),
+                    )
+                    .where(where),
+                ctx
+                    .get('dbClient')
+                    .select(paymentSelection(ctx))
+                    .from(payment)
+                    .innerJoin(
+                        borrower,
+                        and(
+                            eq(borrower.organizationId, payment.organizationId),
+                            eq(borrower.id, payment.borrowerId),
+                        ),
+                    )
+                    .innerJoin(
+                        loan,
+                        and(
+                            eq(loan.organizationId, payment.organizationId),
+                            eq(loan.id, payment.loanId),
+                        ),
+                    )
+                    .where(where)
+                    .orderBy(
+                        input.sortOrder === 'asc'
+                            ? asc(payment.createdAt)
+                            : desc(payment.createdAt),
+                        input.sortOrder === 'asc'
+                            ? asc(payment.id)
+                            : desc(payment.id),
+                    )
+                    .limit(input.limit)
+                    .offset(input.offset),
+            ])
+            const allocationsByPayment = await readPaymentAllocations(
+                ctx,
+                records.map((record) => record.id),
+            )
+            const data = records.map(({ id, ...record }) =>
+                paymentOutput(record, allocationsByPayment.get(id) ?? []),
             )
             return apiResponsePaginatedOkWrapper(ctx, {
                 count: count.count,
@@ -919,37 +974,118 @@ async function readPaymentByIdempotency(
     return record ? readPayment(ctx, record.publicId) : null
 }
 
+function paymentSelection(ctx: Parameters<typeof getActiveOrganizationId>[0]) {
+    const { borrower, loan, payment } = ctx.get('dbSchema')
+    // Keep joined public IDs distinct when D1 maps batch results.
+    return {
+        actualOutstandingBalanceAfterPaymentMinor:
+            payment.actualOutstandingBalanceAfterPaymentMinor,
+        amountAllocatedMinor: payment.amountAllocatedMinor,
+        amountReceivedMinor: payment.amountReceivedMinor,
+        unallocatedMinor: payment.unallocatedMinor,
+        borrowerPublicId: sql<string>`${borrower.publicId}`.as(
+            'borrower_public_id',
+        ),
+        completedInstallmentsAfterPayment:
+            payment.completedInstallmentsAfterPayment,
+        id: payment.id,
+        loanPublicId: sql<string>`${loan.publicId}`.as('loan_public_id'),
+        partialPaymentCreditAfterPaymentMinor:
+            payment.partialPaymentCreditAfterPaymentMinor,
+        paymentDate: payment.paymentDate,
+        paymentMethod: payment.paymentMethod,
+        paymentNumber: payment.paymentNumber,
+        paymentTypeSnapshot: payment.paymentTypeSnapshot,
+        publicId: payment.publicId,
+        referenceNumber: payment.referenceNumber,
+        remainingInstallmentsAfterPayment:
+            payment.remainingInstallmentsAfterPayment,
+        status: payment.status,
+    }
+}
+
+async function readPaymentAllocations(
+    ctx: Parameters<typeof getActiveOrganizationId>[0],
+    paymentIds: number[],
+) {
+    const grouped = new Map<number, Parameters<typeof paymentOutput>[1]>()
+    if (paymentIds.length === 0) return grouped
+    const { loanInstallment, paymentAllocation } = ctx.get('dbSchema')
+    // D1 allows 100 bound parameters; reserve one for organizationId.
+    const idsPerQuery = 99
+    const [
+        first,
+        ...remaining
+    ] = Array.from(
+        { length: Math.ceil(paymentIds.length / idsPerQuery) },
+        (_, index) =>
+            ctx
+                .get('dbClient')
+                .select({
+                    paymentId: paymentAllocation.paymentId,
+                    allocatedAmountMinor:
+                        paymentAllocation.allocatedAmountMinor,
+                    amountDueMinor: loanInstallment.amountDueMinor,
+                    amountPaidMinor: loanInstallment.amountPaidMinor,
+                    dueDate: loanInstallment.dueDate,
+                    installmentNumber: loanInstallment.installmentNumber,
+                    loanInstallmentPublicId: loanInstallment.publicId,
+                    status: loanInstallment.status,
+                })
+                .from(paymentAllocation)
+                .innerJoin(
+                    loanInstallment,
+                    and(
+                        eq(
+                            loanInstallment.organizationId,
+                            paymentAllocation.organizationId,
+                        ),
+                        eq(
+                            loanInstallment.id,
+                            paymentAllocation.loanInstallmentId,
+                        ),
+                    ),
+                )
+                .where(
+                    and(
+                        eq(
+                            paymentAllocation.organizationId,
+                            getActiveOrganizationId(ctx),
+                        ),
+                        inArray(
+                            paymentAllocation.paymentId,
+                            paymentIds.slice(
+                                index * idsPerQuery,
+                                (index + 1) * idsPerQuery,
+                            ),
+                        ),
+                    ),
+                )
+                .orderBy(
+                    asc(paymentAllocation.paymentId),
+                    asc(loanInstallment.installmentNumber),
+                ),
+    )
+    const batches = await ctx.get('dbClient').batch([
+        first!,
+        ...remaining,
+    ])
+    for (const { paymentId, ...allocation } of batches.flat()) {
+        const allocations = grouped.get(paymentId)
+        if (allocations) allocations.push(allocation)
+        else grouped.set(paymentId, [allocation])
+    }
+    return grouped
+}
+
 async function readPayment(
     ctx: Parameters<typeof getActiveOrganizationId>[0],
     publicId: string,
 ) {
-    const { borrower, loan, loanInstallment, payment, paymentAllocation } =
-        ctx.get('dbSchema')
+    const { borrower, loan, payment } = ctx.get('dbSchema')
     const [record] = await ctx
         .get('dbClient')
-        .select({
-            actualOutstandingBalanceAfterPaymentMinor:
-                payment.actualOutstandingBalanceAfterPaymentMinor,
-            amountAllocatedMinor: payment.amountAllocatedMinor,
-            amountReceivedMinor: payment.amountReceivedMinor,
-            unallocatedMinor: payment.unallocatedMinor,
-            borrowerPublicId: borrower.publicId,
-            completedInstallmentsAfterPayment:
-                payment.completedInstallmentsAfterPayment,
-            id: payment.id,
-            loanPublicId: loan.publicId,
-            partialPaymentCreditAfterPaymentMinor:
-                payment.partialPaymentCreditAfterPaymentMinor,
-            paymentDate: payment.paymentDate,
-            paymentMethod: payment.paymentMethod,
-            paymentNumber: payment.paymentNumber,
-            paymentTypeSnapshot: payment.paymentTypeSnapshot,
-            publicId: payment.publicId,
-            referenceNumber: payment.referenceNumber,
-            remainingInstallmentsAfterPayment:
-                payment.remainingInstallmentsAfterPayment,
-            status: payment.status,
-        })
+        .select(paymentSelection(ctx))
         .from(payment)
         .innerJoin(
             borrower,
@@ -973,37 +1109,8 @@ async function readPayment(
         )
         .limit(1)
     if (!record) return null
-    const allocations = await ctx
-        .get('dbClient')
-        .select({
-            allocatedAmountMinor: paymentAllocation.allocatedAmountMinor,
-            amountDueMinor: loanInstallment.amountDueMinor,
-            amountPaidMinor: loanInstallment.amountPaidMinor,
-            dueDate: loanInstallment.dueDate,
-            installmentNumber: loanInstallment.installmentNumber,
-            loanInstallmentPublicId: loanInstallment.publicId,
-            status: loanInstallment.status,
-        })
-        .from(paymentAllocation)
-        .innerJoin(
-            loanInstallment,
-            and(
-                eq(
-                    loanInstallment.organizationId,
-                    paymentAllocation.organizationId,
-                ),
-                eq(loanInstallment.id, paymentAllocation.loanInstallmentId),
-            ),
-        )
-        .where(
-            and(
-                eq(
-                    paymentAllocation.organizationId,
-                    getActiveOrganizationId(ctx),
-                ),
-                eq(paymentAllocation.paymentId, record.id),
-            ),
-        )
+    const allocations =
+        (await readPaymentAllocations(ctx, [record.id])).get(record.id) ?? []
     const { id: _id, ...safeRecord } = record
     return paymentOutput(
         safeRecord as Parameters<typeof paymentOutput>[0],
@@ -1130,19 +1237,25 @@ async function reversePayment(
               }
             : installment
     })
-    let restoredCompletedInstallments = 0
-    for (const installment of restoredInstallments) {
-        if (installment.amountPaidMinor !== installment.amountDueMinor) break
-        restoredCompletedInstallments += 1
-    }
-    const restoredPartialCredit =
-        restoredInstallments[restoredCompletedInstallments]?.amountPaidMinor ??
-        0
+    const restoredCompletedInstallments = restoredInstallments.filter(
+        (installment) =>
+            installment.amountPaidMinor === installment.amountDueMinor,
+    ).length
+    const restoredPartialCredit = restoredInstallments
+        .filter(
+            (installment) =>
+                installment.amountPaidMinor < installment.amountDueMinor,
+        )
+        .reduce((total, installment) => total + installment.amountPaidMinor, 0)
     const database = ctx.get('dbClient').$client
     const now = Date.now()
     const settings = await readRuntimeSystemSettings(ctx)
+    const missedInstallments = countMissedInstallments(
+        restoredInstallments,
+        currentManilaDate(),
+    )
     const calculatedTag = classifyBorrowerPaymentTag(
-        countMissedInstallments(restoredInstallments, currentManilaDate()),
+        missedInstallments,
         loan.paymentFrequency,
         settings.borrowerTagPolicy,
     )
@@ -1159,9 +1272,7 @@ async function reversePayment(
     const restoredLoanStatus =
         restoredOutstanding === 0
             ? 'FULLY_PAID'
-            : restoredInstallments.some(
-                    (installment) => installment.status === 'OVERDUE',
-                )
+            : missedInstallments > 0
               ? 'OVERDUE'
               : 'ACTIVE'
     const auditData = auditTrailLogger.prepare({

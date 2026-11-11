@@ -311,12 +311,12 @@ export const borrowersRoute = new Hono<THonoInstance>()
                     : []),
             ]
             const where = and(...conditions)
-            const [countRow] = await ctx
+            const countQuery = ctx
                 .get('dbClient')
                 .select({ count: countFn(borrower.id) })
                 .from(borrower)
                 .where(where)
-            const rows = await ctx
+            const rowsQuery = ctx
                 .get('dbClient')
                 .select({
                     borrowerNumber: borrower.borrowerNumber,
@@ -336,9 +336,20 @@ export const borrowersRoute = new Hono<THonoInstance>()
                     input.sortOrder === 'asc'
                         ? asc(borrower.createdAt)
                         : desc(borrower.createdAt),
+                    input.sortOrder === 'asc'
+                        ? asc(borrower.id)
+                        : desc(borrower.id),
                 )
                 .limit(input.limit)
                 .offset(input.offset)
+
+            const [
+                [countRow],
+                rows,
+            ] = await ctx.get('dbClient').batch([
+                countQuery,
+                rowsQuery,
+            ])
 
             const data = rows.map(({ middleName, suffix, ...row }) => ({
                 ...row,

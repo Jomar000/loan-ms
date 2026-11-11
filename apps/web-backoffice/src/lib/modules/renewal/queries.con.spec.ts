@@ -81,6 +81,9 @@ describe('Renewal query utilities', () => {
             'loan',
             'collection',
             'borrower',
+            'companyFund',
+            'overdue',
+            'report',
         ]) {
             expect(mocks.invalidateQueries).toHaveBeenCalledWith({
                 queryKey: [
@@ -89,5 +92,6 @@ describe('Renewal query utilities', () => {
                 ],
             })
         }
+        expect(mocks.invalidateQueries).toHaveBeenCalledTimes(7)
     })
 })

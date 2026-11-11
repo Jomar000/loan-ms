@@ -158,9 +158,23 @@ export function createLoanReleaseMutation(scope: {
         mutationKey: createTenantKey(scope.organizationSlug, 'loan', 'release'),
         mutationFn: releaseLoan,
         onSuccess: async () => {
-            await queryClient.invalidateQueries({
-                queryKey: createTenantKey(scope.organizationSlug, 'loan'),
-            })
+            await Promise.all(
+                [
+                    'borrower',
+                    'collection',
+                    'companyFund',
+                    'loan',
+                    'overdue',
+                    'report',
+                ].map((family) =>
+                    queryClient.invalidateQueries({
+                        queryKey: createTenantKey(
+                            scope.organizationSlug,
+                            family,
+                        ),
+                    }),
+                ),
+            )
         },
     }))
 }

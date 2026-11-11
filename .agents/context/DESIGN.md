@@ -569,6 +569,7 @@ Borrower pages should use:
 - Loans and Payments use full-height table workspaces.
 - Payment behavior card may use gold emphasis.
 - Borrower details remain neutral and readable.
+- Unpaid collection summaries and table cells keep neutral surfaces. Use status colors only on small labels; do not tint an entire collection panel red.
 
 ## 21. Loan List
 

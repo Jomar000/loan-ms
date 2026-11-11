@@ -93,7 +93,6 @@
             await approveMutation.mutateAsync(publicId)
             approveOpen = false
             toast.success('Loan approved.')
-            await detailQuery.refetch()
         } catch (error) {
             toast.error(getErrorMessage(error, 'Could not approve loan.'))
         } finally {
@@ -111,7 +110,6 @@
             await releaseMutation.mutateAsync(publicId)
             releaseOpen = false
             toast.success('Loan released and cash-out recorded.')
-            await detailQuery.refetch()
         } catch (error) {
             toast.error(getErrorMessage(error, 'Could not release loan.'))
         } finally {
@@ -608,7 +606,6 @@
     <PaymentWorkflowDialog
         bind:open={() => paymentOpen, handlePaymentOpenChange}
         loanPublicId={loan.publicId}
-        onRecorded={() => void detailQuery.refetch()}
     />
 {/if}
 <AlertDialog.Root bind:open={() => approveOpen, handleApproveOpenChange}>

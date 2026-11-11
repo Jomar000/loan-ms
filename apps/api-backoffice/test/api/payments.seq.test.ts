@@ -5,10 +5,11 @@ import type {
     TApiResponsePaginatedOk,
 } from '@loanms/types/shared'
 import { env } from 'cloudflare:workers'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { v7 as uuidv7 } from 'uuid'
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { currentManilaDate } from '../../src/services/borrowerPaymentTag.js'
 import {
     getTestingRequest,
     postTestingRequest,
@@ -17,6 +18,10 @@ import {
     TEST_MEMBER_USER_ID,
     TEST_PRIMARY_ORGANIZATION_ID,
 } from '../utilities.js'
+import {
+    traceGetRequest,
+    traceQueryRequest,
+} from './queryPerformance.shared.js'
 
 let memberCookie: string
 let ownerCookie: string
@@ -174,15 +179,90 @@ beforeAll(async () => {
         body: {},
         cookie: ownerCookie,
     })
+    await setTestLoanSchedule(loanPublicId, '2026-10-02')
 })
 
-async function createActiveLoan(principalMinor = 4_000_00) {
+// Release intentionally anchors dates to the current day. Payment scenarios
+// own fixed schedules so their overdue, advance-payment, and coverage cases
+// exercise the intended dates independently of the day the suite runs.
+async function setTestLoanSchedule(publicId: string, firstDueDate: string) {
+    const db = dbClient(env.LOANMSBOFC_D1)
+    const [record] = await db
+        .select({ id: dbSchema.loan.id })
+        .from(dbSchema.loan)
+        .where(
+            and(
+                eq(dbSchema.loan.organizationId, TEST_PRIMARY_ORGANIZATION_ID),
+                eq(dbSchema.loan.publicId, publicId),
+            ),
+        )
+    const installments = await db
+        .select({ id: dbSchema.loanInstallment.id })
+        .from(dbSchema.loanInstallment)
+        .where(
+            and(
+                eq(
+                    dbSchema.loanInstallment.organizationId,
+                    TEST_PRIMARY_ORGANIZATION_ID,
+                ),
+                eq(dbSchema.loanInstallment.loanId, record!.id),
+            ),
+        )
+        .orderBy(asc(dbSchema.loanInstallment.installmentNumber))
+    const dates = installments.map((_, index) => {
+        const date = new Date(`${firstDueDate}T00:00:00.000Z`)
+        date.setUTCDate(date.getUTCDate() + index)
+        return date.toISOString().slice(0, 10)
+    })
+    for (const [
+        index,
+        installment,
+    ] of installments.entries()) {
+        await db
+            .update(dbSchema.loanInstallment)
+            .set({
+                dueDate: dates[index]!,
+                periodStart: dates[index]!,
+                periodEnd: dates[index]!,
+            })
+            .where(
+                and(
+                    eq(
+                        dbSchema.loanInstallment.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loanInstallment.id, installment.id),
+                ),
+            )
+    }
+    const releaseDate = new Date(`${firstDueDate}T00:00:00.000Z`)
+    releaseDate.setUTCDate(releaseDate.getUTCDate() - 1)
+    await db
+        .update(dbSchema.loan)
+        .set({
+            releaseDate: releaseDate.toISOString().slice(0, 10),
+            releasedAt: releaseDate,
+            firstPaymentDate: firstDueDate,
+            expectedCompletionDate: dates.at(-1)!,
+        })
+        .where(
+            and(
+                eq(dbSchema.loan.organizationId, TEST_PRIMARY_ORGANIZATION_ID),
+                eq(dbSchema.loan.id, record!.id),
+            ),
+        )
+}
+
+async function createActiveLoan(
+    principalMinor = 4_000_00,
+    loanProductPublicId = productPublicId,
+) {
     const create = await postTestingRequest('/api/loans/create', {
         body: {
             borrowerPublicId,
             firstPaymentDate: '2026-10-10',
             idempotencyKey: uuidv7(),
-            loanProductPublicId: productPublicId,
+            loanProductPublicId,
             principalMinor,
             releaseDate: '2026-10-09',
         },
@@ -197,6 +277,7 @@ async function createActiveLoan(principalMinor = 4_000_00) {
         body: {},
         cookie: ownerCookie,
     })
+    await setTestLoanSchedule(createJson.data.publicId, '2026-10-10')
     return createJson.data.publicId
 }
 
@@ -375,7 +456,7 @@ describe('Payment and collection API', () => {
         >()
         expect(report.status).toBe(200)
         expect(reportJson.data).toMatchObject({
-            currentAsOfDate: '2026-10-05',
+            currentAsOfDate: currentManilaDate(),
             periodDateFrom: '2026-10-03',
             periodDateTo: '2026-10-03',
         })
@@ -623,6 +704,94 @@ describe('Payment and collection API', () => {
         expect(cashierReverse.status).toBe(403)
         expect(collectorUnassigned.status).toBe(403)
         expect(collectorAssigned.status).toBe(200)
+
+        // Cross the D1 100-bind boundary without changing the assigned loan's
+        // installments. The scope must stay a SQL subquery, not an ID array.
+        const [source] = await db
+            .select()
+            .from(dbSchema.loan)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loan.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loan.publicId, loanPublicId),
+                ),
+            )
+            .limit(1)
+        const { id: _id, ...base } = source!
+        const inserts = Array.from({ length: 100 }, () => {
+            const publicId = uuidv7()
+            return db
+                .insert(dbSchema.loan)
+                .values({
+                    ...base,
+                    publicId,
+                    loanNumber: `__TEST-SCOPE-${publicId}`,
+                    createIdempotencyKey: uuidv7(),
+                    releaseIdempotencyKey: uuidv7(),
+                })
+                .returning({ id: dbSchema.loan.id })
+        })
+        const [
+            first,
+            ...remaining
+        ] = inserts
+        const clones = (
+            await db.batch([
+                first!,
+                ...remaining,
+            ])
+        ).flat()
+        const assignments = clones.map((record) =>
+            db.insert(dbSchema.loanCollectionAssignment).values({
+                assignedByUserId: TEST_MEMBER_USER_ID,
+                collectorUserId: TEST_MEMBER_USER_ID,
+                loanId: record.id,
+                organizationId: TEST_PRIMARY_ORGANIZATION_ID,
+            }),
+        )
+        const [
+            firstAssignment,
+            ...remainingAssignments
+        ] = assignments
+        await db.batch([
+            firstAssignment!,
+            ...remainingAssignments,
+        ])
+        const collections = await traceGetRequest(
+            `/api/collections/borrower/${borrowerPublicId}`,
+            memberCookie,
+        )
+        expect(collections.response.status).toBe(200)
+        const schedule =
+            await collections.response.json<
+                TApiResponseOk<
+                    { loanPublicId: string; remainingAmountMinor: number }[]
+                >
+            >()
+        expect(schedule.data).toHaveLength(2)
+        expect(
+            schedule.data.every(
+                (item) =>
+                    item.loanPublicId === loanPublicId &&
+                    item.remainingAmountMinor > 0,
+            ),
+        ).toBe(true)
+        expect(
+            collections.statements.filter((query) =>
+                /from "loan_installment"/i.test(query),
+            ),
+        ).toHaveLength(1)
+        expect(
+            collections.statements.filter((query) =>
+                /from "loan_collection_assignment"/i.test(query),
+            ),
+        ).toHaveLength(1)
+        expect(Math.max(...collections.boundParameters)).toBeLessThanOrEqual(
+            100,
+        )
     })
 
     it('generates Cash references and requires entered electronic references', async () => {
@@ -655,13 +824,12 @@ describe('Payment and collection API', () => {
             },
             cookie: ownerCookie,
         })
-        const cashJson =
-            await cash.json<
-                TApiResponseOk<{
-                    paymentNumber: string
-                    referenceNumber: string
-                }>
-            >()
+        const cashJson = await cash.json<
+            TApiResponseOk<{
+                paymentNumber: string
+                referenceNumber: string
+            }>
+        >()
         expect(cash.status).toBe(201)
         expect(cashJson.data.referenceNumber).toBe(cashJson.data.paymentNumber)
 
@@ -679,5 +847,453 @@ describe('Payment and collection API', () => {
             await bank.json<TApiResponseOk<{ referenceNumber: string }>>()
         expect(bank.status).toBe(201)
         expect(bankJson.data.referenceNumber).toBe('__TEST-BANK-TRANSFER-1')
+    })
+    it('records 500 pesos against five chosen dates, leaves skipped dates unpaid, and reverses without losing nonconsecutive paid counts', async () => {
+        const db = dbClient(env.LOANMSBOFC_D1)
+        const [profile] = await db
+            .insert(dbSchema.loanFormulaProfile)
+            .values({
+                allowRenewalPrincipalChange: false,
+                effectiveAt: new Date(0),
+                finalInstallmentResiduePolicy:
+                    'LAST_INSTALLMENT_ABSORBS_RESIDUE',
+                fixedInterestAmountMinor: null,
+                installmentCount: 7,
+                interestMethod: 'FLAT_PERCENTAGE',
+                interestRateBasisPoints: 0,
+                isActive: true,
+                isDefault: false,
+                minCompletedInstallments: 0,
+                name: '__TEST-Covered Dates Formula',
+                organizationId: TEST_PRIMARY_ORGANIZATION_ID,
+                partialCreditPolicy: 'CARRY_FORWARD',
+                paymentFrequency: 'DAILY',
+                publicId: uuidv7(),
+                renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
+                roundingMode: 'HALF_UP',
+                termDays: 7,
+                timezone: 'Asia/Manila',
+                version: 1,
+            })
+            .returning({ id: dbSchema.loanFormulaProfile.id })
+        const product = await postTestingRequest('/api/loans/product/create', {
+            body: {
+                formulaProfilePublicId: (
+                    await db
+                        .select({
+                            publicId: dbSchema.loanFormulaProfile.publicId,
+                        })
+                        .from(dbSchema.loanFormulaProfile)
+                        .where(eq(dbSchema.loanFormulaProfile.id, profile!.id))
+                )[0]!.publicId,
+                idempotencyKey: uuidv7(),
+                maximumPrincipalMinor: 100_000_00,
+                minimumPrincipalMinor: 100_00,
+                name: '__TEST-Covered Dates Product',
+            },
+            cookie: ownerCookie,
+        })
+        expect(product.status).toBe(201)
+        const productJson =
+            await product.json<TApiResponseOk<{ publicId: string }>>()
+        const coverageLoanId = await createActiveLoan(
+            70_000,
+            productJson.data.publicId,
+        )
+        const selectedDates = [
+            '2026-10-11',
+            '2026-10-12',
+            '2026-10-14',
+            '2026-10-15',
+            '2026-10-16',
+        ]
+        const draft = {
+            amountReceivedMinor: 50_000,
+            coveredDates: selectedDates,
+            loanPublicId: coverageLoanId,
+            paymentDate: '2026-10-16',
+            paymentMethod: 'CASH',
+        }
+
+        for (const coveredDates of [
+            [],
+            [
+                '2026-10-11',
+                '2026-10-11',
+            ],
+            ['2026-02-30'],
+            Array.from({ length: 1001 }, () => '2026-10-11'),
+        ]) {
+            const response = await postTestingRequest('/api/payments/quote', {
+                body: { ...draft, coveredDates },
+                cookie: ownerCookie,
+            })
+            expect(response.status).toBe(400)
+            expect((await response.json<TApiResponseError>()).error.code).toBe(
+                'DATA_VALIDATION',
+            )
+        }
+        for (const [
+            changes,
+            message,
+        ] of [
+            [
+                { coveredDates: ['2026-11-01'] },
+                'Paid, waived, and unavailable installment dates cannot be selected. Refresh the schedule and select unpaid dates.',
+            ],
+            [
+                { amountReceivedMinor: 40_000 },
+                'The payment amount must equal the remaining total for the selected dates.',
+            ],
+        ] as const) {
+            for (const action of [
+                'quote',
+                'create',
+            ]) {
+                const response = await postTestingRequest(
+                    `/api/payments/${action}`,
+                    {
+                        body: {
+                            ...draft,
+                            ...changes,
+                            ...(action === 'create'
+                                ? { idempotencyKey: uuidv7() }
+                                : {}),
+                        },
+                        cookie: ownerCookie,
+                    },
+                )
+                expect(response.status).toBe(409)
+                const error = (await response.json<TApiResponseError>()).error
+                expect(error.code).toBe('CONFLICT')
+                expect(error.message).toBe(message)
+            }
+        }
+        const [loanBefore] = await db
+            .select({
+                id: dbSchema.loan.id,
+                total: dbSchema.loan.totalAmountPaidMinor,
+            })
+            .from(dbSchema.loan)
+            .where(eq(dbSchema.loan.publicId, coverageLoanId))
+        expect(loanBefore!.total).toBe(0)
+        expect(
+            await db
+                .select({ id: dbSchema.payment.id })
+                .from(dbSchema.payment)
+                .where(eq(dbSchema.payment.loanId, loanBefore!.id)),
+        ).toEqual([])
+
+        const quote = await postTestingRequest('/api/payments/quote', {
+            body: draft,
+            cookie: ownerCookie,
+        })
+        const quoteJson = await quote.json<
+            TApiResponseOk<{
+                allocations: {
+                    dueDate: string
+                    allocatedAmountMinor: number
+                }[]
+                completedInstallmentsAfterPayment: number
+                remainingInstallmentsAfterPayment: number
+                actualOutstandingBalanceAfterPaymentMinor: number
+            }>
+        >()
+        expect(quote.status).toBe(200)
+        expect(quoteJson.data.allocations.map((item) => item.dueDate)).toEqual(
+            selectedDates,
+        )
+        expect(
+            quoteJson.data.allocations.map((item) => item.allocatedAmountMinor),
+        ).toEqual([
+            10_000,
+            10_000,
+            10_000,
+            10_000,
+            10_000,
+        ])
+        expect(quoteJson.data).toMatchObject({
+            completedInstallmentsAfterPayment: 5,
+            remainingInstallmentsAfterPayment: 2,
+            actualOutstandingBalanceAfterPaymentMinor: 20_000,
+        })
+        const input = { ...draft, idempotencyKey: uuidv7() }
+        const posted = await postTestingRequest('/api/payments/create', {
+            body: input,
+            cookie: ownerCookie,
+        })
+        const postedJson = await posted.json<
+            TApiResponseOk<{
+                publicId: string
+                allocations: { dueDate: string }[]
+            }>
+        >()
+        expect(posted.status).toBe(201)
+        expect(postedJson.data.allocations.map((item) => item.dueDate)).toEqual(
+            selectedDates,
+        )
+        const replay = await postTestingRequest('/api/payments/create', {
+            body: input,
+            cookie: ownerCookie,
+        })
+        expect(replay.status).toBe(200)
+        expect(
+            (await replay.json<TApiResponseOk<{ publicId: string }>>()).data
+                .publicId,
+        ).toBe(postedJson.data.publicId)
+        const [paymentRow] = await db
+            .select({ id: dbSchema.payment.id })
+            .from(dbSchema.payment)
+            .where(eq(dbSchema.payment.publicId, postedJson.data.publicId))
+        expect(
+            await db
+                .select({ id: dbSchema.paymentAllocation.id })
+                .from(dbSchema.paymentAllocation)
+                .where(
+                    eq(dbSchema.paymentAllocation.paymentId, paymentRow!.id),
+                ),
+        ).toHaveLength(5)
+        expect(
+            await db
+                .select({ id: dbSchema.cashTransaction.id })
+                .from(dbSchema.cashTransaction)
+                .where(eq(dbSchema.cashTransaction.paymentId, paymentRow!.id)),
+        ).toHaveLength(1)
+        const installments = await db
+            .select({
+                date: dbSchema.loanInstallment.dueDate,
+                paid: dbSchema.loanInstallment.amountPaidMinor,
+            })
+            .from(dbSchema.loanInstallment)
+            .where(eq(dbSchema.loanInstallment.loanId, loanBefore!.id))
+        expect(
+            installments
+                .filter((item) => selectedDates.includes(item.date))
+                .map((item) => item.paid),
+        ).toEqual([
+            10_000,
+            10_000,
+            10_000,
+            10_000,
+            10_000,
+        ])
+        expect(
+            installments
+                .filter((item) => !selectedDates.includes(item.date))
+                .map((item) => item.paid),
+        ).toEqual([
+            0,
+            0,
+        ])
+        for (const action of [
+            'quote',
+            'create',
+        ]) {
+            const stale = await postTestingRequest(`/api/payments/${action}`, {
+                body: {
+                    ...draft,
+                    ...(action === 'create'
+                        ? { idempotencyKey: uuidv7() }
+                        : {}),
+                },
+                cookie: ownerCookie,
+            })
+            expect(stale.status).toBe(409)
+            expect((await stale.json<TApiResponseError>()).error.code).toBe(
+                'CONFLICT',
+            )
+        }
+        const second = await postTestingRequest('/api/payments/create', {
+            body: {
+                ...draft,
+                coveredDates: ['2026-10-10'],
+                amountReceivedMinor: 10_000,
+                idempotencyKey: uuidv7(),
+            },
+            cookie: ownerCookie,
+        })
+        expect(second.status).toBe(201)
+        const secondJson =
+            await second.json<TApiResponseOk<{ publicId: string }>>()
+        expect(
+            (
+                await postTestingRequest(
+                    `/api/payments/${secondJson.data.publicId}/reverse`,
+                    {
+                        body: { reason: '__TEST-Coverage reversal' },
+                        cookie: ownerCookie,
+                    },
+                )
+            ).status,
+        ).toBe(200)
+        const [restored] = await db
+            .select({
+                completed: dbSchema.loan.completedInstallmentCount,
+                outstanding: dbSchema.loan.actualOutstandingBalanceMinor,
+                status: dbSchema.loan.status,
+            })
+            .from(dbSchema.loan)
+            .where(eq(dbSchema.loan.id, loanBefore!.id))
+        expect(restored).toEqual({
+            completed: 5,
+            outstanding: 20_000,
+            status: 'OVERDUE',
+        })
+        expect(
+            (
+                await postTestingRequest(
+                    `/api/payments/${postedJson.data.publicId}/reverse`,
+                    {
+                        body: { reason: '__TEST-Coverage reversal' },
+                        cookie: ownerCookie,
+                    },
+                )
+            ).status,
+        ).toBe(200)
+        const [reset] = await db
+            .select({
+                completed: dbSchema.loan.completedInstallmentCount,
+                outstanding: dbSchema.loan.actualOutstandingBalanceMinor,
+            })
+            .from(dbSchema.loan)
+            .where(eq(dbSchema.loan.id, loanBefore!.id))
+        expect(reset).toEqual({ completed: 0, outstanding: 70_000 })
+    })
+
+    it('reads a full 100-payment page and allocations within D1 parameter and query limits', async () => {
+        const db = dbClient(env.LOANMSBOFC_D1)
+        const [original] = await db
+            .select()
+            .from(dbSchema.payment)
+            .where(
+                and(
+                    eq(
+                        dbSchema.payment.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.payment.publicId, paymentPublicId),
+                ),
+            )
+            .limit(1)
+        expect(original).toBeDefined()
+        const [installment] = await db
+            .select()
+            .from(dbSchema.loanInstallment)
+            .where(
+                and(
+                    eq(
+                        dbSchema.loanInstallment.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.loanInstallment.loanId, original!.loanId),
+                ),
+            )
+            .orderBy(asc(dbSchema.loanInstallment.installmentNumber))
+            .limit(1)
+        // Each fixture is a separate statement to respect D1's 100-bind limit.
+        const { id: _id, ...base } = original!
+        const ids = Array.from({ length: 100 }, () => uuidv7())
+        const inserts = ids.map((publicId, index) =>
+            db
+                .insert(dbSchema.payment)
+                .values({
+                    ...base,
+                    publicId,
+                    paymentNumber: `__TEST-PERF-${publicId}`,
+                    idempotencyKey: uuidv7(),
+                    amountReceivedMinor: 1,
+                    amountAllocatedMinor: 1,
+                    unallocatedMinor: 0,
+                    status: 'POSTED',
+                    reversedAt: null,
+                    reversedByUserId: null,
+                    reversalReason: null,
+                    createdAt: new Date(Date.UTC(2099, 0, 1) + index),
+                })
+                .returning({
+                    id: dbSchema.payment.id,
+                    publicId: dbSchema.payment.publicId,
+                }),
+        )
+        const [
+            first,
+            ...remaining
+        ] = inserts
+        const created = (
+            await db.batch([
+                first!,
+                ...remaining,
+            ])
+        ).flat()
+        const allocations = created.map((record) =>
+            db.insert(dbSchema.paymentAllocation).values({
+                organizationId: TEST_PRIMARY_ORGANIZATION_ID,
+                paymentId: record.id,
+                loanInstallmentId: installment!.id,
+                allocatedAmountMinor: 1,
+                amountPaidBeforeMinor: 0,
+                statusBefore: 'UPCOMING',
+            }),
+        )
+        const [
+            firstAllocation,
+            ...remainingAllocations
+        ] = allocations
+        await db.batch([
+            firstAllocation!,
+            ...remainingAllocations,
+        ])
+
+        const traced = await traceQueryRequest(
+            '/api/payments/readMany',
+            {
+                filters: { loanPublicId, status: 'POSTED' },
+                limit: 100,
+                offset: 0,
+                sortOrder: 'desc',
+            },
+            ownerCookie,
+        )
+        expect(traced.response.status).toBe(200)
+        const page = await traced.response.json<
+            TApiResponsePaginatedOk<
+                {
+                    publicId: string
+                    allocations: {
+                        allocatedAmountMinor: number
+                        installmentNumber: number
+                    }[]
+                }[]
+            >
+        >()
+        expect(page.data.map((record) => record.publicId)).toEqual(
+            [...ids].reverse(),
+        )
+        expect(
+            page.data.every(
+                (record) =>
+                    record.allocations.length === 1 &&
+                    record.allocations[0]?.allocatedAmountMinor === 1 &&
+                    record.allocations[0]?.installmentNumber ===
+                        installment!.installmentNumber,
+            ),
+        ).toBe(true)
+        expect(
+            page.data.every(
+                (record) =>
+                    !('id' in record) &&
+                    !('organizationId' in record) &&
+                    !('paymentId' in record.allocations[0]!),
+            ),
+        ).toBe(true)
+        expect(
+            traced.statements.filter((query) => /from "payment"/i.test(query)),
+        ).toHaveLength(2)
+        expect(
+            traced.statements.filter((query) =>
+                /from "payment_allocation"/i.test(query),
+            ),
+        ).toHaveLength(2)
+        expect(Math.max(...traced.boundParameters)).toBe(100)
     })
 })

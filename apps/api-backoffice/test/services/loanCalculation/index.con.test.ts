@@ -9,6 +9,116 @@ import {
 } from '../../../src/services/loanCalculation/index.js'
 
 describe('loan calculation service', () => {
+    it('allocates only selected installments and counts nonconsecutive completed installments in later payments and renewals', () => {
+        const schedule = [
+            100,
+            200,
+            300,
+            400,
+        ].map((amountDueCents, index) => ({
+            amountDueCents,
+            amountPaidCents: 0,
+            dueDate: `2026-01-0${index + 1}`,
+            installmentNumber: index + 1,
+        }))
+        const selected = allocatePaymentFifo(
+            schedule,
+            600,
+            [
+                2,
+                4,
+            ],
+        )
+        expect(
+            selected.allocations.map((item) => item.installmentNumber),
+        ).toEqual([
+            2,
+            4,
+        ])
+        expect(
+            selected.installments.map((item) => item.amountPaidCents),
+        ).toEqual([
+            0,
+            200,
+            0,
+            400,
+        ])
+        expect(selected).toMatchObject({
+            completedInstallmentCount: 2,
+            actualOutstandingBalanceCents: 400,
+            partialPaymentCreditCents: 0,
+            unappliedAmountCents: 0,
+        })
+        const renewal = calculateRenewalQuote({
+            installments: selected.installments,
+            renewalPrincipalAmountCents: 1000,
+            minimumRenewalCompletedInstallments: 2,
+            partialCreditPolicy: 'CARRY_FORWARD',
+            renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
+        })
+        expect(renewal).toMatchObject({
+            completedInstallmentCount: 2,
+            remainingInstallmentCount: 2,
+            isEligibleForRenewal: true,
+            renewalSettlementBalanceCents: 400,
+            actualOutstandingBalanceCents: 400,
+        })
+        const next = allocatePaymentFifo(selected.installments, 150)
+        expect(next.allocations.map((item) => item.installmentNumber)).toEqual([
+            1,
+            3,
+        ])
+        expect(next).toMatchObject({
+            completedInstallmentCount: 3,
+            partialPaymentCreditCents: 50,
+            actualOutstandingBalanceCents: 250,
+        })
+    })
+
+    it('preserves all partial credits when paid installments occur between unpaid dates', () => {
+        const installments = [
+            {
+                installmentNumber: 1,
+                dueDate: '2026-01-01',
+                amountDueCents: 100,
+                amountPaidCents: 25,
+            },
+            {
+                installmentNumber: 2,
+                dueDate: '2026-01-02',
+                amountDueCents: 200,
+                amountPaidCents: 200,
+            },
+            {
+                installmentNumber: 3,
+                dueDate: '2026-01-03',
+                amountDueCents: 300,
+                amountPaidCents: 75,
+            },
+            {
+                installmentNumber: 4,
+                dueDate: '2026-01-04',
+                amountDueCents: 400,
+                amountPaidCents: 400,
+            },
+        ]
+        const renewal = calculateRenewalQuote({
+            installments,
+            renewalPrincipalAmountCents: 1000,
+            minimumRenewalCompletedInstallments: 2,
+            partialCreditPolicy: 'CARRY_FORWARD',
+            renewalSettlementMethod: 'COMPLETED_INSTALLMENT_BALANCE',
+        })
+        expect(renewal).toMatchObject({
+            completedInstallmentCount: 2,
+            remainingInstallmentCount: 2,
+            partialPaymentCreditCents: 100,
+            carriedForwardCreditCents: 100,
+            renewalSettlementBalanceCents: 400,
+            actualOutstandingBalanceCents: 300,
+        })
+    })
+
     it.each([
         [
             'DAILY',

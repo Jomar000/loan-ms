@@ -73,7 +73,13 @@ describe('Company fund query utilities', () => {
             'companyFund',
             'capitalWithdrawal',
         ])
-        expect(mocks.invalidateQueries).toHaveBeenCalledTimes(3)
+        expect(mocks.invalidateQueries).toHaveBeenCalledTimes(6)
+        expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+            queryKey: [
+                'alpha',
+                'report',
+            ],
+        })
         expect(mocks.invalidateQueries).toHaveBeenCalledWith({
             queryKey: [
                 'alpha',

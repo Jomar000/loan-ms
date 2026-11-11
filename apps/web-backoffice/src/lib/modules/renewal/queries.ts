@@ -60,6 +60,15 @@ export function createRenewalCreateMutation(scope: {
                 queryClient.invalidateQueries({
                     queryKey: createTenantKey(
                         scope.organizationSlug,
+                        'companyFund',
+                    ),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: createTenantKey(scope.organizationSlug, 'report'),
+                }),
+                queryClient.invalidateQueries({
+                    queryKey: createTenantKey(
+                        scope.organizationSlug,
                         'renewal',
                     ),
                 }),

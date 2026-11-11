@@ -23,9 +23,9 @@ const collectionReadRoles = new Set([
     'viewer',
 ])
 
-async function collectorLoanScope(
+function collectorLoanScope(
     ctx: Parameters<typeof getActiveOrganizationId>[0],
-): Promise<number[] | null> {
+) {
     const roles = parseAuthRoles(ctx.get('role') ?? '')
     if (!roles.some((role) => collectionReadRoles.has(role))) {
         throw new AppError(catalog.authenticationForbidden)
@@ -34,7 +34,7 @@ async function collectorLoanScope(
     if (!roles.includes('collector')) return null
 
     const { loanCollectionAssignment } = ctx.get('dbSchema')
-    const assignments = await ctx
+    return ctx
         .get('dbClient')
         .select({ loanId: loanCollectionAssignment.loanId })
         .from(loanCollectionAssignment)
@@ -51,7 +51,6 @@ async function collectorLoanScope(
                 isNull(loanCollectionAssignment.unassignedAt),
             ),
         )
-    return assignments.map((assignment) => assignment.loanId)
 }
 
 const currentManilaDate = () => {
@@ -72,8 +71,7 @@ async function collectionItems(
     limit?: number,
 ) {
     const { borrower, loan, loanInstallment } = ctx.get('dbSchema')
-    const assignedLoanIds = await collectorLoanScope(ctx)
-    if (assignedLoanIds?.length === 0) return []
+    const assignedLoanIds = collectorLoanScope(ctx)
     const query = ctx
         .get('dbClient')
         .select({

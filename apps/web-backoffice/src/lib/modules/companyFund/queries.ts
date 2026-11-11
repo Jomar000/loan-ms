@@ -90,9 +90,16 @@ function createCompanyFundInvalidation(scope: {
     const queryClient = useQueryClient()
 
     return async () => {
-        await queryClient.invalidateQueries({
-            queryKey: createTenantKey(scope.organizationSlug, 'companyFund'),
-        })
+        await Promise.all(
+            [
+                'companyFund',
+                'report',
+            ].map((family) =>
+                queryClient.invalidateQueries({
+                    queryKey: createTenantKey(scope.organizationSlug, family),
+                }),
+            ),
+        )
     }
 }
 

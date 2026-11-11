@@ -4,7 +4,6 @@
     import { Button } from '@loanms/ui/components/button'
     import * as Card from '@loanms/ui/components/card'
     import * as Dialog from '@loanms/ui/components/dialog'
-    import * as Empty from '@loanms/ui/components/empty'
     import * as Field from '@loanms/ui/components/field'
     import * as NativeSelect from '@loanms/ui/components/native-select'
     import { Skeleton } from '@loanms/ui/components/skeleton'
@@ -32,7 +31,6 @@
     import {
         createBorrowerArchiveMutation,
         createBorrowerDetailQuery,
-        createBorrowerDocumentsQuery,
         createBorrowerPaymentTagOverrideMutation,
         createBorrowerPaymentTagQuery,
         createBorrowerPaymentTagResetMutation,
@@ -43,8 +41,10 @@
         BorrowerCreateInput,
         BorrowerPaymentTag,
     } from '../types'
+    import BorrowerContractsTab from './BorrowerContractsTab.svelte'
     import BorrowerFormFields from './BorrowerFormFields.svelte'
     import BorrowerLoansTable from './BorrowerLoansTable.svelte'
+    import BorrowerUnpaidCollections from './BorrowerUnpaidCollections.svelte'
     import PaymentTagBadge from './PaymentTagBadge.svelte'
     ////////////////////
     // 01. Properties //
@@ -89,18 +89,7 @@
             },
         },
     )
-    const documentsQuery = createBorrowerDocumentsQuery(
-        {
-            get organizationSlug() {
-                return session.data.organizationSlug
-            },
-        },
-        {
-            get publicId() {
-                return publicId
-            },
-        },
-    )
+
     const paymentTagQuery = createBorrowerPaymentTagQuery(
         {
             get organizationSlug() {
@@ -131,7 +120,7 @@
         },
     )
     const borrower = $derived(detailQuery.data)
-    const documents = $derived(documentsQuery.data ?? [])
+
     const activeLoan = $derived(
         (loansQuery.data?.data ?? []).find(
             (loan) => loan.status === 'ACTIVE' || loan.status === 'OVERDUE',
@@ -491,12 +480,26 @@
                 </div>
             </header>
         </div>
+        {#if activeLoan}
+            <BorrowerUnpaidCollections
+                loan={activeLoanQuery.data?.publicId === activeLoan.publicId
+                    ? activeLoanQuery.data
+                    : activeLoan}
+                installments={activeLoanQuery.data?.publicId ===
+                activeLoan.publicId
+                    ? activeLoanQuery.data.installments
+                    : undefined}
+                isError={activeLoanQuery.isError}
+                loanHref={`/app/${role}/loans/${activeLoan.publicId}`}
+                onRefresh={() => void activeLoanQuery.refetch()}
+            />
+        {/if}
         <Tabs.Root
             class="flex min-h-96 flex-1 flex-col"
             bind:value={selectedTab}
         >
             <Tabs.List
-                class="mb-3 h-11 w-full shrink-0 justify-start gap-1 overflow-x-auto p-1"
+                class="my-3 h-11 w-full shrink-0 justify-start gap-1 overflow-x-auto p-1"
             >
                 <Tabs.Trigger
                     class="h-9 flex-none shrink-0 px-4"
@@ -504,17 +507,18 @@
                 >
                     Overview
                 </Tabs.Trigger>
-                <Tabs.Trigger
-                    class="h-9 flex-none shrink-0 px-4"
-                    value="documents"
-                >
-                    Documents
-                </Tabs.Trigger>
+
                 <Tabs.Trigger
                     class="h-9 flex-none shrink-0 px-4"
                     value="loans"
                 >
                     Loans
+                </Tabs.Trigger>
+                <Tabs.Trigger
+                    class="h-9 flex-none shrink-0 px-4"
+                    value="contracts"
+                >
+                    Contracts
                 </Tabs.Trigger>
                 <Tabs.Trigger
                     class="h-9 flex-none shrink-0 px-4"
@@ -701,91 +705,7 @@
                     </Card.Root>
                 </div>
             </Tabs.Content>
-            <Tabs.Content
-                value="documents"
-                class="mt-0 min-h-0 flex-1 overflow-auto"
-            >
-                <Card.Root
-                    class="min-h-full overflow-hidden border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-[#202020]"
-                >
-                    <Card.Header
-                        class="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800"
-                    >
-                        <div class="flex items-center gap-2">
-                            <div
-                                class="flex size-8 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
-                            >
-                                <FileTextIcon class="size-4" />
-                            </div>
-                            <div>
-                                <Card.Title class="text-sm font-semibold"
-                                    >Documents</Card.Title
-                                >
-                                <Card.Description class="text-xs">
-                                    Registered borrower documents and
-                                    identification records.
-                                </Card.Description>
-                            </div>
-                        </div>
-                    </Card.Header>
-                    <Card.Content class="p-3">
-                        {#if documentsQuery.isPending}
-                            <Skeleton class="h-20 w-full rounded-lg" />
-                        {:else if documents.length}
-                            <ul
-                                class="grid gap-2 md:grid-cols-2 xl:grid-cols-3"
-                            >
-                                {#each documents as document (document.publicId)}
-                                    <li
-                                        class="group flex min-w-0 items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2.5 transition-colors hover:border-amber-300 hover:bg-amber-50/60 dark:border-zinc-800 dark:bg-zinc-900/40 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/5"
-                                    >
-                                        <div
-                                            class="flex size-8 shrink-0 items-center justify-center rounded-md bg-white text-amber-700 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-amber-300 dark:ring-zinc-700"
-                                        >
-                                            <FileTextIcon
-                                                class="size-4"
-                                                aria-hidden="true"
-                                            />
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p
-                                                class="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100"
-                                            >
-                                                {document.documentType}
-                                            </p>
-                                            <p
-                                                class="truncate text-[11px] text-zinc-500 dark:text-zinc-400"
-                                            >
-                                                {document.documentNumber ??
-                                                    'No document number'}
-                                            </p>
-                                        </div>
-                                    </li>
-                                {/each}
-                            </ul>
-                        {:else}
-                            <Empty.Root class="min-h-52 border-0 py-8">
-                                <Empty.Header>
-                                    <Empty.Media
-                                        class="bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
-                                        variant="icon"
-                                    >
-                                        <FileTextIcon />
-                                    </Empty.Media>
-                                    <Empty.Title
-                                        >No documents registered</Empty.Title
-                                    >
-                                    <Empty.Description>
-                                        Existing workspace uploads can be
-                                        registered to this borrower when the API
-                                        supports an object-storage ID.
-                                    </Empty.Description>
-                                </Empty.Header>
-                            </Empty.Root>
-                        {/if}
-                    </Card.Content>
-                </Card.Root>
-            </Tabs.Content>
+
             <Tabs.Content
                 value="loans"
                 class="mt-0 flex min-h-0 flex-1 flex-col"
@@ -796,6 +716,16 @@
                         {role}
                     />
                 {/key}
+            </Tabs.Content>
+            <Tabs.Content
+                value="contracts"
+                class="mt-0 min-h-0 flex-1"
+            >
+                {#if selectedTab === 'contracts'}
+                    {#key `${session.data.organizationSlug}:${publicId}`}
+                        <BorrowerContractsTab {borrower} />
+                    {/key}
+                {/if}
             </Tabs.Content>
             <Tabs.Content
                 value="payments"
@@ -834,13 +764,6 @@
         bind:open={paymentOpen}
         collection={selectedCollection}
         loanPublicId={selectedCollection.loanPublicId}
-        onRecorded={async () => {
-            await Promise.all([
-                detailQuery.refetch(),
-                loansQuery.refetch(),
-                paymentTagQuery.refetch(),
-            ])
-        }}
     />
 {/if}
 <Dialog.Root bind:open={() => editOpen, handleEditOpenChange}>

@@ -39,6 +39,7 @@ export type Payment = PaymentQuote & {
 
 export type PaymentDraft = {
     amountReceivedMinor: number
+    coveredDates?: string[]
     loanPublicId: string
     notes?: string
     paymentDate: string

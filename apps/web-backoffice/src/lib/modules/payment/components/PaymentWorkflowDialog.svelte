@@ -26,9 +26,11 @@
     import type {
         CollectionItem,
         Payment,
+        PaymentAllocation,
         PaymentDraft,
         PaymentQuote,
     } from '../types'
+    import CoveredDatesField from './CoveredDatesField.svelte'
 
     ////////////////////
     // 01. Properties //
@@ -58,6 +60,7 @@
     ///////////////
 
     let amount = $state('')
+    let coveredDates = $state<string[] | undefined>(undefined)
     let isCreating = $state(false)
     let isQuoting = $state(false)
     let notes = $state('')
@@ -131,7 +134,12 @@
 
     function handleDetailsChange() {
         quote = null
-        createIdempotencyKey.abandonAttempt()
+    }
+
+    function handleCoveredTotal(totalMinor: number) {
+        if (isLocked) return
+        amount = (totalMinor / 100).toFixed(2)
+        handleDetailsChange()
     }
 
     function handlePaymentMethodChange(event: Event) {
@@ -188,6 +196,8 @@
             amountReceivedMinor <= 0 ||
             !loanPublicId ||
             !paymentDate ||
+            (coveredDates !== undefined &&
+                (coveredDates.length === 0 || coveredDates.length > 1000)) ||
             (paymentMethod !== 'CASH' && !referenceNumber.trim())
         ) {
             return null
@@ -195,6 +205,9 @@
 
         return {
             amountReceivedMinor,
+            ...(coveredDates === undefined
+                ? {}
+                : { coveredDates: [...coveredDates].sort() }),
             loanPublicId,
             ...(notes.trim() ? { notes: notes.trim() } : {}),
             paymentDate,
@@ -219,6 +232,7 @@
 
     function reset() {
         amount = ''
+        coveredDates = undefined
         notes = ''
         paymentDate = manilaDate()
         paymentMethod = 'CASH'
@@ -229,61 +243,104 @@
     }
 </script>
 
+{#snippet coveredInstallments(allocations: PaymentAllocation[])}
+    {#if allocations.length > 0}
+        <section
+            aria-label="Covered installment dates"
+            class="mt-3 grid gap-2 border-t pt-3"
+        >
+            <h3 class="text-xs font-medium text-muted-foreground">
+                Covered installment dates
+            </h3>
+            <ul
+                class="grid max-h-40 gap-2 overflow-y-auto overscroll-contain pr-1 text-sm print:max-h-none print:overflow-visible"
+            >
+                {#each allocations as allocation (allocation.loanInstallmentPublicId)}
+                    <li class="flex items-start justify-between gap-3">
+                        <div>
+                            <p>{formatDate(allocation.dueDate)}</p>
+                            <p class="text-xs text-muted-foreground">
+                                Installment {allocation.installmentNumber} &middot;
+                                {allocation.status === 'PAID'
+                                    ? 'Paid'
+                                    : 'Partial'}
+                            </p>
+                        </div>
+                        <span class="font-mono tabular-nums"
+                            >{formatCurrency(
+                                allocation.allocatedAmountMinor,
+                            )}</span
+                        >
+                    </li>
+                {/each}
+            </ul>
+        </section>
+    {/if}
+{/snippet}
+
 <Dialog.Root bind:open={() => open, handleOpenChange}>
     <Dialog.Content
-        class="max-h-[calc(100svh-2rem)] overflow-y-auto overscroll-contain sm:max-w-4xl"
+        class="max-h-[calc(100svh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden p-4 sm:max-w-4xl sm:p-5 print:max-h-none print:overflow-visible"
+        showCloseButton={!isLocked}
     >
         {#if receipt}
             <Dialog.Header>
-                <Dialog.Title>Payment receipt</Dialog.Title>
-                <Dialog.Description>
-                    Payment {receipt.paymentNumber} was posted on {formatDate(
+                <Dialog.Title class="pr-8">Payment receipt</Dialog.Title>
+                <Dialog.Description
+                    >Payment {receipt.paymentNumber} posted on {formatDate(
                         receipt.paymentDate,
-                    )}.
-                </Dialog.Description>
+                    )}.</Dialog.Description
+                >
             </Dialog.Header>
-            <Card.Root class="print:border-0">
-                <Card.Content class="grid gap-3 pt-6 text-sm">
-                    <div class="flex justify-between gap-4">
-                        <span class="text-muted-foreground"
-                            >Amount received</span
-                        ><span class="font-semibold tabular-nums"
-                            >{formatCurrency(receipt.amountReceivedMinor)}</span
-                        >
-                    </div>
-                    <div class="flex justify-between gap-4">
-                        <span class="text-muted-foreground"
-                            >Allocated to installments</span
-                        ><span class="tabular-nums"
-                            >{formatCurrency(
-                                receipt.amountAllocatedMinor,
-                            )}</span
-                        >
-                    </div>
-                    <div class="flex justify-between gap-4">
-                        <span class="text-muted-foreground">Partial credit</span
-                        ><span class="tabular-nums"
-                            >{formatCurrency(
-                                receipt.partialPaymentCreditAfterPaymentMinor,
-                            )}</span
-                        >
-                    </div>
-                    <div class="flex justify-between gap-4 border-t pt-3">
-                        <span class="font-medium">Outstanding balance</span
-                        ><span class="font-semibold tabular-nums"
-                            >{formatCurrency(
-                                receipt.actualOutstandingBalanceAfterPaymentMinor,
-                            )}</span
-                        >
-                    </div>
+            <Card.Root
+                class="min-h-0 gap-0 overflow-y-auto py-0 print:overflow-visible print:border-0"
+            >
+                <Card.Content class="grid gap-3 p-4 text-sm">
+                    <dl class="grid gap-2">
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">
+                                Amount received
+                            </dt>
+                            <dd class="font-semibold tabular-nums">
+                                {formatCurrency(receipt.amountReceivedMinor)}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">
+                                Allocated to installments
+                            </dt>
+                            <dd class="tabular-nums">
+                                {formatCurrency(receipt.amountAllocatedMinor)}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-muted-foreground">
+                                Partial credit
+                            </dt>
+                            <dd class="tabular-nums">
+                                {formatCurrency(
+                                    receipt.partialPaymentCreditAfterPaymentMinor,
+                                )}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4 border-t pt-2">
+                            <dt class="font-medium">Outstanding balance</dt>
+                            <dd class="font-semibold tabular-nums">
+                                {formatCurrency(
+                                    receipt.actualOutstandingBalanceAfterPaymentMinor,
+                                )}
+                            </dd>
+                        </div>
+                    </dl>
                     <p class="text-muted-foreground">
                         {receipt.paymentMethod}{receipt.referenceNumber
-                            ? ` · Ref. ${receipt.referenceNumber}`
+                            ? ` / Ref. ${receipt.referenceNumber}`
                             : ''}
                     </p>
+                    {@render coveredInstallments(receipt.allocations)}
                 </Card.Content>
             </Card.Root>
-            <Dialog.Footer>
+            <Dialog.Footer class="flex-row justify-end border-t pt-3">
                 <Button
                     disabled={isLocked}
                     onclick={() => handleOpenChange(false)}
@@ -294,77 +351,68 @@
                 >
             </Dialog.Footer>
         {:else}
-            <Dialog.Header>
-                <Dialog.Title>Record payment</Dialog.Title>
-                <Dialog.Description>
-                    Calculate the server-side allocation before posting this
-                    cash-in transaction.
-                </Dialog.Description>
+            <Dialog.Header class="gap-2">
+                <Dialog.Title class="pr-8">Record payment</Dialog.Title>
+                <Dialog.Description
+                    >Enter payment details, then review the allocation.</Dialog.Description
+                >
+                {#if collection}
+                    <section
+                        aria-label="Selected collection"
+                        class="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border bg-muted/30 px-3 py-2"
+                    >
+                        <dl>
+                            <dt class="text-xs text-muted-foreground">
+                                Amount due for this collection
+                            </dt>
+                            <dd
+                                class="font-mono text-lg font-semibold text-foreground tabular-nums"
+                            >
+                                {formatCurrency(
+                                    collection.remainingAmountMinor,
+                                )}
+                            </dd>
+                        </dl>
+                        <div class="min-w-0 text-xs text-muted-foreground">
+                            <p class="font-medium text-foreground">
+                                {collection.borrowerName}
+                            </p>
+                            <p>
+                                Installment {collection.installmentNumber} &middot;
+                                Due {formatDate(collection.dueDate)}
+                            </p>
+                        </div>
+                    </section>
+                {/if}
             </Dialog.Header>
             <div
-                class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)]"
+                class="grid min-h-0 gap-4 overflow-y-auto overscroll-contain pr-1 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.85fr)]"
             >
                 <form
-                    class="grid gap-5"
+                    id="record-payment-form"
+                    class="grid min-w-0 content-start gap-3"
                     onsubmit={handleQuote}
                 >
-                    {#if collection}
-                        <section
-                            aria-label="Selected collection"
-                            class="grid gap-2 rounded-xl border border-border bg-muted/50 p-3"
-                        >
-                            <dl>
-                                <dt class="text-sm font-medium">
-                                    Amount due for this collection
-                                </dt>
-                                <dd
-                                    class="mt-1 font-mono text-2xl font-semibold tabular-nums"
-                                >
-                                    {formatCurrency(
-                                        collection.remainingAmountMinor,
-                                    )}
-                                </dd>
-                            </dl>
-                            <p class="text-xs text-muted-foreground">
-                                Installment {collection.installmentNumber} · Due {formatDate(
-                                    collection.dueDate,
-                                )}
-                            </p>
-                        </section>
-                    {/if}
-                    <Field.Group>
-                        <Field.Field>
-                            <Field.Label for="payment-amount"
-                                >Amount received (PHP)</Field.Label
-                            >
-                            <Input
-                                id="payment-amount"
-                                bind:value={amount}
-                                disabled={isLocked}
-                                inputmode="decimal"
-                                min="0.01"
-                                oninput={handleDetailsChange}
-                                placeholder="140.00"
-                                required
-                                step="0.01"
-                                type="number"
-                            />
-                        </Field.Field>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <Field.Field>
-                                <Field.Label for="payment-date"
-                                    >Payment date</Field.Label
+                    <Field.Group class="gap-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <Field.Field class="min-w-0 gap-1.5">
+                                <Field.Label for="payment-amount"
+                                    >Amount received (PHP)</Field.Label
                                 >
                                 <Input
-                                    id="payment-date"
-                                    bind:value={paymentDate}
+                                    id="payment-amount"
+                                    bind:value={amount}
                                     disabled={isLocked}
+                                    inputmode="decimal"
+                                    min="0.01"
                                     oninput={handleDetailsChange}
+                                    placeholder="0.00"
                                     required
-                                    type="date"
+                                    step="0.01"
+                                    type="number"
                                 />
                             </Field.Field>
-                            <Field.Field>
+                            <Field.Field class="min-w-0 gap-1.5">
                                 <Field.Label for="payment-method"
                                     >Payment method</Field.Label
                                 >
@@ -386,57 +434,90 @@
                                 </NativeSelect.Root>
                             </Field.Field>
                         </div>
-                        <Field.Field>
-                            <Field.Label for="payment-reference"
-                                >Reference number</Field.Label
-                            >
-                            {#if paymentMethod === 'CASH'}
+                        <div class="grid grid-cols-2 gap-3">
+                            <Field.Field class="min-w-0 gap-1.5">
+                                <Field.Label for="payment-date"
+                                    >Payment date</Field.Label
+                                >
                                 <Input
-                                    id="payment-reference"
-                                    value="Generated when payment is posted"
-                                    disabled
-                                />
-                            {:else}
-                                <Input
-                                    id="payment-reference"
-                                    bind:value={referenceNumber}
+                                    id="payment-date"
+                                    bind:value={paymentDate}
                                     disabled={isLocked}
-                                    maxlength={128}
                                     oninput={handleDetailsChange}
                                     required
+                                    type="date"
                                 />
-                            {/if}
-                        </Field.Field>
-                        <Field.Field>
-                            <Field.Label for="payment-notes">Notes</Field.Label>
+                            </Field.Field>
+                            <Field.Field class="min-w-0 gap-1.5">
+                                <Field.Label for="payment-reference"
+                                    >Reference number</Field.Label
+                                >
+                                {#if paymentMethod === 'CASH'}
+                                    <Input
+                                        id="payment-reference"
+                                        value="Generated on posting"
+                                        disabled
+                                    />
+                                {:else}
+                                    <Input
+                                        id="payment-reference"
+                                        bind:value={referenceNumber}
+                                        disabled={isLocked}
+                                        maxlength={128}
+                                        oninput={handleDetailsChange}
+                                        required
+                                    />
+                                {/if}
+                            </Field.Field>
+                        </div>
+                        {#if collection && open}
+                            <CoveredDatesField
+                                borrowerPublicId={collection.borrowerPublicId}
+                                {loanPublicId}
+                                disabled={isLocked}
+                                bind:value={coveredDates}
+                                onchange={handleDetailsChange}
+                                onUseTotal={handleCoveredTotal}
+                            />
+                        {/if}
+                    </Field.Group>
+                    <details class="rounded-lg border px-3 py-2">
+                        <summary class="cursor-pointer text-sm font-medium"
+                            >Notes (optional)</summary
+                        >
+                        <Field.Field class="mt-2 gap-1.5">
+                            <Field.Label
+                                for="payment-notes"
+                                class="sr-only">Notes</Field.Label
+                            >
                             <Textarea
                                 id="payment-notes"
                                 bind:value={notes}
                                 disabled={isLocked}
                                 maxlength={500}
                                 oninput={handleDetailsChange}
+                                rows={2}
                             />
                         </Field.Field>
-                    </Field.Group>
-                    <Button
-                        type="submit"
-                        disabled={isLocked}
-                        >{#if isQuoting}<Spinner
-                                data-icon="inline-start"
-                            />{/if}<CalculatorIcon data-icon="inline-start" /> Calculate
-                        allocation</Button
-                    >
+                    </details>
                 </form>
-                <Card.Root>
-                    <Card.Header
-                        ><Card.Title>Payment quote</Card.Title><Card.Description
-                            >Preview only. Posting repeats the allocation
-                            against the latest loan state.</Card.Description
-                        ></Card.Header
-                    >
-                    <Card.Content>
+                <Card.Root
+                    class={[
+                        'min-w-0 gap-3 py-4 shadow-none md:self-start',
+                        !quote && 'hidden md:flex',
+                    ]}
+                >
+                    <Card.Header class="gap-1 px-4">
+                        <Card.Title class="text-sm">Payment quote</Card.Title>
+                        <Card.Description class="text-xs"
+                            >{quote
+                                ? 'Review the covered dates before posting.'
+                                : 'Calculate to preview the payment allocation.'}</Card.Description
+                        >
+                    </Card.Header>
+                    <Card.Content class="px-4">
                         {#if quote}
-                            <dl class="grid gap-3 text-sm">
+                            <dl class="grid gap-2 text-sm">
                                 <div class="flex justify-between gap-4">
                                     <dt class="text-muted-foreground">
                                         Received
@@ -457,61 +538,87 @@
                                         )}
                                     </dd>
                                 </div>
-                                <div class="flex justify-between gap-4">
-                                    <dt class="text-muted-foreground">
-                                        Completed installments
-                                    </dt>
-                                    <dd class="tabular-nums">
-                                        {quote.completedInstallmentsAfterPayment}
-                                    </dd>
-                                </div>
-                                <div class="flex justify-between gap-4">
-                                    <dt class="text-muted-foreground">
-                                        Partial credit
-                                    </dt>
-                                    <dd class="tabular-nums">
-                                        {formatCurrency(
-                                            quote.partialPaymentCreditAfterPaymentMinor,
-                                        )}
-                                    </dd>
+                                <div
+                                    class="grid grid-cols-2 gap-3 border-t pt-2"
+                                >
+                                    <div>
+                                        <dt
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Completed installments
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-semibold tabular-nums"
+                                        >
+                                            {quote.completedInstallmentsAfterPayment}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Partial credit
+                                        </dt>
+                                        <dd
+                                            class="mt-1 font-semibold tabular-nums"
+                                        >
+                                            {formatCurrency(
+                                                quote.partialPaymentCreditAfterPaymentMinor,
+                                            )}
+                                        </dd>
+                                    </div>
                                 </div>
                                 <div
-                                    class="flex justify-between gap-4 border-t pt-3"
+                                    class="flex items-center justify-between gap-4 border-t pt-2"
                                 >
                                     <dt class="font-medium">Outstanding</dt>
-                                    <dd class="font-semibold tabular-nums">
+                                    <dd
+                                        class="font-mono text-lg font-semibold tabular-nums"
+                                    >
                                         {formatCurrency(
                                             quote.actualOutstandingBalanceAfterPaymentMinor,
                                         )}
                                     </dd>
                                 </div>
                             </dl>
+                            {@render coveredInstallments(quote.allocations)}
                         {:else}
-                            <p class="text-sm text-muted-foreground">
-                                Enter the received amount, then calculate the
-                                allocation.
+                            <p class="text-xs text-muted-foreground">
+                                Your amount and covered dates will appear here.
                             </p>
                         {/if}
                     </Card.Content>
-                    {#if quote}<Card.Footer
-                            ><Button
-                                class="w-full"
-                                disabled={isLocked}
-                                onclick={handleCreate}
-                                >{#if isCreating}<Spinner
-                                        data-icon="inline-start"
-                                    />{/if}Post payment</Button
-                            ></Card.Footer
-                        >{/if}
                 </Card.Root>
             </div>
-            <Dialog.Footer>
+            <Dialog.Footer class="flex-row justify-end border-t pt-3">
                 <Button
                     disabled={isLocked}
                     onclick={() => handleOpenChange(false)}
                     type="button"
                     variant="outline">Cancel</Button
                 >
+                {#if quote}
+                    <Button
+                        disabled={isLocked}
+                        onclick={handleCreate}
+                    >
+                        {#if isCreating}<Spinner
+                                data-icon="inline-start"
+                            />{/if}Post payment
+                    </Button>
+                {:else}
+                    <Button
+                        form="record-payment-form"
+                        type="submit"
+                        disabled={isLocked}
+                    >
+                        {#if isQuoting}<Spinner
+                                data-icon="inline-start"
+                            />{:else}<CalculatorIcon
+                                data-icon="inline-start"
+                            />{/if}Calculate allocation
+                    </Button>
+                {/if}
             </Dialog.Footer>
         {/if}
     </Dialog.Content>

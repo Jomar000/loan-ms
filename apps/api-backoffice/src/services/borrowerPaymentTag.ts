@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, notInArray } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, lt, notInArray } from 'drizzle-orm'
 
 import { getActiveOrganizationId } from '../utilities/helpers.js'
 import {
@@ -168,7 +168,7 @@ export async function readBorrowerPaymentTagDetails(
     if (activeLoan) {
         const [{ value }] = await ctx
             .get('dbClient')
-            .select({ value: ctx.get('dbClient').$count(loanInstallment) })
+            .select({ value: count() })
             .from(loanInstallment)
             .where(
                 and(

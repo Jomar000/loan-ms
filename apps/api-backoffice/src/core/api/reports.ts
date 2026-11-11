@@ -1,4 +1,5 @@
 import * as reportValidator from '@loanms/validator/backoffice/report'
+import { and, count, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import type { ApplyGlobalResponse } from 'hono/client'
 import type { THonoInstance } from '../../types.js'
@@ -24,13 +25,30 @@ const currentManilaDate = () => {
         parts.find((entry) => entry.type === type)!.value
     return `${part('year')}-${part('month')}-${part('day')}`
 }
+function ledgerPeriodFilter(
+    ctx: Parameters<typeof getActiveOrganizationId>[0],
+    filters: { dateFrom?: string; dateTo?: string },
+) {
+    const from = startOfManilaDate(filters.dateFrom)
+    const to = endOfManilaDate(filters.dateTo)
+    const conditions = ['organization_id = ?']
+    const parameters: (number | string)[] = [getActiveOrganizationId(ctx)]
+    if (from !== null) {
+        conditions.push('transaction_at >= ?')
+        parameters.push(from)
+    }
+    if (to !== null) {
+        conditions.push('transaction_at <= ?')
+        parameters.push(to)
+    }
+    return { conditions, parameters }
+}
 async function readLedgerSeries(
     ctx: Parameters<typeof getActiveOrganizationId>[0],
     input: { filters: { dateFrom?: string; dateTo?: string } },
     groupBy: 'day' | 'month',
 ) {
-    const from = startOfManilaDate(input.filters.dateFrom)
-    const to = endOfManilaDate(input.filters.dateTo)
+    const { conditions, parameters } = ledgerPeriodFilter(ctx, input.filters)
     const periodExpression =
         groupBy === 'day'
             ? "strftime('%Y-%m-%d', transaction_at / 1000, 'unixepoch', '+8 hours')"
@@ -46,13 +64,11 @@ async function readLedgerSeries(
                     COALESCE(SUM(CASE WHEN transaction_type = 'EXPENSE' THEN amount_minor ELSE 0 END), 0) AS expenses_minor,
                     COALESCE(SUM(CASE WHEN transaction_type = 'WRITE_OFF' THEN amount_minor ELSE 0 END), 0) AS write_offs_minor
                FROM capital_transaction
-              WHERE organization_id = ?
-                AND (? IS NULL OR transaction_at >= ?)
-                AND (? IS NULL OR transaction_at <= ?)
+              WHERE ${conditions.join(' AND ')}
               GROUP BY period
               ORDER BY period DESC`,
         )
-        .bind(getActiveOrganizationId(ctx), from, from, to, to)
+        .bind(...parameters)
         .all<{
             cash_in_minor: number
             cash_out_minor: number
@@ -97,76 +113,86 @@ export const reportsRoute = new Hono<THonoInstance>()
             const organizationId = getActiveOrganizationId(ctx)
             const from = startOfManilaDate(input.filters.dateFrom)
             const to = endOfManilaDate(input.filters.dateTo)
-            const database = ctx.get('dbClient').$client
-            const ledger = await database
-                .prepare(
-                    `SELECT
-                    COALESCE(SUM(CASE WHEN direction = 'IN' THEN amount_minor ELSE 0 END), 0) AS cash_in_minor,
-                    COALESCE(SUM(CASE WHEN direction = 'OUT' THEN amount_minor ELSE 0 END), 0) AS cash_out_minor,
-                    COALESCE(SUM(CASE WHEN transaction_type = 'EXPENSE' THEN amount_minor ELSE 0 END), 0) AS expenses_minor,
-                    COALESCE(SUM(CASE WHEN transaction_type = 'WRITE_OFF' THEN amount_minor ELSE 0 END), 0) AS write_offs_minor,
-                    COALESCE(SUM(CASE WHEN transaction_type = 'LOAN_PRINCIPAL_RELEASE' THEN amount_minor ELSE 0 END), 0) AS loan_released_minor,
-                    COALESCE(SUM(CASE WHEN transaction_type = 'REFUND' THEN amount_minor ELSE 0 END), 0) AS refunded_minor
-                 FROM capital_transaction
-                 WHERE organization_id = ?
-                   AND (? IS NULL OR transaction_at >= ?)
-                   AND (? IS NULL OR transaction_at <= ?)`,
-                )
-                .bind(organizationId, from, from, to, to)
-                .first<{
-                    cash_in_minor: number
-                    cash_out_minor: number
-                    expenses_minor: number
-                    loan_released_minor: number
-                    refunded_minor: number
-                    write_offs_minor: number
-                }>()
-            const collections = await database
-                .prepare(
-                    `SELECT
-                    COALESCE(SUM(CASE WHEN transaction_type IN ('PRINCIPAL_COLLECTION', 'RENEWAL_SETTLEMENT_PRINCIPAL') THEN amount_minor ELSE 0 END), 0) AS principal_collected_minor,
-                    COALESCE(SUM(CASE WHEN transaction_type IN ('INTEREST_COLLECTION', 'RENEWAL_SETTLEMENT_INTEREST') THEN amount_minor ELSE 0 END), 0) AS interest_collected_minor,
-                    COALESCE(SUM(CASE WHEN transaction_type = 'RENEWAL_RELEASE' THEN amount_minor ELSE 0 END), 0) AS renewal_released_minor
-                 FROM capital_transaction
-                 WHERE organization_id = ?
-                   AND (? IS NULL OR transaction_at >= ?)
-                   AND (? IS NULL OR transaction_at <= ?)`,
-                )
-                .bind(organizationId, from, from, to, to)
-                .first<{
-                    interest_collected_minor: number
-                    principal_collected_minor: number
-                    renewal_released_minor: number
-                }>()
-            const portfolio = await database
-                .prepare(
-                    `SELECT
-                    COUNT(*) AS active_loan_count,
-                    COALESCE(SUM(principal_amount_minor), 0) AS active_principal_minor,
-                    COALESCE(SUM(actual_outstanding_balance_minor), 0) AS outstanding_receivable_minor
-                 FROM loan
-                 WHERE organization_id = ? AND status IN ('ACTIVE', 'OVERDUE')`,
-                )
-                .bind(organizationId)
-                .first<{
-                    active_loan_count: number
-                    active_principal_minor: number
-                    outstanding_receivable_minor: number
-                }>()
-            const overdue = await database
-                .prepare(
-                    `SELECT COALESCE(SUM(amount_due_minor - amount_paid_minor), 0) AS overdue_amount_minor,
-                        COUNT(DISTINCT loan_id) AS overdue_loan_count
-                 FROM loan_installment
-                 WHERE organization_id = ?
-                   AND due_date < strftime('%Y-%m-%d', 'now', '+8 hours')
-                   AND amount_paid_minor < amount_due_minor`,
-                )
-                .bind(organizationId)
-                .first<{
-                    overdue_amount_minor: number
-                    overdue_loan_count: number
-                }>()
+            const { capitalTransaction, loan, loanInstallment } =
+                ctx.get('dbSchema')
+            const [
+                [ledger],
+                [portfolio],
+                [overdue],
+            ] = await ctx.get('dbClient').batch([
+                ctx
+                    .get('dbClient')
+                    .select({
+                        cash_in_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.direction} = 'IN' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        cash_out_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.direction} = 'OUT' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        expenses_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} = 'EXPENSE' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        write_offs_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} = 'WRITE_OFF' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        loan_released_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} = 'LOAN_PRINCIPAL_RELEASE' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        refunded_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} = 'REFUND' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        principal_collected_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} IN ('PRINCIPAL_COLLECTION', 'RENEWAL_SETTLEMENT_PRINCIPAL') THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        interest_collected_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} IN ('INTEREST_COLLECTION', 'RENEWAL_SETTLEMENT_INTEREST') THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                        renewal_released_minor: sql<number>`COALESCE(SUM(CASE WHEN ${capitalTransaction.transactionType} = 'RENEWAL_RELEASE' THEN ${capitalTransaction.amountMinor} ELSE 0 END), 0)`,
+                    })
+                    .from(capitalTransaction)
+                    .where(
+                        and(
+                            eq(
+                                capitalTransaction.organizationId,
+                                organizationId,
+                            ),
+                            ...(from === null
+                                ? []
+                                : [
+                                      gte(
+                                          capitalTransaction.transactionAt,
+                                          new Date(from),
+                                      ),
+                                  ]),
+                            ...(to === null
+                                ? []
+                                : [
+                                      lte(
+                                          capitalTransaction.transactionAt,
+                                          new Date(to),
+                                      ),
+                                  ]),
+                        ),
+                    ),
+                ctx
+                    .get('dbClient')
+                    .select({
+                        active_loan_count: count(),
+                        active_principal_minor: sql<number>`COALESCE(SUM(${loan.principalAmountMinor}), 0)`,
+                        outstanding_receivable_minor: sql<number>`COALESCE(SUM(${loan.actualOutstandingBalanceMinor}), 0)`,
+                    })
+                    .from(loan)
+                    .where(
+                        and(
+                            eq(loan.organizationId, organizationId),
+                            inArray(loan.status, [
+                                'ACTIVE',
+                                'OVERDUE',
+                            ]),
+                        ),
+                    ),
+                ctx
+                    .get('dbClient')
+                    .select({
+                        overdue_amount_minor: sql<number>`COALESCE(SUM(${loanInstallment.amountDueMinor} - ${loanInstallment.amountPaidMinor}), 0)`,
+                        overdue_loan_count: sql<number>`COUNT(DISTINCT ${loanInstallment.loanId})`,
+                    })
+                    .from(loanInstallment)
+                    .where(
+                        and(
+                            eq(loanInstallment.organizationId, organizationId),
+                            lt(loanInstallment.dueDate, currentManilaDate()),
+                            lt(
+                                loanInstallment.amountPaidMinor,
+                                loanInstallment.amountDueMinor,
+                            ),
+                        ),
+                    ),
+            ])
             return apiResponseOkWrapper(ctx, {
                 data: {
                     // Current-state portfolio metrics are intentionally not
@@ -187,9 +213,9 @@ export const reportsRoute = new Hono<THonoInstance>()
                     currentOutstandingReceivableMinor:
                         portfolio?.outstanding_receivable_minor ?? 0,
                     interestCollectedMinor:
-                        collections?.interest_collected_minor ?? 0,
+                        ledger?.interest_collected_minor ?? 0,
                     netEarningsMinor:
-                        (collections?.interest_collected_minor ?? 0) -
+                        (ledger?.interest_collected_minor ?? 0) -
                         (ledger?.expenses_minor ?? 0) -
                         (ledger?.write_offs_minor ?? 0),
                     overdueAmountMinor: overdue?.overdue_amount_minor ?? 0,
@@ -201,23 +227,22 @@ export const reportsRoute = new Hono<THonoInstance>()
                     periodDateFrom: input.filters.dateFrom ?? null,
                     periodDateTo: input.filters.dateTo ?? null,
                     periodInterestCollectedMinor:
-                        collections?.interest_collected_minor ?? 0,
+                        ledger?.interest_collected_minor ?? 0,
                     periodExpensesMinor: ledger?.expenses_minor ?? 0,
                     periodLoanReleasedMinor: ledger?.loan_released_minor ?? 0,
                     periodNetEarningsMinor:
-                        (collections?.interest_collected_minor ?? 0) -
+                        (ledger?.interest_collected_minor ?? 0) -
                         (ledger?.expenses_minor ?? 0) -
                         (ledger?.write_offs_minor ?? 0),
                     periodPrincipalCollectedMinor:
-                        collections?.principal_collected_minor ?? 0,
+                        ledger?.principal_collected_minor ?? 0,
                     periodRefundedMinor: ledger?.refunded_minor ?? 0,
                     periodRenewalReleasedMinor:
-                        collections?.renewal_released_minor ?? 0,
+                        ledger?.renewal_released_minor ?? 0,
                     periodWriteOffsMinor: ledger?.write_offs_minor ?? 0,
                     principalCollectedMinor:
-                        collections?.principal_collected_minor ?? 0,
-                    renewalReleasedMinor:
-                        collections?.renewal_released_minor ?? 0,
+                        ledger?.principal_collected_minor ?? 0,
+                    renewalReleasedMinor: ledger?.renewal_released_minor ?? 0,
                 },
             })
         },
@@ -295,8 +320,10 @@ export const reportsRoute = new Hono<THonoInstance>()
         validateRequest('json', reportValidator.reportReadInputSchema),
         async (ctx) => {
             const input = ctx.req.valid('json')
-            const from = startOfManilaDate(input.filters.dateFrom)
-            const to = endOfManilaDate(input.filters.dateTo)
+            const { conditions, parameters } = ledgerPeriodFilter(
+                ctx,
+                input.filters,
+            )
             const row = await ctx
                 .get('dbClient')
                 .$client.prepare(
@@ -304,12 +331,10 @@ export const reportsRoute = new Hono<THonoInstance>()
                             COALESCE(SUM(CASE WHEN transaction_type = 'PRINCIPAL_COLLECTION' THEN amount_minor ELSE 0 END), 0) AS principal_collected_minor,
                             COALESCE(SUM(CASE WHEN transaction_type = 'INTEREST_COLLECTION' THEN amount_minor ELSE 0 END), 0) AS interest_collected_minor
                        FROM capital_transaction
-                      WHERE organization_id = ?
-                        AND transaction_type IN ('PRINCIPAL_COLLECTION', 'INTEREST_COLLECTION')
-                        AND (? IS NULL OR transaction_at >= ?)
-                        AND (? IS NULL OR transaction_at <= ?)`,
+                      WHERE ${conditions.join(' AND ')}
+                        AND transaction_type IN ('PRINCIPAL_COLLECTION', 'INTEREST_COLLECTION')`,
                 )
-                .bind(getActiveOrganizationId(ctx), from, from, to, to)
+                .bind(...parameters)
                 .first<{
                     interest_collected_minor: number
                     payment_count: number
@@ -332,8 +357,10 @@ export const reportsRoute = new Hono<THonoInstance>()
         validateRequest('json', reportValidator.reportReadInputSchema),
         async (ctx) => {
             const input = ctx.req.valid('json')
-            const from = startOfManilaDate(input.filters.dateFrom)
-            const to = endOfManilaDate(input.filters.dateTo)
+            const { conditions, parameters } = ledgerPeriodFilter(
+                ctx,
+                input.filters,
+            )
             const row = await ctx
                 .get('dbClient')
                 .$client.prepare(
@@ -342,12 +369,10 @@ export const reportsRoute = new Hono<THonoInstance>()
                             COALESCE(SUM(CASE WHEN transaction_type = 'RENEWAL_SETTLEMENT_PRINCIPAL' THEN amount_minor ELSE 0 END), 0) AS principal_settled_minor,
                             COALESCE(SUM(CASE WHEN transaction_type = 'RENEWAL_SETTLEMENT_INTEREST' THEN amount_minor ELSE 0 END), 0) AS interest_settled_minor
                        FROM capital_transaction
-                      WHERE organization_id = ?
-                        AND loan_renewal_id IS NOT NULL
-                        AND (? IS NULL OR transaction_at >= ?)
-                        AND (? IS NULL OR transaction_at <= ?)`,
+                      WHERE ${conditions.join(' AND ')}
+                        AND loan_renewal_id IS NOT NULL`,
                 )
-                .bind(getActiveOrganizationId(ctx), from, from, to, to)
+                .bind(...parameters)
                 .first<{
                     interest_settled_minor: number
                     principal_settled_minor: number

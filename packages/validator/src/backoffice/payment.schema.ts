@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import * as base from '../shared/base.js'
 import * as field from '../shared/field.js'
+import * as refinement from '../shared/refinement.js'
 
 const MAX_MONEY_MINOR = 1_000_000_000_000
 
@@ -21,6 +22,17 @@ export const paymentStatusSchema = z.enum([
 
 const paymentFieldsSchema = z.object({
     amountReceivedMinor: moneyMinorSchema('Payment amount', 1),
+    coveredDates: z
+        .array(field.vIsoDate('Covered date'))
+        .min(1)
+        .max(1000)
+        .check((ctx) => {
+            refinement.uniqueArrayValues(ctx, {
+                message: 'Covered dates must be unique.',
+                values: ctx.value,
+            })
+        })
+        .optional(),
     loanPublicId: publicIdSchema,
     notes: field.vText({ fieldName: 'Notes', max: 500 }).optional(),
     paymentDate: field.vIsoDate('Payment date'),
