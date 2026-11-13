@@ -1,5 +1,6 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
+    import * as AlertDialog from '@loanms/ui/components/alert-dialog'
     import { Button } from '@loanms/ui/components/button'
     import * as Dialog from '@loanms/ui/components/dialog'
     import * as Empty from '@loanms/ui/components/empty'
@@ -12,6 +13,7 @@
     import PlusIcon from '@lucide/svelte/icons/plus'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
     import SearchIcon from '@lucide/svelte/icons/search'
+    import Trash2Icon from '@lucide/svelte/icons/trash-2'
     import { onDestroy } from 'svelte'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
@@ -20,14 +22,20 @@
     import { useSessionContext } from '$lib/states/session'
     import {
         debounce,
+        getErrorMessage,
         getUserFacingSaveErrorMessage,
     } from '$lib/utilities/helpers'
     import { createIdempotencyKeyLifecycle } from '$lib/utilities/idempotencyKey'
     import {
         createBorrowerCreateMutation,
+        createBorrowerDeleteMutation,
         createBorrowerListQuery,
     } from '../queries'
-    import type { BorrowerCreateInput, BorrowerStatus } from '../types'
+    import type {
+        BorrowerCreateInput,
+        BorrowerListItem,
+        BorrowerStatus,
+    } from '../types'
     import BorrowerFormFields from './BorrowerFormFields.svelte'
     import PaymentTagBadge from './PaymentTagBadge.svelte'
     ////////////////////
@@ -54,8 +62,11 @@
     let createOpen = $state(false)
     let createError = $state<string | null>(null)
     let draft = $state<BorrowerCreateInput>(createBorrowerDraft())
+    let deleteOpen = $state(false)
+    let deleteTarget = $state<BorrowerListItem | null>(null)
     let inputSearch = $state('')
     let isCreating = $state(false)
+    let isDeleting = $state(false)
     let pageNumber = $state(1)
     let pageSize = $state(PAGE_SIZE)
     let paymentTag = $state<'ALL' | 'BAD_PAYER' | 'GOOD_PAYER' | 'SCAMMER'>(
@@ -96,6 +107,11 @@
     // 06. Mutations //
     ///////////////////
     const createMutation = createBorrowerCreateMutation({
+        get organizationSlug() {
+            return session.data.organizationSlug
+        },
+    })
+    const deleteMutation = createBorrowerDeleteMutation({
         get organizationSlug() {
             return session.data.organizationSlug
         },
@@ -165,6 +181,27 @@
             })
         } finally {
             isCreating = false
+        }
+    }
+    function handleDeleteOpenChange(open: boolean) {
+        if (isDeleting) return
+        deleteOpen = open
+        if (!open) deleteTarget = null
+    }
+    async function handleDelete() {
+        if (isDeleting || !deleteTarget) return
+        const target = deleteTarget
+        const wasOnlyRowOnLaterPage = rows.length === 1 && pageNumber > 1
+        isDeleting = true
+        try {
+            await deleteMutation.mutateAsync(target.publicId)
+            toast.success('Borrower profile permanently deleted.')
+            handleDeleteOpenChange(false)
+            if (wasOnlyRowOnLaterPage) pageNumber -= 1
+        } catch (error) {
+            toast.error(getErrorMessage(error, 'Could not delete borrower.'))
+        } finally {
+            isDeleting = false
         }
     }
     function handlePaymentTagChange(event: Event) {
@@ -531,17 +568,34 @@
                                     </Table.Cell>
 
                                     <Table.Cell class="text-right">
-                                        <Button
-                                            class="h-7 border-zinc-200 px-2.5 text-[11px] font-semibold transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:border-zinc-700 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
-                                            onclick={() =>
-                                                void handleViewBorrower(
-                                                    borrower.publicId,
-                                                )}
-                                            size="sm"
-                                            variant="outline"
-                                        >
-                                            View
-                                        </Button>
+                                        <div class="flex justify-end gap-1.5">
+                                            <Button
+                                                class="h-7 border-zinc-200 px-2.5 text-[11px] font-semibold transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:border-zinc-700 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
+                                                onclick={() =>
+                                                    void handleViewBorrower(
+                                                        borrower.publicId,
+                                                    )}
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                View
+                                            </Button>
+                                            <Button
+                                                aria-label={`Delete ${borrower.fullName}`}
+                                                class="h-7 px-2 text-[11px]"
+                                                onclick={() => {
+                                                    deleteTarget = borrower
+                                                    deleteOpen = true
+                                                }}
+                                                size="sm"
+                                                variant="destructive"
+                                            >
+                                                <Trash2Icon
+                                                    class="size-3"
+                                                    data-icon="inline-start"
+                                                /> Delete
+                                            </Button>
+                                        </div>
                                     </Table.Cell>
                                 </Table.Row>
                             {/each}
@@ -696,6 +750,43 @@
         </form>
     </Dialog.Content>
 </Dialog.Root>
+
+<AlertDialog.Root bind:open={() => deleteOpen, handleDeleteOpenChange}>
+    <AlertDialog.Content
+        class="max-w-md border-red-200 bg-white shadow-2xl dark:border-red-500/20 dark:bg-[#202020]"
+    >
+        <AlertDialog.Header>
+            <div
+                class="mb-1 flex size-9 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+            >
+                <Trash2Icon class="size-4" />
+            </div>
+            <AlertDialog.Title>Delete borrower profile?</AlertDialog.Title>
+            <AlertDialog.Description>
+                {#if deleteTarget}
+                    Permanently delete {deleteTarget.fullName}? This cannot be
+                    undone. Profiles with loans, payments, documents, or payment
+                    history must be archived instead.
+                {:else}
+                    This permanently deletes the borrower profile and cannot be
+                    undone.
+                {/if}
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel disabled={isDeleting}>Cancel</AlertDialog.Cancel
+            >
+            <AlertDialog.Action
+                class="bg-red-600 text-white hover:bg-red-700"
+                disabled={isDeleting || !deleteTarget}
+                onclick={handleDelete}
+            >
+                {#if isDeleting}<Spinner data-icon="inline-start" />{/if}
+                Delete profile
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>
 
 <Dialog.Root
     bind:open={() => createError !== null, handleCreateErrorOpenChange}

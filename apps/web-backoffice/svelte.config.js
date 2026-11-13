@@ -37,10 +37,7 @@ const getWebSocketOrigin = (httpOrigin) => {
     return url.origin
 }
 
-const connectSources = [
-    'self',
-    'https://cloudflareinsights.com',
-]
+const connectSources = ['self']
 
 const cloudflareAccountId = env.PUBLIC_CF_ACCOUNT_ID.trim()
 if (cloudflareAccountId) {
@@ -71,6 +68,10 @@ const config = {
             fallback: '404.html',
             pages: 'dist',
         }),
+
+        paths: {
+            relative: false,
+        },
 
         prerender: {
             handleHttpError: 'warn',
@@ -107,7 +108,6 @@ const config = {
                 'script-src': [
                     'self',
                     'https://challenges.cloudflare.com/',
-                    'https://static.cloudflareinsights.com/',
                 ],
                 'script-src-attr': ['none'],
                 'style-src': ['self'],

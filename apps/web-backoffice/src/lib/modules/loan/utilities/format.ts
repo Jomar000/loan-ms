@@ -15,6 +15,15 @@ export function formatDate(value: string | null): string {
     }).format(new Date(value))
 }
 
+export function formatNumericDate(value: string): string {
+    const [
+        year,
+        month,
+        day,
+    ] = value.slice(0, 10).split('-')
+    return `${month}/${day}/${year}`
+}
+
 export function toMinorUnits(value: number | string): number | null {
     const normalized = String(value).trim()
     if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null

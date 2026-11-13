@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { formatNumericDate } from './format'
 import { getFirstPaymentDate } from './schedule'
 
 describe('first collection date', () => {
@@ -45,5 +46,11 @@ describe('first collection date', () => {
         expect(getFirstPaymentDate('2026-10-09', undefined)).toBe('')
         expect(getFirstPaymentDate('', 'DAILY')).toBe('')
         expect(getFirstPaymentDate('2026-02-30', 'MONTHLY')).toBe('')
+    })
+})
+
+describe('numeric loan dates', () => {
+    it('formats dates as MM/DD/YYYY without shifting the calendar day', () => {
+        expect(formatNumericDate('2026-10-04')).toBe('10/04/2026')
     })
 })

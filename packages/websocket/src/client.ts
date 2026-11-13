@@ -105,6 +105,22 @@ export function createWsClientManager(options: TWsClientManagerOptions) {
         entry[timer] = null
     }
 
+    const closeSocket = (socket: WebSocket, code?: number, reason?: string) => {
+        if (
+            socket.readyState === WebSocket.CLOSING ||
+            socket.readyState === WebSocket.CLOSED
+        ) {
+            return
+        }
+
+        try {
+            socket.close(code, reason)
+        } catch {
+            // Firefox may already have detached a failed connecting socket.
+            // Its close event still drives the normal reconnect lifecycle.
+        }
+    }
+
     const getReconnectDelay = (attempt: number) => {
         const cappedDelay = Math.min(
             reconnectBaseDelayMs * 2 ** attempt,
@@ -315,7 +331,7 @@ export function createWsClientManager(options: TWsClientManagerOptions) {
                 return
             }
 
-            socket.close(1013, 'Connection timed out.')
+            closeSocket(socket, 4000, 'Connection timed out.')
         }, connectionTimeoutMs)
 
         socket.addEventListener('open', () => {
@@ -350,7 +366,7 @@ export function createWsClientManager(options: TWsClientManagerOptions) {
         })
 
         socket.addEventListener('error', () => {
-            if (generation === entry.generation) socket.close()
+            if (generation === entry.generation) closeSocket(socket)
         })
     }
 
@@ -408,7 +424,7 @@ export function createWsClientManager(options: TWsClientManagerOptions) {
         clearTimer(entry, 'disconnectIdleTimer')
         clearTimer(entry, 'reconnectTimer')
         clearTimer(entry, 'stabilityTimer')
-        entry.socket?.close(code, reason)
+        if (entry.socket) closeSocket(entry.socket, code, reason)
         entry.socket = null
         entries.delete(entry.key)
     }

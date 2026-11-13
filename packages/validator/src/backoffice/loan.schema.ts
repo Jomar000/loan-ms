@@ -247,6 +247,16 @@ export const loanDeleteInputSchema = z.object({
 })
 export const loanDeleteOutputSchema = base.outputSchema(loanDeleteInputSchema)
 
+export const loanDeleteForBorrowerInputSchema = z
+    .object({
+        borrowerPublicId: publicIdSchema,
+        publicId: publicIdSchema,
+    })
+    .strict()
+export const loanDeleteForBorrowerOutputSchema = base.outputSchema(
+    z.object({ publicId: publicIdSchema }),
+)
+
 export const loanApproveInputSchema = z
     .object({
         publicId: publicIdSchema,

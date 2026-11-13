@@ -1,4 +1,4 @@
-import { catalog, type TErrorDefinition } from '@loanms/errors'
+import { catalog, serializeError, type TErrorDefinition } from '@loanms/errors'
 import {
     hasRealtimeWireVersion,
     REALTIME_WIRE_VERSION,
@@ -111,6 +111,8 @@ const connectRealtime = async (
     const namespace = ctx.get('doWssClient')
     let fullLeafCount = 0
     let unavailableLeafCount = 0
+    let firstShardError: unknown
+    let firstShardStatus: number | undefined
 
     for (const shardIndex of probeOrder) {
         const attachment: TRealtimeTransportAttachment = {
@@ -139,6 +141,8 @@ const connectRealtime = async (
                 console.log(
                     JSON.stringify({
                         type: 'WS_ADMISSION_ACCEPTED',
+                        requestId: ctx.get('requestId'),
+                        correlationId: ctx.get('correlationId') ?? 'N/A',
                         organization: getSafeOrganizationIdentity(
                             context.organizationId,
                         ),
@@ -165,9 +169,11 @@ const connectRealtime = async (
                 )
             } else {
                 unavailableLeafCount += 1
+                firstShardStatus ??= response.status
             }
-        } catch {
+        } catch (error) {
             unavailableLeafCount += 1
+            firstShardError ??= error
         }
     }
 
@@ -178,6 +184,13 @@ const connectRealtime = async (
     console.error(
         JSON.stringify({
             type: 'WS_ADMISSION_EXHAUSTED',
+            requestId: ctx.get('requestId'),
+            correlationId: ctx.get('correlationId') ?? 'N/A',
+            environment: ctx.env.ENVIRONMENT,
+            firstShardStatus,
+            ...(firstShardError === undefined
+                ? {}
+                : serializeError(firstShardError)),
             code: failure.code,
             organization: getSafeOrganizationIdentity(context.organizationId),
             stream: admission.stream.wireName,

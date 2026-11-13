@@ -31,27 +31,30 @@ policy as an early CSP meta element. The HTTP header supplies
 `frame-ancestors`, which CSP does not support in a meta policy, plus
 `upgrade-insecure-requests`. Browsers enforce both policies together.
 
-| Directive                      | Effective source policy                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------------- |
-| `default-src`                  | `'none'`                                                                                    |
-| `base-uri`                     | `'none'`                                                                                    |
-| `connect-src`                  | `'self'`, Cloudflare Web Analytics, and validated build-time API, WebSocket, and R2 origins |
-| `font-src`                     | `'self'`                                                                                    |
-| `form-action`                  | `'self'`                                                                                    |
-| `frame-src`                    | `'self'`, Cloudflare Turnstile, and YouTube                                                 |
-| `img-src`                      | `'self'`, `blob:`, `data:`, and YouTube thumbnails                                          |
-| `manifest-src`                 | `'self'`                                                                                    |
-| `media-src`                    | `'self'`, `blob:`, `data:`, and `mediastream:`                                              |
-| `object-src`                   | `'none'`                                                                                    |
-| `script-src`                   | `'self'`, Cloudflare Turnstile, Cloudflare Web Analytics, and SvelteKit-generated hashes    |
-| `script-src-attr`              | `'none'`                                                                                    |
-| `style-src` / `style-src-elem` | `'self'`                                                                                    |
-| `style-src-attr`               | `'unsafe-inline'` for application-generated style attributes only                           |
-| `worker-src`                   | `'self'` and `blob:`                                                                        |
+| Directive                      | Effective source policy                                           |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `default-src`                  | `'none'`                                                          |
+| `base-uri`                     | `'none'`                                                          |
+| `connect-src`                  | `'self'` and validated build-time API, WebSocket, and R2 origins  |
+| `font-src`                     | `'self'`                                                          |
+| `form-action`                  | `'self'`                                                          |
+| `frame-src`                    | `'self'`, Cloudflare Turnstile, and YouTube                       |
+| `img-src`                      | `'self'`, `blob:`, `data:`, and YouTube thumbnails                |
+| `manifest-src`                 | `'self'`                                                          |
+| `media-src`                    | `'self'`, `blob:`, `data:`, and `mediastream:`                    |
+| `object-src`                   | `'none'`                                                          |
+| `script-src`                   | `'self'`, Cloudflare Turnstile, and SvelteKit-generated hashes    |
+| `script-src-attr`              | `'none'`                                                          |
+| `style-src` / `style-src-elem` | `'self'`                                                          |
+| `style-src-attr`               | `'unsafe-inline'` for application-generated style attributes only |
+| `worker-src`                   | `'self'` and `blob:`                                              |
 
 Do not add `unsafe-inline` or `unsafe-eval` to script policy. A `strict-dynamic`
 or Trusted Types migration requires separate compatibility work for third-party
 scripts.
+
+Cloudflare Web Analytics must remain disabled for this hostname. Its edge-injected
+beacon is not part of the hashed application build and must not be allowed by CSP.
 
 ## Cloudflare Configuration
 

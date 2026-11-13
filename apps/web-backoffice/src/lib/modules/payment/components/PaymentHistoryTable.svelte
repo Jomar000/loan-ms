@@ -11,11 +11,12 @@
     import StatusBadge from '$lib/components/dataWorkspace/StatusBadge.svelte'
     import {
         formatCurrency,
-        formatDate,
+        formatNumericDate,
     } from '$lib/modules/loan/utilities/format'
     import { useSessionContext } from '$lib/states/session'
     import { createPaymentListQuery } from '../queries'
     import type { Payment, PaymentFrequency, PaymentStatus } from '../types'
+    import { formatPeriodCovered } from '../utilities/formatPeriodCovered'
     import PaymentReversalDialog from './PaymentReversalDialog.svelte'
     ////////////////////
     // 01. Properties //
@@ -87,17 +88,6 @@
     function openReversal(payment: Payment) {
         reversalPayment = payment
         reversalOpen = true
-    }
-    /////////////////
-    // 10. Helpers //
-    /////////////////
-    function formatPeriodCovered(payment: Payment): string {
-        if (payment.allocations.length === 0) return 'No installment allocation'
-        const first = payment.allocations[0]
-        const last = payment.allocations.at(-1) ?? first
-        return first.installmentNumber === last.installmentNumber
-            ? `Installment ${first.installmentNumber} · ${formatDate(first.dueDate)}`
-            : `Installments ${first.installmentNumber}–${last.installmentNumber}`
     }
 </script>
 
@@ -358,7 +348,7 @@
                             <Table.Cell
                                 class="h-11 px-3 py-1.5 text-xs font-medium whitespace-nowrap text-zinc-700 dark:text-zinc-300"
                             >
-                                {formatDate(payment.paymentDate)}
+                                {formatNumericDate(payment.paymentDate)}
                             </Table.Cell>
                             <Table.Cell
                                 class="h-11 max-w-40 truncate px-3 py-1.5 font-mono text-[11px] font-medium text-zinc-700 dark:text-zinc-300"
@@ -376,7 +366,7 @@
                             <Table.Cell
                                 class="h-11 min-w-48 px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400"
                             >
-                                {formatPeriodCovered(payment)}
+                                {formatPeriodCovered(payment.allocations)}
                             </Table.Cell>
                             <Table.Cell
                                 class="h-11 px-3 py-1.5 text-right font-mono text-xs font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"

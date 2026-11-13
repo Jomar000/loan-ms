@@ -171,6 +171,8 @@ id = "00000000000000000000000000000003"
 binding = "LOANMSBOFC_D1"
 database_name = "loanms-production"
 database_id = "00000000-0000-0000-0000-000000000003"
+migrations_dir = "../../packages/database/src/d1/migrations/default"
+migrations_pattern = "../../packages/database/src/d1/migrations/default/*.sql"
 
 [[env.production.durable_objects.bindings]]
 name = "LOANMSBOFC_DO_RL"

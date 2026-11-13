@@ -926,6 +926,7 @@ CREATE TABLE `loan` (
     `partial_credit_policy` text NOT NULL,
     `min_completed_installments` integer DEFAULT 0 NOT NULL,
     `allow_renewal_principal_change` integer DEFAULT false NOT NULL,
+    `scheduled_release_date` text,
     `release_date` text,
     `first_payment_date` text NOT NULL,
     `expected_completion_date` text NOT NULL,

@@ -18,7 +18,6 @@ import { v7 as uuidv7 } from 'uuid'
 import {
     calculateLoan,
     createInstallmentSchedule,
-    getFirstPaymentDate,
     type TLoanCalculationInput,
 } from '../../services/loanCalculation/index.js'
 import { readRuntimeSystemSettings } from '../../services/systemSettings.js'
@@ -49,6 +48,16 @@ const loanDeleteConflict = defineError(
     'LOAN_DELETE_CONFLICT',
     'CONFLICT',
     'Only pending approval loans without related records can be deleted.',
+)
+const loanDeleteRenewalConflict = defineError(
+    'LOAN_DELETE_RENEWAL_CONFLICT',
+    'CONFLICT',
+    'Loans linked to a renewal cannot be permanently deleted.',
+)
+const borrowerLoanDeleteConflict = defineError(
+    'BORROWER_LOAN_DELETE_CONFLICT',
+    'CONFLICT',
+    'The loan changed before it could be deleted. Refresh and try again.',
 )
 const loanProductUnavailable = defineError(
     'LOAN_PRODUCT_UNAVAILABLE',
@@ -135,6 +144,7 @@ type TLoan = TFormulaSnapshot & {
     publicId: string
     releaseDate: null | string
     releasedAt: Date | null
+    scheduledReleaseDate: null | string
     status: zLoanStatus
     totalAmountPaidMinor: number
     totalPayableAmountMinor: number
@@ -340,6 +350,7 @@ function loanSelection(ctx: Parameters<typeof getActiveOrganizationId>[0]) {
         publicId: loan.publicId,
         releaseDate: loan.releaseDate,
         releasedAt: loan.releasedAt,
+        scheduledReleaseDate: loan.scheduledReleaseDate,
         renewalSettlementMethod: loan.renewalSettlementMethod,
         roundingMode: loan.roundingMode,
         status: loan.status,
@@ -479,10 +490,7 @@ async function quoteLoan(
         calculationInputFor(product, input.principalMinor),
     )
     const installments = createInstallmentSchedule({
-        firstDueDate: getFirstPaymentDate(
-            input.releaseDate,
-            product.paymentFrequency,
-        ),
+        firstDueDate: input.firstPaymentDate,
         installmentAmountCents: calculation.baseInstallmentAmountCents,
         installmentCount: calculation.installmentCount,
         paymentFrequency: product.paymentFrequency,
@@ -787,10 +795,10 @@ export const loansRoute = new Hono<THonoInstance>()
                                 installment_amount_minor, daily_payment_amount_minor, timezone, rounding_mode,
                                 final_installment_residue_policy, renewal_settlement_method,
                                 partial_credit_policy, min_completed_installments,
-                                allow_renewal_principal_change, first_payment_date,
+                                allow_renewal_principal_change, scheduled_release_date, first_payment_date,
                                 expected_completion_date, actual_outstanding_balance_minor, status,
                                 create_idempotency_key, created_by_user_id, updated_by_user_id
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_APPROVAL', ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING_APPROVAL', ?, ?, ?)
                             ON CONFLICT(organization_id, create_idempotency_key) DO NOTHING`,
                         )
                         .bind(
@@ -823,6 +831,7 @@ export const loansRoute = new Hono<THonoInstance>()
                             quote.product.partialCreditPolicy,
                             quote.product.minCompletedInstallments,
                             quote.product.allowRenewalPrincipalChange,
+                            input.releaseDate,
                             quote.installments[0]!.dueDate,
                             quote.expectedCompletionDate,
                             quote.calculation.totalPayableAmountCents,
@@ -1032,6 +1041,310 @@ export const loansRoute = new Hono<THonoInstance>()
         },
     )
     .post(
+        '/borrower/:borrowerPublicId/loan/:publicId/delete',
+        tenantGuard,
+        privilegedGuard,
+        validateRequest(
+            'param',
+            loanValidator.loanDeleteForBorrowerInputSchema,
+        ),
+        async (ctx) => {
+            const { borrowerPublicId, publicId } = ctx.req.valid('param')
+            const existing = await readLoan(ctx, publicId)
+            if (!existing || existing.borrowerPublicId !== borrowerPublicId) {
+                throw new AppError(loanNotFound)
+            }
+
+            const organizationId = getActiveOrganizationId(ctx)
+            const db = ctx.get('dbClient')
+            const {
+                capitalTransaction,
+                cashTransaction,
+                loanInstallment,
+                loanRenewal,
+                payment,
+                paymentAllocation,
+            } = ctx.get('dbSchema')
+            const [renewal] = await db
+                .select({ id: loanRenewal.id })
+                .from(loanRenewal)
+                .where(
+                    and(
+                        eq(loanRenewal.organizationId, organizationId),
+                        sql`(${loanRenewal.oldLoanId} = ${existing.id} OR ${loanRenewal.newLoanId} = ${existing.id})`,
+                    ),
+                )
+                .limit(1)
+            if (renewal) throw new AppError(loanDeleteRenewalConflict)
+
+            const [
+                installments,
+                payments,
+                allocations,
+                cashTransactions,
+                capitalTransactions,
+            ] = await Promise.all([
+                db
+                    .select({
+                        amountDueMinor: loanInstallment.amountDueMinor,
+                        dueDate: loanInstallment.dueDate,
+                        id: loanInstallment.id,
+                        installmentNumber: loanInstallment.installmentNumber,
+                        status: loanInstallment.status,
+                    })
+                    .from(loanInstallment)
+                    .where(
+                        and(
+                            eq(loanInstallment.organizationId, organizationId),
+                            eq(loanInstallment.loanId, existing.id),
+                        ),
+                    ),
+                db
+                    .select({
+                        amountAllocatedMinor: payment.amountAllocatedMinor,
+                        amountReceivedMinor: payment.amountReceivedMinor,
+                        id: payment.id,
+                        paymentDate: payment.paymentDate,
+                        paymentMethod: payment.paymentMethod,
+                        paymentNumber: payment.paymentNumber,
+                        status: payment.status,
+                    })
+                    .from(payment)
+                    .where(
+                        and(
+                            eq(payment.organizationId, organizationId),
+                            eq(payment.loanId, existing.id),
+                        ),
+                    ),
+                db
+                    .select({
+                        allocatedAmountMinor:
+                            paymentAllocation.allocatedAmountMinor,
+                        id: paymentAllocation.id,
+                    })
+                    .from(paymentAllocation)
+                    .innerJoin(
+                        payment,
+                        and(
+                            eq(
+                                payment.organizationId,
+                                paymentAllocation.organizationId,
+                            ),
+                            eq(payment.id, paymentAllocation.paymentId),
+                        ),
+                    )
+                    .where(
+                        and(
+                            eq(
+                                paymentAllocation.organizationId,
+                                organizationId,
+                            ),
+                            eq(payment.loanId, existing.id),
+                        ),
+                    ),
+                db
+                    .select({
+                        amountMinor: cashTransaction.amountMinor,
+                        id: cashTransaction.id,
+                        transactionType: cashTransaction.transactionType,
+                    })
+                    .from(cashTransaction)
+                    .where(
+                        and(
+                            eq(cashTransaction.organizationId, organizationId),
+                            eq(cashTransaction.loanId, existing.id),
+                        ),
+                    ),
+                db
+                    .select({
+                        amountMinor: capitalTransaction.amountMinor,
+                        id: capitalTransaction.id,
+                        transactionType: capitalTransaction.transactionType,
+                    })
+                    .from(capitalTransaction)
+                    .where(
+                        and(
+                            eq(
+                                capitalTransaction.organizationId,
+                                organizationId,
+                            ),
+                            eq(capitalTransaction.loanId, existing.id),
+                        ),
+                    ),
+            ])
+
+            const auditData = auditTrailLogger.prepare({
+                action: 'delete',
+                component: 'loan',
+                description:
+                    'Loan and related financial history permanently deleted',
+                records: [
+                    {
+                        table: 'loan',
+                        id: publicId,
+                        oldData: {
+                            expectedCompletionDate:
+                                existing.expectedCompletionDate,
+                            firstPaymentDate: existing.firstPaymentDate,
+                            loanNumber: existing.loanNumber,
+                            principalAmountMinor: existing.principalAmountMinor,
+                            releaseDate: existing.releaseDate,
+                            status: existing.status,
+                            totalPayableAmountMinor:
+                                existing.totalPayableAmountMinor,
+                        },
+                    },
+                    ...installments.map((record) => ({
+                        table: 'loan_installment',
+                        id: String(record.id),
+                        oldData: {
+                            amountDueMinor: record.amountDueMinor,
+                            dueDate: record.dueDate,
+                            installmentNumber: record.installmentNumber,
+                            status: record.status,
+                        },
+                    })),
+                    ...payments.map((record) => ({
+                        table: 'payment',
+                        id: String(record.id),
+                        oldData: {
+                            amountAllocatedMinor: record.amountAllocatedMinor,
+                            amountReceivedMinor: record.amountReceivedMinor,
+                            paymentDate: record.paymentDate,
+                            paymentMethod: record.paymentMethod,
+                            paymentNumber: record.paymentNumber,
+                            status: record.status,
+                        },
+                    })),
+                    ...allocations.map((record) => ({
+                        table: 'payment_allocation',
+                        id: String(record.id),
+                        oldData: {
+                            allocatedAmountMinor: record.allocatedAmountMinor,
+                        },
+                    })),
+                    ...cashTransactions.map((record) => ({
+                        table: 'cash_transaction',
+                        id: String(record.id),
+                        oldData: {
+                            amountMinor: record.amountMinor,
+                            transactionType: record.transactionType,
+                        },
+                    })),
+                    ...capitalTransactions.map((record) => ({
+                        table: 'capital_transaction',
+                        id: String(record.id),
+                        oldData: {
+                            amountMinor: record.amountMinor,
+                            transactionType: record.transactionType,
+                        },
+                    })),
+                ],
+            })
+
+            const database = db.$client
+            const [
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                ,
+                deleteResult,
+            ] = await database.batch([
+                database
+                    .prepare(
+                        `DELETE FROM payment_allocation
+                         WHERE organization_id = ? AND loan_installment_id IN (
+                             SELECT id FROM loan_installment
+                              WHERE organization_id = ? AND loan_id = ?
+                         )`,
+                    )
+                    .bind(organizationId, organizationId, existing.id),
+                database
+                    .prepare(
+                        `DELETE FROM capital_transaction
+                         WHERE organization_id = ? AND (
+                             loan_id = ? OR
+                             payment_id IN (
+                                 SELECT id FROM payment
+                                  WHERE organization_id = ? AND loan_id = ?
+                             ) OR
+                             cash_transaction_id IN (
+                                 SELECT id FROM cash_transaction
+                                  WHERE organization_id = ? AND loan_id = ?
+                             )
+                         )`,
+                    )
+                    .bind(
+                        organizationId,
+                        existing.id,
+                        organizationId,
+                        existing.id,
+                        organizationId,
+                        existing.id,
+                    ),
+                database
+                    .prepare(
+                        'DELETE FROM cash_transaction WHERE organization_id = ? AND loan_id = ?',
+                    )
+                    .bind(organizationId, existing.id),
+                database
+                    .prepare(
+                        'DELETE FROM payment WHERE organization_id = ? AND loan_id = ?',
+                    )
+                    .bind(organizationId, existing.id),
+                database
+                    .prepare(
+                        'DELETE FROM loan_installment WHERE organization_id = ? AND loan_id = ?',
+                    )
+                    .bind(organizationId, existing.id),
+                database
+                    .prepare(
+                        'DELETE FROM loan_collection_assignment WHERE organization_id = ? AND loan_id = ?',
+                    )
+                    .bind(organizationId, existing.id),
+                database
+                    .prepare(
+                        `UPDATE company_fund
+                         SET current_capital_minor = opening_capital_minor + COALESCE((
+                             SELECT SUM(CASE WHEN ct.direction = 'IN'
+                                             THEN ct.amount_minor
+                                             ELSE -ct.amount_minor END)
+                               FROM capital_transaction AS ct
+                              WHERE ct.organization_id = company_fund.organization_id
+                                AND ct.company_fund_id = company_fund.id
+                         ), 0)
+                         WHERE organization_id = ?`,
+                    )
+                    .bind(organizationId),
+                database
+                    .prepare(
+                        `DELETE FROM loan
+                         WHERE organization_id = ? AND public_id = ?
+                           AND id = ? AND borrower_id = (
+                               SELECT id FROM borrower
+                                WHERE organization_id = ? AND public_id = ?
+                           )`,
+                    )
+                    .bind(
+                        organizationId,
+                        publicId,
+                        existing.id,
+                        organizationId,
+                        borrowerPublicId,
+                    ),
+                auditTrailAfterChangeStatement(ctx, auditData, database),
+            ])
+            if (deleteResult.meta.changes !== 1) {
+                throw new AppError(borrowerLoanDeleteConflict)
+            }
+            if (auditData) markAuditTrailRecorded(ctx)
+            return apiResponseOkWrapper(ctx, { data: { publicId } })
+        },
+    )
+    .post(
         '/:publicId/approve',
         tenantGuard,
         privilegedGuard,
@@ -1105,11 +1418,11 @@ export const loansRoute = new Hono<THonoInstance>()
                 .limit(1)
             if (!fund) throw new AppError(primaryFundRequired)
             const releasedAt = Date.now()
-            const releaseDate = manilaDate(releasedAt)
-            const firstPaymentDate = getFirstPaymentDate(
-                releaseDate,
-                existing.paymentFrequency,
-            )
+            const releaseDate =
+                existing.scheduledReleaseDate ??
+                existing.releaseDate ??
+                manilaDate(releasedAt)
+            const firstPaymentDate = existing.firstPaymentDate
             const schedule = createInstallmentSchedule({
                 firstDueDate: firstPaymentDate,
                 installmentAmountCents: existing.installmentAmountMinor,

@@ -63,7 +63,10 @@
     <title>{PUBLIC_NAME}</title>
 </svelte:head>
 
-<ModeWatcher defaultMode="dark" />
+<ModeWatcher
+    defaultMode="dark"
+    disableTransitions={false}
+/>
 
 <div class="size-full bg-zinc-50/80 dark:bg-[#171717]">
     <QueryClientProvider client={queryClient}>

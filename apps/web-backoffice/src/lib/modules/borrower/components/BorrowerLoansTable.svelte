@@ -1,15 +1,23 @@
 <script lang="ts">
     import * as Alert from '@loanms/ui/components/alert'
+    import * as AlertDialog from '@loanms/ui/components/alert-dialog'
     import { Button } from '@loanms/ui/components/button'
     import * as Empty from '@loanms/ui/components/empty'
     import { Skeleton } from '@loanms/ui/components/skeleton'
+    import { Spinner } from '@loanms/ui/components/spinner'
     import * as Table from '@loanms/ui/components/table'
     import AlertCircleIcon from '@lucide/svelte/icons/alert-circle'
     import LandmarkIcon from '@lucide/svelte/icons/landmark'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
+    import Trash2Icon from '@lucide/svelte/icons/trash-2'
+    import { toast } from 'svelte-sonner'
     import PaginationFooter from '$lib/components/dataWorkspace/PaginationFooter.svelte'
     import LoanStatusBadge from '$lib/modules/loan/components/LoanStatusBadge.svelte'
-    import { createLoanListQuery } from '$lib/modules/loan/queries'
+    import {
+        createBorrowerLoanDeleteMutation,
+        createLoanListQuery,
+    } from '$lib/modules/loan/queries'
+    import type { LoanTableItem } from '$lib/modules/loan/types'
     import {
         formatCurrency,
         formatDate,
@@ -35,6 +43,8 @@
     ///////////////
     let pageNumber = $state(1)
     let pageSize = $state(25)
+    let deletingLoan = $state<LoanTableItem | null>(null)
+    let isDeleting = $state(false)
     /////////////////
     // 05. Queries //
     /////////////////
@@ -57,9 +67,39 @@
     )
     const loans = $derived(loansQuery.data?.data ?? [])
     const count = $derived(loansQuery.data?.count ?? 0)
+    ///////////////////
+    // 06. Mutations //
+    ///////////////////
+    const deleteMutation = createBorrowerLoanDeleteMutation({
+        get organizationSlug() {
+            return session.data.organizationSlug
+        },
+    })
     //////////////////
     // 09. Handlers //
     //////////////////
+    function handleDeleteOpenChange(open: boolean) {
+        if (!open && !isDeleting) deletingLoan = null
+    }
+    async function handleDelete() {
+        if (!deletingLoan || isDeleting) return
+        isDeleting = true
+        try {
+            await deleteMutation.mutateAsync({
+                borrowerPublicId,
+                publicId: deletingLoan.publicId,
+            })
+            deletingLoan = null
+            if (loans.length === 1 && pageNumber > 1) pageNumber -= 1
+            toast.success('Loan and related history permanently deleted.')
+        } catch (error) {
+            toast.error(
+                getErrorMessage(error, 'Could not permanently delete loan.'),
+            )
+        } finally {
+            isDeleting = false
+        }
+    }
     function handlePageChange(page: number) {
         pageNumber = page
     }
@@ -77,9 +117,9 @@
         >
             <span class="sr-only">Loading borrower loans</span>
             <div
-                class="grid shrink-0 grid-cols-6 gap-3 border-b border-zinc-100 px-3 pb-2 dark:border-zinc-800"
+                class="grid shrink-0 grid-cols-7 gap-3 border-b border-zinc-100 px-3 pb-2 dark:border-zinc-800"
             >
-                {#each [0, 1, 2, 3, 4, 5] as column (column)}
+                {#each [0, 1, 2, 3, 4, 5, 6] as column (column)}
                     <Skeleton class="h-4 w-full rounded-sm" />
                 {/each}
             </div>
@@ -192,6 +232,11 @@
                             >
                                 Release
                             </Table.Head>
+                            <Table.Head
+                                class="h-9 px-3 text-right text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                            >
+                                Actions
+                            </Table.Head>
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -233,6 +278,18 @@
                                 >
                                     {formatDate(loan.releaseDate)}
                                 </Table.Cell>
+                                <Table.Cell class="h-11 px-3 py-1.5 text-right">
+                                    <Button
+                                        aria-label={`Permanently delete ${loan.loanNumber}`}
+                                        class="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        onclick={() => (deletingLoan = loan)}
+                                        size="sm"
+                                        variant="ghost"
+                                    >
+                                        <Trash2Icon data-icon="inline-start" />
+                                        Delete
+                                    </Button>
+                                </Table.Cell>
                             </Table.Row>
                         {/each}
                     </Table.Body>
@@ -253,3 +310,31 @@
         </div>
     {/if}
 </div>
+
+<AlertDialog.Root
+    bind:open={() => deletingLoan !== null, handleDeleteOpenChange}
+>
+    <AlertDialog.Content>
+        <AlertDialog.Header>
+            <AlertDialog.Title>Permanently delete loan?</AlertDialog.Title>
+            <AlertDialog.Description>
+                Delete {deletingLoan?.loanNumber} and its related payment, installment,
+                cash, and capital history? This permanently erases the financial records
+                and cannot be undone. The deletion is retained in the audit log. Loans
+                linked to a renewal cannot be deleted.
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel disabled={isDeleting}>Cancel</AlertDialog.Cancel
+            >
+            <AlertDialog.Action
+                class="bg-destructive text-white hover:bg-destructive/90"
+                disabled={isDeleting}
+                onclick={handleDelete}
+            >
+                {#if isDeleting}<Spinner data-icon="inline-start" />{/if}
+                Permanently delete
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>

@@ -71,6 +71,22 @@ export async function deleteLoan(publicId: string) {
     return responseJson.data
 }
 
+export async function deleteBorrowerLoan(input: {
+    borrowerPublicId: string
+    publicId: string
+}) {
+    const param = loanValidator.loanDeleteForBorrowerInputSchema.parse(input)
+    const responseJson = await (
+        await loansClient.borrower[':borrowerPublicId'].loan[
+            ':publicId'
+        ].delete.$post({
+            param,
+        })
+    ).json()
+    if (!responseJson.success) throw new Error(responseJson.error.message)
+    return responseJson.data
+}
+
 export async function quoteLoan(input: LoanQuoteInput): Promise<LoanQuote> {
     const parsed = loanValidator.loanQuoteInputSchema.parse(input)
     const responseJson = await (

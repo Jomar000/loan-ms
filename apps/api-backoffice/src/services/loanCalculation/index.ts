@@ -536,6 +536,126 @@ export function allocatePaymentFifo(
     }
 }
 
+/** Splits payments evenly across selected installments, then carries any excess forward in schedule order. */
+export function allocatePaymentEvenly(
+    installments: readonly TInstallmentPaymentState[],
+    paymentAmountCents: number,
+    coveredInstallmentNumbers: readonly number[],
+): TPaymentAllocationResult {
+    assertInstallments(installments)
+    assertPositiveSafeInteger(paymentAmountCents, 'Payment amount')
+
+    const covered = new Set(coveredInstallmentNumbers)
+    if (
+        covered.size === 0 ||
+        covered.size !== coveredInstallmentNumbers.length ||
+        installments.filter((installment) =>
+            covered.has(installment.installmentNumber),
+        ).length !== covered.size
+    ) {
+        throw new Error('Covered installments must be unique and available.')
+    }
+
+    const baseShare = Math.floor(
+        paymentAmountCents / coveredInstallmentNumbers.length,
+    )
+    if (baseShare === 0) {
+        throw new Error(
+            'Each covered installment must receive at least one cent.',
+        )
+    }
+
+    const extraCents = paymentAmountCents % coveredInstallmentNumbers.length
+    const orderedCoveredNumbers = installments
+        .filter((installment) => covered.has(installment.installmentNumber))
+        .map((installment) => installment.installmentNumber)
+    const shares = new Map(
+        orderedCoveredNumbers.map((installmentNumber, index) => [
+            installmentNumber,
+            baseShare + (index < extraCents ? 1 : 0),
+        ]),
+    )
+    const allocations: TPaymentAllocation[] = []
+    const updatedInstallments = installments.map((installment) => ({
+        ...installment,
+    }))
+    let remainingPaymentCents = paymentAmountCents
+    const allocateToInstallment = (
+        installment: TInstallmentPaymentState,
+        requestedAmountCents: number,
+    ) => {
+        const amountRemainingCents =
+            installment.amountDueCents - installment.amountPaidCents
+        const amountAllocatedCents = Math.min(
+            requestedAmountCents,
+            amountRemainingCents,
+            remainingPaymentCents,
+        )
+        if (amountAllocatedCents === 0) return
+
+        const amountPaidAfterCents = safeAdd(
+            installment.amountPaidCents,
+            amountAllocatedCents,
+            'Installment payment amount',
+        )
+        installment.amountPaidCents = amountPaidAfterCents
+        remainingPaymentCents -= amountAllocatedCents
+        allocations.push({
+            installmentNumber: installment.installmentNumber,
+            amountAllocatedCents,
+            amountPaidAfterCents,
+            amountRemainingAfterCents:
+                installment.amountDueCents - amountPaidAfterCents,
+        })
+    }
+
+    for (const installmentNumber of orderedCoveredNumbers) {
+        const installment = updatedInstallments.find(
+            (entry) => entry.installmentNumber === installmentNumber,
+        )!
+        allocateToInstallment(installment, shares.get(installmentNumber) ?? 0)
+    }
+
+    const lastCoveredInstallmentNumber = Math.max(...orderedCoveredNumbers)
+    for (const installment of updatedInstallments) {
+        if (
+            remainingPaymentCents === 0 ||
+            installment.installmentNumber <= lastCoveredInstallmentNumber
+        ) {
+            continue
+        }
+        allocateToInstallment(installment, remainingPaymentCents)
+    }
+    const completed = completedInstallmentCount(updatedInstallments)
+    const partialCredit = sumAmounts(
+        updatedInstallments
+            .filter(
+                (installment) =>
+                    installment.amountPaidCents < installment.amountDueCents,
+            )
+            .map((installment) => installment.amountPaidCents),
+        'Partial payment credit',
+    )
+    const totalOutstanding = sumAmounts(
+        updatedInstallments.map(
+            (installment) =>
+                installment.amountDueCents - installment.amountPaidCents,
+        ),
+        'Outstanding balance',
+    )
+
+    return {
+        allocations,
+        installments: updatedInstallments,
+        paymentAmountCents,
+        amountAppliedCents: paymentAmountCents - remainingPaymentCents,
+        unappliedAmountCents: remainingPaymentCents,
+        completedInstallmentCount: completed,
+        partialPaymentCreditCents: partialCredit,
+        actualOutstandingBalanceCents: totalOutstanding,
+    }
+}
+
 /**
  * Quotes a completed-installment renewal. CARRY_FORWARD intentionally leaves
  * a partial installment credit out of settlement, preserving it for the new

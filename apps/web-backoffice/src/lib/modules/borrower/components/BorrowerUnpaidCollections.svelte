@@ -77,8 +77,8 @@
                     {formatCurrency(loan.actualOutstandingBalanceMinor)}
                 </p>
                 <Card.Description
-                    >Total unpaid balance · {loan.loanNumber}</Card.Description
-                >
+                    >Total unpaid balance · {loan.loanNumber}
+                </Card.Description>
             </div>
             <Badge
                 variant="outline"
@@ -94,7 +94,7 @@
         </Card.Header>
         <Card.Content class="px-4">
             {#if unpaid !== undefined}
-                <dl class="grid gap-3 border-t pt-3 sm:grid-cols-3">
+                <dl class="grid gap-3 border-t pt-3 sm:grid-cols-4">
                     <div>
                         <dt class="text-xs text-muted-foreground">
                             Unpaid dates
@@ -135,6 +135,14 @@
                                         oldest.amountPaidMinor,
                                 )} remaining
                             </dd>{/if}
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
+                            Daily Installment Amount
+                        </dt>
+                        <dd class="mt-1 text-sm font-semibold">
+                            {formatCurrency(loan.installmentAmountMinor)}
+                        </dd>
                     </div>
                 </dl>
             {:else if isError}

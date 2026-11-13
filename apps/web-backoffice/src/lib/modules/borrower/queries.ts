@@ -8,6 +8,7 @@ import { createTenantKey } from '$lib/states/session/tenant'
 import {
     archiveBorrower,
     createBorrower,
+    deleteBorrower,
     fetchBorrower,
     fetchBorrowerDocuments,
     fetchBorrowerPaymentTag,
@@ -141,6 +142,26 @@ export function createBorrowerArchiveMutation(scope: {
             'archive',
         ),
         mutationFn: (publicId: string) => archiveBorrower(publicId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({
+                queryKey: createTenantKey(scope.organizationSlug, 'borrower'),
+            })
+        },
+    }))
+}
+
+export function createBorrowerDeleteMutation(scope: {
+    readonly organizationSlug: string
+}) {
+    const queryClient = useQueryClient()
+
+    return createMutation(() => ({
+        mutationKey: createTenantKey(
+            scope.organizationSlug,
+            'borrower',
+            'delete',
+        ),
+        mutationFn: (publicId: string) => deleteBorrower(publicId),
         onSuccess: async () => {
             await queryClient.invalidateQueries({
                 queryKey: createTenantKey(scope.organizationSlug, 'borrower'),

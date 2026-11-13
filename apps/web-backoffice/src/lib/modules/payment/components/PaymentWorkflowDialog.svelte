@@ -37,11 +37,13 @@
     ////////////////////
 
     let {
+        borrowerPublicId,
         collection,
         loanPublicId,
         onRecorded,
         open = $bindable(false),
     }: {
+        borrowerPublicId?: string
         collection?: CollectionItem
         loanPublicId: string
         onRecorded?: (payment: Payment) => void | Promise<void>
@@ -64,7 +66,6 @@
     let isCreating = $state(false)
     let isQuoting = $state(false)
     let notes = $state('')
-    let paymentDate = $state(manilaDate())
     let paymentMethod = $state('CASH')
     let quote = $state<PaymentQuote | null>(null)
     let receipt = $state<Payment | null>(null)
@@ -74,6 +75,9 @@
     // 04. Derived //
     /////////////////
 
+    const coverageBorrowerPublicId = $derived(
+        collection?.borrowerPublicId ?? borrowerPublicId ?? '',
+    )
     const isLocked = $derived(isCreating || isQuoting)
 
     ///////////////////
@@ -100,9 +104,7 @@
 
         const draft = getDraft()
         if (!draft) {
-            toast.error(
-                'Enter a valid amount, payment date, and payment method.',
-            )
+            toast.error(getDraftValidationMessage())
             return
         }
 
@@ -164,9 +166,7 @@
 
         const draft = getDraft()
         if (!draft) {
-            toast.error(
-                'Enter a valid amount, payment date, and payment method.',
-            )
+            toast.error(getDraftValidationMessage())
             return
         }
 
@@ -195,7 +195,6 @@
             amountReceivedMinor === null ||
             amountReceivedMinor <= 0 ||
             !loanPublicId ||
-            !paymentDate ||
             (coveredDates !== undefined &&
                 (coveredDates.length === 0 || coveredDates.length > 1000)) ||
             (paymentMethod !== 'CASH' && !referenceNumber.trim())
@@ -210,12 +209,23 @@
                 : { coveredDates: [...coveredDates].sort() }),
             loanPublicId,
             ...(notes.trim() ? { notes: notes.trim() } : {}),
-            paymentDate,
+            paymentDate:
+                coveredDates?.length === 1 ? coveredDates[0]! : manilaDate(),
             paymentMethod,
             ...(paymentMethod !== 'CASH' && referenceNumber.trim()
                 ? { referenceNumber: referenceNumber.trim() }
                 : {}),
         }
+    }
+
+    function getDraftValidationMessage(): string {
+        if (coveredDates?.length === 0) {
+            return 'Select at least one unpaid installment date before calculating the payment.'
+        }
+        if (coveredDates && coveredDates.length > 1000) {
+            return 'Select at most 1,000 installment dates per payment.'
+        }
+        return 'Enter a valid amount and payment method.'
     }
 
     function manilaDate(): string {
@@ -234,7 +244,6 @@
         amount = ''
         coveredDates = undefined
         notes = ''
-        paymentDate = manilaDate()
         paymentMethod = 'CASH'
         quote = null
         receipt = null
@@ -313,6 +322,16 @@
                                 {formatCurrency(receipt.amountAllocatedMinor)}
                             </dd>
                         </div>
+                        {#if receipt.unallocatedMinor > 0}
+                            <div class="flex justify-between gap-4">
+                                <dt class="text-muted-foreground">
+                                    Borrower credit
+                                </dt>
+                                <dd class="font-medium tabular-nums">
+                                    {formatCurrency(receipt.unallocatedMinor)}
+                                </dd>
+                            </div>
+                        {/if}
                         <div class="flex justify-between gap-4">
                             <dt class="text-muted-foreground">
                                 Partial credit
@@ -434,20 +453,7 @@
                                 </NativeSelect.Root>
                             </Field.Field>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <Field.Field class="min-w-0 gap-1.5">
-                                <Field.Label for="payment-date"
-                                    >Payment date</Field.Label
-                                >
-                                <Input
-                                    id="payment-date"
-                                    bind:value={paymentDate}
-                                    disabled={isLocked}
-                                    oninput={handleDetailsChange}
-                                    required
-                                    type="date"
-                                />
-                            </Field.Field>
+                        <div class="grid grid-cols-1 gap-3">
                             <Field.Field class="min-w-0 gap-1.5">
                                 <Field.Label for="payment-reference"
                                     >Reference number</Field.Label
@@ -470,9 +476,9 @@
                                 {/if}
                             </Field.Field>
                         </div>
-                        {#if collection && open}
+                        {#if coverageBorrowerPublicId && open}
                             <CoveredDatesField
-                                borrowerPublicId={collection.borrowerPublicId}
+                                borrowerPublicId={coverageBorrowerPublicId}
                                 {loanPublicId}
                                 disabled={isLocked}
                                 bind:value={coveredDates}
@@ -538,6 +544,18 @@
                                         )}
                                     </dd>
                                 </div>
+                                {#if quote.unallocatedMinor > 0}
+                                    <div class="flex justify-between gap-4">
+                                        <dt class="text-muted-foreground">
+                                            Borrower credit
+                                        </dt>
+                                        <dd class="font-medium tabular-nums">
+                                            {formatCurrency(
+                                                quote.unallocatedMinor,
+                                            )}
+                                        </dd>
+                                    </div>
+                                {/if}
                                 <div
                                     class="grid grid-cols-2 gap-3 border-t pt-2"
                                 >

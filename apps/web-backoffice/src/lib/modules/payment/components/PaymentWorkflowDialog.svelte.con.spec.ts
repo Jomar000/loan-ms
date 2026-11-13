@@ -157,9 +157,6 @@ describe('Payment workflow dialog', () => {
             await expect
                 .element(screen.getByLabelText('Date selection'))
                 .toBeDisabled()
-            await expect
-                .element(screen.getByLabelText('Payment date'))
-                .toBeDisabled()
             await userEvent.keyboard('{Escape}')
             await expect
                 .element(screen.getByRole('dialog', { name: 'Record payment' }))
@@ -268,6 +265,38 @@ describe('Payment workflow dialog', () => {
                 .toBeVisible()
         },
     )
+
+    it('uses one selected installment date as the payment date', async () => {
+        mocks.quote.mockClear()
+        mocks.create.mockClear()
+        const screen = await render(PaymentWorkflowDialog, {
+            props: {
+                borrowerPublicId: '019936e2-b837-7000-8000-000000000001',
+                loanPublicId: '019936e2-b837-7000-8000-000000000101',
+                open: true,
+            },
+        })
+
+        await screen.getByLabelText('Date selection').selectOptions('single')
+        await screen.getByLabelText('Installment date').fill('2026-10-04')
+        await screen.getByLabelText('Amount received (PHP)').fill('100')
+        await screen
+            .getByRole('button', { name: 'Calculate allocation' })
+            .click()
+
+        const expected = {
+            amountReceivedMinor: 10_000,
+            coveredDates: ['2026-10-04'],
+            paymentDate: '2026-10-04',
+        }
+        expect(mocks.quote).toHaveBeenCalledWith(
+            expect.objectContaining(expected),
+        )
+        await screen.getByRole('button', { name: 'Post payment' }).click()
+        expect(mocks.create).toHaveBeenCalledWith(
+            expect.objectContaining(expected),
+        )
+    })
 
     it('clears the quote when covered dates change and permits skipping earlier unpaid dates', async () => {
         const screen = await render(PaymentWorkflowDialog, {

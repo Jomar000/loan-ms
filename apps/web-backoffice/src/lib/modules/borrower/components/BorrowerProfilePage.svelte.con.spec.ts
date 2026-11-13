@@ -35,6 +35,7 @@ vi.mock('svelte-sonner', () => ({
     toast: { error: mocks.toastError, success: mocks.toastSuccess },
 }))
 vi.mock('$lib/modules/loan/queries', () => ({
+    createBorrowerLoanDeleteMutation: () => ({ mutateAsync: vi.fn() }),
     createLoanDetailQuery: mocks.loanDetail,
     createLoanListQuery: mocks.loanList,
 }))
@@ -45,6 +46,7 @@ vi.mock('$lib/modules/payment/queries', async (importOriginal) => ({
 }))
 vi.mock('../queries', () => ({
     createBorrowerArchiveMutation: () => ({ mutateAsync: vi.fn() }),
+    createBorrowerDeleteMutation: () => ({ mutateAsync: vi.fn() }),
     createBorrowerDetailQuery: () => ({
         data: {
             addressLine: '1 Rizal Street',

@@ -97,6 +97,15 @@ export async function archiveBorrower(publicId: string) {
     return responseJson.data
 }
 
+export async function deleteBorrower(publicId: string) {
+    const input = borrowerValidator.deleteInputSchema.parse({ publicId })
+    const responseJson = await (
+        await borrowersClient.delete.$post({ json: input })
+    ).json()
+    if (!responseJson.success) throw new Error(responseJson.error.message)
+    return responseJson.data
+}
+
 export async function overrideBorrowerPaymentTag(input: {
     paymentTag: BorrowerPaymentTag
     publicId: string

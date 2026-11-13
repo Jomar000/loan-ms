@@ -22,7 +22,10 @@ export async function printContract(source: HTMLElement, title: string) {
         )
         const pageStyles = document.createElement('link')
         pageStyles.rel = 'stylesheet'
-        pageStyles.href = contractPrintStylesUrl
+        pageStyles.href = new URL(
+            contractPrintStylesUrl,
+            window.location.origin,
+        ).href
         styles.push(pageStyles)
         await Promise.all(styles.map(copyStylesheet))
         await target.fonts.ready
@@ -44,6 +47,7 @@ export async function printContract(source: HTMLElement, title: string) {
                 target!.head.append(clone)
                 return Promise.resolve()
             }
+            clone.href = (stylesheet as HTMLLinkElement).href
             return new Promise((resolve, reject) => {
                 const timeout = globalThis.setTimeout(fail, 10_000)
                 clone.onload = function () {

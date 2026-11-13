@@ -2353,6 +2353,7 @@ export const loan = sqliteTable(
         })
             .notNull()
             .default(false),
+        scheduledReleaseDate: text('scheduled_release_date'),
         releaseDate: text('release_date'),
         firstPaymentDate: text('first_payment_date').notNull(),
         expectedCompletionDate: text('expected_completion_date').notNull(),

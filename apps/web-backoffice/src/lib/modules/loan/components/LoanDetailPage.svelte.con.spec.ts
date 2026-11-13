@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render } from 'vitest-browser-svelte'
 
 import type { LoanInstallment } from '../types'
+import { formatCurrency, formatNumericDate } from '../utilities/format'
 import LoanDetailPage from './LoanDetailPage.svelte'
 
 const mocks = vi.hoisted(() => {
@@ -174,6 +175,22 @@ describe('Loan detail page', () => {
                     screen.getByRole('cell', { name: expected, exact: true }),
                 )
                 .toBeVisible()
+            await expect
+                .element(
+                    screen.getByRole('cell', {
+                        name: formatNumericDate(dueDate),
+                    }),
+                )
+                .toBeVisible()
+            if (amountPaidMinor !== 14_000) {
+                await expect
+                    .element(
+                        screen.getByRole('cell', {
+                            name: formatCurrency(amountPaidMinor),
+                        }),
+                    )
+                    .toBeVisible()
+            }
         },
     )
 

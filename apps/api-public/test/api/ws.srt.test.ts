@@ -34,7 +34,7 @@ import {
 import { evictDurableObject, runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { eq } from 'drizzle-orm'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import app from '../../src/core/index.js'
@@ -2289,6 +2289,56 @@ describe('WebSocket Endpoint', () => {
      *   WebSocket (101).
      */
     describe('Permission Guard', () => {
+        it('correlates exhausted shard failures without exposing request credentials.', async () => {
+            const log = vi.spyOn(console, 'error')
+            const fetch = vi
+                .fn()
+                .mockRejectedValue(new Error('Injected shard outage.'))
+            try {
+                const response = await app.request(
+                    '/api/ws/app',
+                    {
+                        method: 'GET',
+                        headers: {
+                            origin: env.URL_FRONTEND,
+                            cookie: privilegedCookie,
+                            upgrade: 'websocket',
+                            'cf-ray': 'test-admission-ray',
+                            'sec-websocket-protocol': REALTIME_WIRE_VERSION,
+                        },
+                    },
+                    {
+                        ...env,
+                        LOANMSPUB_DO_WSS: {
+                            getByName: () => ({ fetch }),
+                        } as unknown as typeof env.LOANMSPUB_DO_WSS,
+                    },
+                )
+                const body = await response.json<TApiResponseError>()
+                expect(response.status).toBe(503)
+                expect(body.error.code).toBe('WEBSOCKET_SHARD_UNAVAILABLE')
+                const entry = log.mock.calls
+                    .map(
+                        ([message]) =>
+                            JSON.parse(String(message)) as Record<
+                                string,
+                                unknown
+                            >,
+                    )
+                    .find((entry) => entry.type === 'WS_ADMISSION_EXHAUSTED')
+                expect(entry).toMatchObject({
+                    requestId: body.error.requestId,
+                    correlationId: 'test-admission-ray',
+                    fullLeafCount: 0,
+                    unavailableLeafCount: WS_LEAF_COUNT,
+                })
+                expect(JSON.stringify(entry)).not.toContain(privilegedCookie)
+                expect(fetch).toHaveBeenCalledTimes(WS_LEAF_COUNT)
+            } finally {
+                log.mockRestore()
+            }
+        })
+
         it('Owner with ws.listen connecting should return 101.', async () => {
             const response = await app.request(
                 '/api/ws/app',

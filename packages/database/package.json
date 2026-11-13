@@ -17,7 +17,7 @@
         "format": "eslint . --fix && prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
         "lint": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore && eslint .",
         "migrate:dev": "pnpm exec wrangler d1 migrations apply loanms-development --local --config=../../apps/api-public/wrangler.toml --persist-to=../../.wrangler/state",
-        "migrate:prod": "pnpm exec wrangler d1 migrations apply loanms-production --remote --env=production --config=../../apps/api-public/wrangler-production.toml",
+        "migrate:prod": "pnpm exec wrangler d1 migrations apply loanms-production-reset-v2 --remote --env=production --config=../../apps/api-backoffice/wrangler-production.toml",
         "migrate:staging": "pnpm exec wrangler d1 migrations apply loanms-staging --remote --env=staging --config=../../apps/api-public/wrangler-staging.toml",
         "prepare": "pnpm build"
     },

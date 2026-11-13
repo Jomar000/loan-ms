@@ -63,6 +63,11 @@ const borrowerArchiveConflict = defineError(
     'CONFLICT',
     'Borrower changed before it could be archived.',
 )
+const borrowerDeleteConflict = defineError(
+    'BORROWER_DELETE_CONFLICT',
+    'CONFLICT',
+    'Borrowers with loans, documents, payments, or payment history cannot be deleted. Archive this borrower instead.',
+)
 const paymentTagUpdateConflict = defineError(
     'BORROWER_PAYMENT_TAG_UPDATE_CONFLICT',
     'CONFLICT',
@@ -646,6 +651,80 @@ export const borrowersRoute = new Hono<THonoInstance>()
             if (!data) throw new AppError(borrowerNotFound)
 
             return apiResponseOkWrapper(ctx, { data })
+        },
+    )
+    .post(
+        '/delete',
+        tenantGuard,
+        validateRequest('json', borrowerValidator.deleteInputSchema),
+        async (ctx) => {
+            if (!ctx.get('isPrivilegedRole')) {
+                return apiResponseErrorWrapper(
+                    ctx,
+                    catalog.authenticationForbidden,
+                )
+            }
+            const { publicId } = ctx.req.valid('json')
+            const existing = await readBorrower(ctx, publicId)
+            if (!existing) throw new AppError(borrowerNotFound)
+
+            const organizationId = getActiveOrganizationId(ctx)
+            const database = ctx.get('dbClient').$client
+            const auditData = auditTrailLogger.prepare({
+                action: 'delete',
+                component: 'borrower',
+                description: 'Borrower profile permanently deleted',
+                records: {
+                    table: 'borrower',
+                    id: publicId,
+                    oldData: existing,
+                },
+            })
+            const [deleteResult] = await database.batch([
+                database
+                    .prepare(
+                        `DELETE FROM borrower
+                         WHERE organization_id = ? AND public_id = ?
+                           AND NOT EXISTS (
+                               SELECT 1 FROM loan
+                                WHERE loan.organization_id = borrower.organization_id
+                                  AND loan.borrower_id = borrower.id
+                           )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM loan_renewal
+                                WHERE loan_renewal.organization_id = borrower.organization_id
+                                  AND loan_renewal.borrower_id = borrower.id
+                           )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM payment
+                                WHERE payment.organization_id = borrower.organization_id
+                                  AND payment.borrower_id = borrower.id
+                           )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM cash_transaction
+                                WHERE cash_transaction.organization_id = borrower.organization_id
+                                  AND cash_transaction.borrower_id = borrower.id
+                           )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM borrower_document
+                                WHERE borrower_document.organization_id = borrower.organization_id
+                                  AND borrower_document.borrower_id = borrower.id
+                           )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM borrower_payment_tag_history
+                                WHERE borrower_payment_tag_history.organization_id = borrower.organization_id
+                                  AND borrower_payment_tag_history.borrower_id = borrower.id
+                           )`,
+                    )
+                    .bind(organizationId, publicId),
+                auditTrailAfterChangeStatement(ctx, auditData, database),
+            ])
+            if (deleteResult.meta.changes !== 1) {
+                throw new AppError(borrowerDeleteConflict)
+            }
+            if (auditData) markAuditTrailRecorded(ctx)
+
+            return apiResponseOkWrapper(ctx, { data: { publicId } })
         },
     )
     .post(

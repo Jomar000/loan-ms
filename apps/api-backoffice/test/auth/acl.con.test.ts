@@ -133,21 +133,61 @@ describe.concurrent('ACL cache', () => {
         },
     )
 
-    it('collapses concurrent initialization for one KV binding.', async () => {
+    it('keeps concurrent initialization on each invocation database client.', async () => {
         const database = createDatabase()
+        const otherDatabase = createDatabase()
         const kv = createKv(null)
 
         const [
             first,
             second,
         ] = await Promise.all([
-            aclBuilder(database.client, dbSchema, kv.client),
+            aclBuilder(otherDatabase.client, dbSchema, kv.client),
             aclBuilder(database.client, dbSchema, kv.client),
         ])
 
         expect(first).toEqual(second)
         expect(database.select).toHaveBeenCalledOnce()
-        expect(kv.put).toHaveBeenCalledOnce()
+        expect(otherDatabase.select).toHaveBeenCalledOnce()
+    })
+
+    it.each([
+        'read',
+        'write',
+        'delete',
+    ] as const)(
+        'uses authoritative database grants when the cache %s fails.',
+        async (operation) => {
+            const database = createDatabase()
+            const kv = createKv(operation === 'delete' ? '{invalid' : null)
+            const failure = new Error('Injected cache outage.')
+            if (operation === 'read') kv.get.mockRejectedValue(failure)
+            if (operation === 'write') kv.put.mockRejectedValue(failure)
+            if (operation === 'delete')
+                kv.deleteValue.mockRejectedValue(failure)
+
+            const acl = await aclBuilder(database.client, dbSchema, kv.client)
+
+            expect(acl.roles.testRole?.testComponent).toEqual(['read'])
+            expect(database.select).toHaveBeenCalledOnce()
+            // Completed grants stay cached even if persistence is unavailable.
+            await expect(
+                aclBuilder(database.client, dbSchema, kv.client),
+            ).resolves.toEqual(acl)
+            expect(database.select).toHaveBeenCalledOnce()
+        },
+    )
+
+    it('still rejects an unavailable authoritative database.', async () => {
+        const database = createDatabase()
+        database.select.mockImplementationOnce(() => {
+            throw new Error('Injected database outage.')
+        })
+        const kv = createKv(null)
+        await expect(
+            aclBuilder(database.client, dbSchema, kv.client),
+        ).rejects.toThrow('Injected database outage.')
+        expect(kv.put).not.toHaveBeenCalled()
     })
 
     it('rejects conflicting API-key assignability for one permission tuple.', async () => {

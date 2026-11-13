@@ -47,6 +47,7 @@
     let mode = $state('automatic')
     let rangeFrom = $state('')
     let rangeTo = $state('')
+    let singleDate = $state('')
 
     /////////////////
     // 04. Derived //
@@ -96,7 +97,17 @@
         mode = (event.currentTarget as HTMLSelectElement).value
         rangeFrom = ''
         rangeTo = ''
+        singleDate = ''
         value = mode === 'automatic' ? undefined : []
+        onchange()
+    }
+
+    function handleSingleDate(event: Event) {
+        if (disabled) return
+        singleDate = (event.currentTarget as HTMLInputElement).value
+        value = available.some((item) => item.dueDate === singleDate)
+            ? [singleDate]
+            : []
         onchange()
     }
 
@@ -158,6 +169,9 @@
             <NativeSelect.Option value="automatic"
                 >Automatic (oldest first)</NativeSelect.Option
             >
+            <NativeSelect.Option value="single"
+                >Select one date</NativeSelect.Option
+            >
             <NativeSelect.Option value="dates"
                 >Select multiple dates</NativeSelect.Option
             >
@@ -170,6 +184,15 @@
         </p>
     {/if}
     {#if mode !== 'automatic'}
+        <Field.Description class="text-xs">
+            Past due and partially paid installments are available to select.
+        </Field.Description>
+        <Field.Description class="text-xs">
+            Payments always fill the oldest unpaid installment first, then
+            continue to the next installment. Selecting dates does not skip
+            older unpaid balances. Partial payments leave the final covered
+            installment partially paid.
+        </Field.Description>
         {#if scheduleQuery.isPending}
             <p
                 class="flex items-center gap-2 text-sm text-muted-foreground"
@@ -196,7 +219,25 @@
                 No unpaid installment dates are available for this loan.
             </p>
         {:else}
-            {#if mode === 'range'}
+            {#if mode === 'single'}
+                <Field.Field class="min-w-0 gap-1.5">
+                    <Field.Label for="coverage-single-date"
+                        >Installment date</Field.Label
+                    >
+                    <Input
+                        id="coverage-single-date"
+                        type="date"
+                        value={singleDate}
+                        {disabled}
+                        oninput={handleSingleDate}
+                        required
+                    />
+                </Field.Field>
+                <Field.Description class="text-xs">
+                    Choose an unpaid installment date. This date will also be
+                    used as the payment date and period covered.
+                </Field.Description>
+            {:else if mode === 'range'}
                 <div class="grid grid-cols-2 gap-3">
                     <Field.Field class="min-w-0 gap-1.5">
                         <Field.Label for="coverage-from">Cover from</Field.Label
@@ -205,8 +246,6 @@
                             id="coverage-from"
                             type="date"
                             value={rangeFrom}
-                            min={available[0]?.dueDate}
-                            max={rangeTo || available.at(-1)?.dueDate}
                             {disabled}
                             oninput={handleRangeFrom}
                             required
@@ -220,14 +259,16 @@
                             id="coverage-to"
                             type="date"
                             value={rangeTo}
-                            min={rangeFrom || available[0]?.dueDate}
-                            max={available.at(-1)?.dueDate}
                             {disabled}
                             oninput={handleRangeTo}
                             required
                         />
                     </Field.Field>
                 </div>
+                <Field.Description class="text-xs">
+                    Past ranges are allowed. Only unpaid installment dates in
+                    the selected range will be included.
+                </Field.Description>
             {:else}
                 <div
                     class="max-h-40 overflow-y-auto overscroll-contain rounded-lg border p-1"

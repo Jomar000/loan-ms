@@ -44,7 +44,9 @@
     let pageNumber = $state(1)
     let pageSize = $state(25)
     let selectedPublicId = $state('')
-    let lenderAddress = $state('')
+    let lenderAddress = $state(
+        'Del Corro St. Brgy. San Vicente Gapan City, Nueva Ecija',
+    )
     let ownerName = $state(
         session.data.userRoles?.includes('owner') ? session.data.name : '',
     )

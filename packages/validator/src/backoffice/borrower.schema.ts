@@ -198,6 +198,12 @@ export const archiveInputSchema = z.object({ publicId: publicIdSchema })
 
 export const archiveOutputSchema = base.outputSchema(borrowerOutputDataSchema)
 
+export const deleteInputSchema = z.object({ publicId: publicIdSchema })
+
+export const deleteOutputSchema = base.outputSchema(
+    z.object({ publicId: publicIdSchema }),
+)
+
 export const documentCreateInputSchema = z.object({
     borrowerPublicId: publicIdSchema,
     documentNumber: field

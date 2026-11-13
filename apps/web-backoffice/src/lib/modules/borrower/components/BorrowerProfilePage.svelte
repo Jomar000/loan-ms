@@ -17,6 +17,7 @@
     import LandmarkIcon from '@lucide/svelte/icons/landmark'
     import PencilIcon from '@lucide/svelte/icons/pencil'
     import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw'
+    import Trash2Icon from '@lucide/svelte/icons/trash-2'
     import { toast } from 'svelte-sonner'
     import { goto } from '$app/navigation'
     import {
@@ -30,6 +31,7 @@
     import PaymentWorkflowDialog from '../../payment/components/PaymentWorkflowDialog.svelte'
     import {
         createBorrowerArchiveMutation,
+        createBorrowerDeleteMutation,
         createBorrowerDetailQuery,
         createBorrowerPaymentTagOverrideMutation,
         createBorrowerPaymentTagQuery,
@@ -64,6 +66,7 @@
     // 03. State //
     ///////////////
     let archiveOpen = $state(false)
+    let deleteOpen = $state(false)
     let editOpen = $state(false)
     let editDraft = $state<BorrowerCreateInput | null>(null)
     let isActionLocked = $state(false)
@@ -147,6 +150,11 @@
             return session.data.organizationSlug
         },
     })
+    const deleteMutation = createBorrowerDeleteMutation({
+        get organizationSlug() {
+            return session.data.organizationSlug
+        },
+    })
     const overrideMutation = createBorrowerPaymentTagOverrideMutation({
         get organizationSlug() {
             return session.data.organizationSlug
@@ -162,6 +170,13 @@
             return session.data.organizationSlug
         },
     })
+
+    const tabs = [
+        { value: 'overview', label: 'Overview' },
+        { value: 'loans', label: 'Loans' },
+        { value: 'contracts', label: 'Contracts' },
+        { value: 'payments', label: 'Payments' },
+    ]
     //////////////////
     // 09. Handlers //
     //////////////////
@@ -181,6 +196,24 @@
     function handleArchiveOpenChange(open: boolean) {
         if (isActionLocked) return
         archiveOpen = open
+    }
+    async function handleDelete() {
+        if (isActionLocked) return
+        isActionLocked = true
+        try {
+            await deleteMutation.mutateAsync(publicId)
+            toast.success('Borrower profile permanently deleted.')
+            deleteOpen = false
+            await goto(`/app/${role}/borrowers`)
+        } catch (error) {
+            toast.error(getErrorMessage(error, 'Could not delete borrower.'))
+        } finally {
+            isActionLocked = false
+        }
+    }
+    function handleDeleteOpenChange(open: boolean) {
+        if (isActionLocked) return
+        deleteOpen = open
     }
     function handleEditOpenChange(open: boolean) {
         if (isActionLocked) return
@@ -477,6 +510,18 @@
                             /> Archive
                         </Button>
                     {/if}
+                    <Button
+                        class="h-8 px-2.5 text-xs"
+                        disabled={isActionLocked}
+                        onclick={() => (deleteOpen = true)}
+                        size="sm"
+                        variant="destructive"
+                    >
+                        <Trash2Icon
+                            class="size-3.5"
+                            data-icon="inline-start"
+                        /> Delete profile
+                    </Button>
                 </div>
             </header>
         </div>
@@ -499,33 +544,48 @@
             bind:value={selectedTab}
         >
             <Tabs.List
-                class="my-3 h-11 w-full shrink-0 justify-start gap-1 overflow-x-auto p-1"
+                class="
+        my-2 flex h-9 w-full min-w-0
+        items-center justify-between gap-0.5
+        rounded-lg border border-border
+        bg-muted p-0.5
+        sm:w-fit sm:justify-start sm:gap-1
+    "
             >
-                <Tabs.Trigger
-                    class="h-9 flex-none shrink-0 px-4"
-                    value="overview"
-                >
-                    Overview
-                </Tabs.Trigger>
+                {#each tabs as tab (tab.value)}
+                    <Tabs.Trigger
+                        value={tab.value}
+                        class="
+                inline-flex h-8 min-w-0 flex-1
+                items-center justify-center
+                rounded-md border-0
+                px-1.5 text-[11px]
+                font-medium whitespace-nowrap
+                text-muted-foreground
+                shadow-none transition-colors
+                duration-200 outline-none
 
-                <Tabs.Trigger
-                    class="h-9 flex-none shrink-0 px-4"
-                    value="loans"
-                >
-                    Loans
-                </Tabs.Trigger>
-                <Tabs.Trigger
-                    class="h-9 flex-none shrink-0 px-4"
-                    value="contracts"
-                >
-                    Contracts
-                </Tabs.Trigger>
-                <Tabs.Trigger
-                    class="h-9 flex-none shrink-0 px-4"
-                    value="payments"
-                >
-                    Payments
-                </Tabs.Trigger>
+                hover:bg-accent
+                hover:text-accent-foreground
+
+                focus-visible:ring-2
+                focus-visible:ring-ring
+                focus-visible:ring-inset
+
+                data-[state=active]:bg-primary
+                data-[state=active]:font-semibold
+                data-[state=active]:text-primary-foreground
+                data-[state=active]:shadow-sm
+
+                data-[state=active]:hover:bg-primary
+                data-[state=active]:hover:text-primary-foreground
+
+                sm:flex-none sm:px-4 sm:text-xs
+            "
+                    >
+                        {tab.label}
+                    </Tabs.Trigger>
+                {/each}
             </Tabs.List>
             <Tabs.Content
                 value="overview"
@@ -931,6 +991,39 @@
                 {#if isActionLocked}<Spinner
                         data-icon="inline-start"
                     />{/if}Archive borrower
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>
+<AlertDialog.Root bind:open={() => deleteOpen, handleDeleteOpenChange}>
+    <AlertDialog.Content
+        class="max-w-md border-red-200 bg-white shadow-2xl dark:border-red-500/20 dark:bg-[#202020]"
+    >
+        <AlertDialog.Header>
+            <div
+                class="mb-1 flex size-9 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+            >
+                <Trash2Icon class="size-4" />
+            </div>
+            <AlertDialog.Title>Delete borrower profile?</AlertDialog.Title>
+            <AlertDialog.Description>
+                This permanently deletes the profile and cannot be undone. A
+                borrower with linked loans, payments, documents, or payment
+                history must be archived instead.
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel disabled={isActionLocked}
+                >Cancel</AlertDialog.Cancel
+            >
+            <AlertDialog.Action
+                class="bg-red-600 text-white hover:bg-red-700"
+                disabled={isActionLocked}
+                onclick={handleDelete}
+            >
+                {#if isActionLocked}<Spinner
+                        data-icon="inline-start"
+                    />{/if}Delete profile
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>

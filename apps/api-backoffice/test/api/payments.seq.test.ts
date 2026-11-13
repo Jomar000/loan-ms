@@ -282,6 +282,150 @@ async function createActiveLoan(
 }
 
 describe('Payment and collection API', () => {
+    it.each([
+        { mode: 'automatic', coveredDates: undefined },
+        { mode: 'single-date', coveredDates: ['2026-10-11'] },
+        {
+            mode: 'multiple-date',
+            coveredDates: [
+                '2026-10-10',
+                '2026-10-11',
+            ],
+        },
+    ])(
+        'fills the oldest unpaid installments in $mode mode and restores them on reversal',
+        async ({ coveredDates }) => {
+            const publicId = await createActiveLoan(100_000)
+            const first = await postTestingRequest('/api/payments/create', {
+                body: {
+                    amountReceivedMinor: 37_500,
+                    coveredDates: ['2026-10-10'],
+                    idempotencyKey: uuidv7(),
+                    loanPublicId: publicId,
+                    paymentDate: '2026-10-10',
+                    paymentMethod: 'CASH',
+                },
+                cookie: ownerCookie,
+            })
+            expect(first.status).toBe(201)
+            const draft = {
+                amountReceivedMinor: 75_000,
+                ...(coveredDates === undefined ? {} : { coveredDates }),
+                loanPublicId: publicId,
+                paymentDate: '2026-10-11',
+                paymentMethod: 'CASH',
+            }
+            const quote = await postTestingRequest('/api/payments/quote', {
+                body: draft,
+                cookie: ownerCookie,
+            })
+            const quoted = await quote.json<
+                TApiResponseOk<{
+                    allocations: {
+                        dueDate: string
+                        allocatedAmountMinor: number
+                        amountPaidMinor: number
+                    }[]
+                    partialPaymentCreditAfterPaymentMinor: number
+                }>
+            >()
+            expect(quote.status).toBe(200)
+            expect(quoted.data.allocations).toEqual([
+                expect.objectContaining({
+                    dueDate: '2026-10-10',
+                    allocatedAmountMinor: 22_500,
+                    amountPaidMinor: 60_000,
+                }),
+                expect.objectContaining({
+                    dueDate: '2026-10-11',
+                    allocatedAmountMinor: 52_500,
+                    amountPaidMinor: 52_500,
+                }),
+            ])
+            expect(quoted.data.partialPaymentCreditAfterPaymentMinor).toBe(
+                52_500,
+            )
+            const input = { ...draft, idempotencyKey: uuidv7() }
+            const posted = await postTestingRequest('/api/payments/create', {
+                body: input,
+                cookie: ownerCookie,
+            })
+            const payment = await posted.json<
+                TApiResponseOk<{
+                    publicId: string
+                    allocations: unknown[]
+                    partialPaymentCreditAfterPaymentMinor: number
+                    actualOutstandingBalanceAfterPaymentMinor: number
+                    completedInstallmentsAfterPayment: number
+                }>
+            >()
+            expect(posted.status).toBe(201)
+            expect(payment.data.allocations).toEqual(quoted.data.allocations)
+            expect(payment.data).toMatchObject({
+                partialPaymentCreditAfterPaymentMinor: 52_500,
+                actualOutstandingBalanceAfterPaymentMinor: 7_500,
+                completedInstallmentsAfterPayment: 1,
+            })
+            const replay = await postTestingRequest('/api/payments/create', {
+                body: input,
+                cookie: ownerCookie,
+            })
+            expect(replay.status).toBe(200)
+            expect(
+                (await replay.json<TApiResponseOk<{ publicId: string }>>()).data
+                    .publicId,
+            ).toBe(payment.data.publicId)
+            const reverse = await postTestingRequest(
+                `/api/payments/${payment.data.publicId}/reverse`,
+                {
+                    body: { reason: '__TEST excess backfill reversal' },
+                    cookie: ownerCookie,
+                },
+            )
+            expect(reverse.status).toBe(200)
+            const db = dbClient(env.LOANMSBOFC_D1)
+            const [loan] = await db
+                .select({
+                    id: dbSchema.loan.id,
+                    paid: dbSchema.loan.totalAmountPaidMinor,
+                    partial: dbSchema.loan.partialPaymentCreditMinor,
+                    outstanding: dbSchema.loan.actualOutstandingBalanceMinor,
+                })
+                .from(dbSchema.loan)
+                .where(
+                    and(
+                        eq(
+                            dbSchema.loan.organizationId,
+                            TEST_PRIMARY_ORGANIZATION_ID,
+                        ),
+                        eq(dbSchema.loan.publicId, publicId),
+                    ),
+                )
+            expect(loan).toMatchObject({
+                paid: 37_500,
+                partial: 37_500,
+                outstanding: 82_500,
+            })
+            const installments = await db
+                .select({ paid: dbSchema.loanInstallment.amountPaidMinor })
+                .from(dbSchema.loanInstallment)
+                .where(
+                    and(
+                        eq(
+                            dbSchema.loanInstallment.organizationId,
+                            TEST_PRIMARY_ORGANIZATION_ID,
+                        ),
+                        eq(dbSchema.loanInstallment.loanId, loan!.id),
+                    ),
+                )
+                .orderBy(asc(dbSchema.loanInstallment.installmentNumber))
+            expect(installments.map((item) => item.paid)).toEqual([
+                37_500,
+                0,
+            ])
+        },
+    )
+
     it('quotes, posts idempotently, allocates FIFO, and reverses a payment with ledger evidence', async () => {
         expect((await updateSettings(0)).status).toBe(200)
         const idempotencyKey = uuidv7()
@@ -468,9 +612,23 @@ describe('Payment and collection API', () => {
 
     it('enforces payment settings before recording financial effects', async () => {
         const policyLoanPublicId = await createActiveLoan()
+        const db = dbClient(env.LOANMSBOFC_D1)
+        const [settings] = await db
+            .select({ version: dbSchema.systemSettings.version })
+            .from(dbSchema.systemSettings)
+            .where(
+                and(
+                    eq(
+                        dbSchema.systemSettings.organizationId,
+                        TEST_PRIMARY_ORGANIZATION_ID,
+                    ),
+                    eq(dbSchema.systemSettings.isCurrent, true),
+                ),
+            )
+        const version = settings?.version ?? 0
         expect(
             (
-                await updateSettings(1, {
+                await updateSettings(version, {
                     allowAdvancePayments: false,
                     allowPartialPayments: false,
                 })
@@ -490,6 +648,7 @@ describe('Payment and collection API', () => {
         const advance = await postTestingRequest('/api/payments/create', {
             body: {
                 amountReceivedMinor: 2_400_00,
+                coveredDates: ['2026-10-10'],
                 idempotencyKey: uuidv7(),
                 loanPublicId: policyLoanPublicId,
                 paymentDate: '2026-10-09',
@@ -502,7 +661,7 @@ describe('Payment and collection API', () => {
 
         expect(
             (
-                await updateSettings(2, {
+                await updateSettings(version + 1, {
                     defaultPaymentFrequency: 'WEEKLY',
                     enabledPaymentFrequencies: ['WEEKLY'],
                 })
@@ -521,7 +680,7 @@ describe('Payment and collection API', () => {
             },
         )
         expect(disabledFrequency.status).toBe(409)
-        expect((await updateSettings(3)).status).toBe(200)
+        expect((await updateSettings(version + 2)).status).toBe(200)
     })
 
     it('accepts multiple payments totaling 4,000 pesos and permits only one concurrent winner', async () => {
@@ -848,7 +1007,7 @@ describe('Payment and collection API', () => {
         expect(bank.status).toBe(201)
         expect(bankJson.data.referenceNumber).toBe('__TEST-BANK-TRANSFER-1')
     })
-    it('records 500 pesos against five chosen dates, leaves skipped dates unpaid, and reverses without losing nonconsecutive paid counts', async () => {
+    it('records 500 pesos oldest-first regardless of chosen dates and reverses without losing paid counts', async () => {
         const db = dbClient(env.LOANMSBOFC_D1)
         const [profile] = await db
             .insert(dbSchema.loanFormulaProfile)
@@ -907,6 +1066,13 @@ describe('Payment and collection API', () => {
             '2026-10-15',
             '2026-10-16',
         ]
+        const allocatedDates = [
+            '2026-10-10',
+            '2026-10-11',
+            '2026-10-12',
+            '2026-10-13',
+            '2026-10-14',
+        ]
         const draft = {
             amountReceivedMinor: 50_000,
             coveredDates: selectedDates,
@@ -940,10 +1106,6 @@ describe('Payment and collection API', () => {
             [
                 { coveredDates: ['2026-11-01'] },
                 'Paid, waived, and unavailable installment dates cannot be selected. Refresh the schedule and select unpaid dates.',
-            ],
-            [
-                { amountReceivedMinor: 40_000 },
-                'The payment amount must equal the remaining total for the selected dates.',
             ],
         ] as const) {
             for (const action of [
@@ -1001,7 +1163,7 @@ describe('Payment and collection API', () => {
         >()
         expect(quote.status).toBe(200)
         expect(quoteJson.data.allocations.map((item) => item.dueDate)).toEqual(
-            selectedDates,
+            allocatedDates,
         )
         expect(
             quoteJson.data.allocations.map((item) => item.allocatedAmountMinor),
@@ -1030,7 +1192,7 @@ describe('Payment and collection API', () => {
         >()
         expect(posted.status).toBe(201)
         expect(postedJson.data.allocations.map((item) => item.dueDate)).toEqual(
-            selectedDates,
+            allocatedDates,
         )
         const replay = await postTestingRequest('/api/payments/create', {
             body: input,
@@ -1068,7 +1230,7 @@ describe('Payment and collection API', () => {
             .where(eq(dbSchema.loanInstallment.loanId, loanBefore!.id))
         expect(
             installments
-                .filter((item) => selectedDates.includes(item.date))
+                .filter((item) => allocatedDates.includes(item.date))
                 .map((item) => item.paid),
         ).toEqual([
             10_000,
@@ -1079,7 +1241,7 @@ describe('Payment and collection API', () => {
         ])
         expect(
             installments
-                .filter((item) => !selectedDates.includes(item.date))
+                .filter((item) => !allocatedDates.includes(item.date))
                 .map((item) => item.paid),
         ).toEqual([
             0,
@@ -1106,7 +1268,7 @@ describe('Payment and collection API', () => {
         const second = await postTestingRequest('/api/payments/create', {
             body: {
                 ...draft,
-                coveredDates: ['2026-10-10'],
+                coveredDates: ['2026-10-15'],
                 amountReceivedMinor: 10_000,
                 idempotencyKey: uuidv7(),
             },

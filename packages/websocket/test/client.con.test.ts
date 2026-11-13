@@ -21,6 +21,7 @@ class MockWebSocket extends EventTarget {
     static instances: MockWebSocket[] = []
 
     readonly closeCalls: Array<{ code?: number; reason?: string }> = []
+    closeFailure: Error | null = null
     readonly protocols?: string | string[]
     readyState = MockWebSocket.CONNECTING
     readonly sent: Array<Parameters<WebSocket['send']>[0]> = []
@@ -35,7 +36,18 @@ class MockWebSocket extends EventTarget {
     }
 
     close(code?: number, reason?: string) {
+        if (
+            code !== undefined &&
+            code !== 1000 &&
+            (code < 3000 || code > 4999)
+        ) {
+            throw new DOMException(
+                'Invalid browser close code.',
+                'InvalidAccessError',
+            )
+        }
         this.closeCalls.push({ code, reason })
+        if (this.closeFailure) throw this.closeFailure
         this.readyState = MockWebSocket.CLOSED
         this.dispatchEvent(new Event('close'))
     }
@@ -43,6 +55,10 @@ class MockWebSocket extends EventTarget {
     disconnect() {
         this.readyState = MockWebSocket.CLOSED
         this.dispatchEvent(new Event('close'))
+    }
+
+    emitError() {
+        this.dispatchEvent(new Event('error'))
     }
 
     emitMessage(data: unknown) {
@@ -303,6 +319,32 @@ describe('createWsClientManager', () => {
             'WS_CLIENT_CONNECTION_CONNECTING',
             'WS_CLIENT_CONNECTION_RELEASED',
         ])
+    })
+
+    it('does not surface a close failure after a connection error.', async () => {
+        const manager = createWsClientManager({
+            getUrl: (stream) => `wss://example.test/api/ws/${stream}`,
+            reconnectBaseDelayMs: 100,
+            registry: createTestRegistry(),
+        })
+        const subscription = manager.connectApp()
+        const socket = MockWebSocket.instances[0]!
+        socket.closeFailure = new DOMException(
+            'The connection is already unavailable.',
+            'NotSupportedError',
+        )
+
+        expect(() => socket.emitError()).not.toThrow()
+        expect(socket.closeCalls).toEqual([
+            { code: undefined, reason: undefined },
+        ])
+
+        socket.disconnect()
+        await vi.advanceTimersByTimeAsync(50)
+
+        expect(MockWebSocket.instances).toHaveLength(2)
+
+        subscription.release()
     })
 
     it('dispatches only frames matching their physical stream and target.', () => {
@@ -818,7 +860,7 @@ describe('createWsClientManager', () => {
         await vi.advanceTimersByTimeAsync(100)
 
         expect(MockWebSocket.instances[0]?.closeCalls).toEqual([
-            { code: 1013, reason: 'Connection timed out.' },
+            { code: 4000, reason: 'Connection timed out.' },
         ])
 
         await vi.advanceTimersByTimeAsync(24)

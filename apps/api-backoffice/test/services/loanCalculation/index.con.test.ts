@@ -9,6 +9,154 @@ import {
 } from '../../../src/services/loanCalculation/index.js'
 
 describe('loan calculation service', () => {
+    it.each([
+        {
+            paid: [
+                5000,
+                0,
+                0,
+            ],
+            amount: 10000,
+            selected: [2],
+            expected: [
+                8000,
+                7000,
+                0,
+            ],
+        },
+        {
+            paid: [
+                5000,
+                0,
+                0,
+            ],
+            amount: 12000,
+            selected: [2],
+            expected: [
+                8000,
+                8000,
+                1000,
+            ],
+        },
+        {
+            paid: [
+                8000,
+                0,
+                0,
+            ],
+            amount: 10000,
+            selected: [2],
+            expected: [
+                8000,
+                8000,
+                2000,
+            ],
+        },
+        {
+            paid: [
+                0,
+                5000,
+                0,
+                0,
+            ],
+            amount: 20000,
+            selected: [3],
+            expected: [
+                8000,
+                8000,
+                8000,
+                1000,
+            ],
+        },
+        {
+            paid: [
+                5000,
+                0,
+                0,
+            ],
+            amount: 5000,
+            selected: [2],
+            expected: [
+                8000,
+                2000,
+                0,
+            ],
+        },
+        {
+            paid: [
+                7900,
+                0,
+                0,
+            ],
+            amount: 10000,
+            selected: [
+                1,
+                2,
+            ],
+            expected: [
+                8000,
+                8000,
+                1900,
+            ],
+        },
+        {
+            paid: [
+                5000,
+                0,
+                0,
+            ],
+            amount: 25000,
+            selected: [2],
+            expected: [
+                8000,
+                8000,
+                8000,
+            ],
+        },
+    ])(
+        'allocates $amount to the oldest unpaid balances before advancing ($paid)',
+        ({ paid, amount, expected }) => {
+            const installments = paid.map((amountPaidCents, index) => ({
+                installmentNumber: index + 1,
+                dueDate: `2026-01-0${index + 1}`,
+                amountDueCents: 8000,
+                amountPaidCents,
+            }))
+            const result = allocatePaymentFifo(installments, amount)
+            expect(
+                result.installments.map((item) => item.amountPaidCents),
+            ).toEqual(expected)
+            expect(installments.map((item) => item.amountPaidCents)).toEqual(
+                paid,
+            )
+            expect(result.partialPaymentCreditCents).toBe(
+                expected
+                    .filter((value) => value < 8000)
+                    .reduce((total, value) => total + value, 0),
+            )
+            expect(result.completedInstallmentCount).toBe(
+                expected.filter((value) => value === 8000).length,
+            )
+            expect(result.actualOutstandingBalanceCents).toBe(
+                expected.reduce((total, value) => total + 8000 - value, 0),
+            )
+            expect(
+                result.allocations.reduce(
+                    (total, item) => total + item.amountAllocatedCents,
+                    0,
+                ),
+            ).toBe(result.amountAppliedCents)
+            expect(
+                result.amountAppliedCents + result.unappliedAmountCents,
+            ).toBe(amount)
+            expect(
+                new Set(
+                    result.allocations.map((item) => item.installmentNumber),
+                ).size,
+            ).toBe(result.allocations.length)
+        },
+    )
+
     it('allocates only selected installments and counts nonconsecutive completed installments in later payments and renewals', () => {
         const schedule = [
             100,

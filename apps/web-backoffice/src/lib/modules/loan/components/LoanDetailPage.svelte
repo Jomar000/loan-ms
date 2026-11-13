@@ -24,7 +24,11 @@
         createLoanReleaseMutation,
     } from '../queries'
     import type { LoanInstallment } from '../types'
-    import { formatCurrency, formatDate } from '../utilities/format'
+    import {
+        formatCurrency,
+        formatDate,
+        formatNumericDate,
+    } from '../utilities/format'
     import LoanStatusBadge from './LoanStatusBadge.svelte'
     ////////////////////
     // 01. Properties //
@@ -534,7 +538,7 @@
                     </div>
                 {:else}
                     <div class="h-full min-h-0 table-scroll min-w-0 flex-1">
-                        <Table.Root class="min-w-170 text-xs">
+                        <Table.Root class="min-w-210 text-xs">
                             <Table.Header
                                 class="sticky top-0 z-10 bg-zinc-50/95 backdrop-blur-sm dark:bg-[#1b1b1b]/95"
                             >
@@ -557,6 +561,11 @@
                                         Amount due
                                     </Table.Head>
                                     <Table.Head
+                                        class="h-9 px-3 text-right text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
+                                    >
+                                        Amount paid
+                                    </Table.Head>
+                                    <Table.Head
                                         class="h-9 px-3 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400"
                                     >
                                         Status
@@ -576,13 +585,22 @@
                                         <Table.Cell
                                             class="h-10 px-3 py-1.5 text-xs whitespace-nowrap text-zinc-600 dark:text-zinc-400"
                                         >
-                                            {formatDate(installment.dueDate)}
+                                            {formatNumericDate(
+                                                installment.dueDate,
+                                            )}
                                         </Table.Cell>
                                         <Table.Cell
                                             class="h-10 px-3 py-1.5 text-right font-mono text-xs font-semibold text-zinc-950 tabular-nums dark:text-zinc-100"
                                         >
                                             {formatCurrency(
                                                 installment.amountDueMinor,
+                                            )}
+                                        </Table.Cell>
+                                        <Table.Cell
+                                            class="h-10 px-3 py-1.5 text-right font-mono text-xs font-medium text-zinc-700 tabular-nums dark:text-zinc-300"
+                                        >
+                                            {formatCurrency(
+                                                installment.amountPaidMinor,
                                             )}
                                         </Table.Cell>
                                         <Table.Cell class="h-10 px-3 py-1.5">
@@ -605,6 +623,7 @@
 {#if canRecordPayment && loan && (loan.status === 'ACTIVE' || loan.status === 'OVERDUE')}
     <PaymentWorkflowDialog
         bind:open={() => paymentOpen, handlePaymentOpenChange}
+        borrowerPublicId={loan.borrowerPublicId}
         loanPublicId={loan.publicId}
     />
 {/if}

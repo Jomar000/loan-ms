@@ -61,11 +61,6 @@ const paymentWriteConflict = defineError(
     'CONFLICT',
     'Payment could not be recorded because the loan changed. Refresh and retry.',
 )
-const paymentUnallocatedAmount = defineError(
-    'PAYMENT_UNALLOCATED_AMOUNT',
-    'CONFLICT',
-    'Payment amount exceeds the remaining scheduled balance. Record only the amount that can be allocated.',
-)
 const paymentFrequencyDisabled = defineError(
     'PAYMENT_FREQUENCY_DISABLED',
     'CONFLICT',
@@ -75,11 +70,6 @@ const paymentCoverageInvalid = defineError(
     'PAYMENT_COVERAGE_INVALID',
     'CONFLICT',
     'Paid, waived, and unavailable installment dates cannot be selected. Refresh the schedule and select unpaid dates.',
-)
-const paymentCoverageAmountMismatch = defineError(
-    'PAYMENT_COVERAGE_AMOUNT_MISMATCH',
-    'CONFLICT',
-    'The payment amount must equal the remaining total for the selected dates.',
 )
 const partialPaymentDisabled = defineError(
     'PARTIAL_PAYMENT_DISABLED',
@@ -310,32 +300,17 @@ function quotePayment(
         ) {
             throw new AppError(paymentCoverageInvalid)
         }
-        const expectedAmount = covered.reduce(
-            (total, installment) =>
-                total +
-                installment.amountDueMinor -
-                installment.amountPaidMinor,
-            0,
-        )
-        if (amountReceivedMinor !== expectedAmount) {
-            throw new AppError(paymentCoverageAmountMismatch)
-        }
     }
+    const paymentInstallments = installments.map((installment) => ({
+        amountDueCents: installment.amountDueMinor,
+        amountPaidCents: installment.amountPaidMinor,
+        dueDate: installment.dueDate,
+        installmentNumber: installment.installmentNumber,
+    }))
+    // Date selection must never let a payment bypass an older unpaid balance.
     const allocation = allocatePaymentFifo(
-        installments.map((installment) => ({
-            amountDueCents: installment.amountDueMinor,
-            amountPaidCents: installment.amountPaidMinor,
-            dueDate: installment.dueDate,
-            installmentNumber: installment.installmentNumber,
-        })),
+        paymentInstallments,
         amountReceivedMinor,
-        coveredDates
-            ? installments
-                  .filter((installment) =>
-                      coveredDates.includes(installment.dueDate),
-                  )
-                  .map((installment) => installment.installmentNumber)
-            : undefined,
     )
     const allocationByNumber = new Map(
         allocation.allocations.map((entry) => [
@@ -547,12 +522,6 @@ export const paymentsRoute = new Hono<THonoInstance>()
             assertPaymentPolicy(settings, loan, quote, input.paymentDate)
             if (quote.amountAllocatedMinor === 0) {
                 throw new AppError(loanNotCollectible)
-            }
-            // Cash and capital ledgers are reconciled one-to-one for posted
-            // collections. An unallocated balance needs its own durable
-            // liability/refund workflow before this API can accept it.
-            if (quote.unallocatedMinor > 0) {
-                throw new AppError(paymentUnallocatedAmount)
             }
             const principalCollectionMinor = Math.min(
                 quote.amountAllocatedMinor,
@@ -1318,7 +1287,7 @@ async function reversePayment(
                 .bind(
                     allocation.amountPaidBeforeMinor,
                     allocation.statusBefore,
-                    allocation.paidAtBefore,
+                    allocation.paidAtBefore?.getTime() ?? null,
                     organizationId,
                     allocation.loanInstallmentId,
                 ),

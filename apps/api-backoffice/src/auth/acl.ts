@@ -1,4 +1,4 @@
-import { AppError, catalog } from '@loanms/errors'
+import { AppError, catalog, serializeError } from '@loanms/errors'
 import {
     adminAc,
     defaultStatements,
@@ -25,7 +25,16 @@ const memoryCache = new WeakMap<
     KVNamespace,
     { expiresAt: number; value: TAclData }
 >()
-const pendingBuilds = new WeakMap<KVNamespace, Promise<TAclData>>()
+
+function logCacheFailure(operation: string, error: unknown) {
+    console.error(
+        JSON.stringify({
+            type: 'ACL_CACHE_ERROR',
+            operation,
+            ...serializeError(error),
+        }),
+    )
+}
 
 function cloneStatements(
     statements: Record<string, readonly string[]>,
@@ -86,7 +95,13 @@ async function readCachedAcl(kv: KVNamespace) {
     const cached = memoryCache.get(kv)
     if (cached && cached.expiresAt > Date.now()) return cached.value
 
-    const stored = await kv.get(ACL_CACHE_KEY)
+    let stored: string | null
+    try {
+        stored = await kv.get(ACL_CACHE_KEY)
+    } catch (error) {
+        logCacheFailure('read', error)
+        return null
+    }
     if (!stored) return null
 
     try {
@@ -102,7 +117,11 @@ async function readCachedAcl(kv: KVNamespace) {
         // Invalid cache entries are deleted below and rebuilt from D1.
     }
 
-    await kv.delete(ACL_CACHE_KEY)
+    try {
+        await kv.delete(ACL_CACHE_KEY)
+    } catch (error) {
+        logCacheFailure('delete', error)
+    }
     return null
 }
 
@@ -174,34 +193,23 @@ export async function aclBuilder(
     dbSchema: THonoVariables['dbSchema'],
     kv: THonoVariables['kvClient'],
 ) {
-    const existingBuild = pendingBuilds.get(kv)
-    if (existingBuild) return existingBuild
-
-    const build = (async () => {
-        const cached = await readCachedAcl(kv)
-        const value = cached ?? (await buildAcl(db, dbSchema))
-
-        if (!cached) {
-            await kv.put(ACL_CACHE_KEY, JSON.stringify(value), {
-                expirationTtl: ACL_CACHE_TTL_SECONDS,
-            })
-        }
-
-        if (!cached) {
-            memoryCache.set(kv, {
-                expiresAt: Date.now() + ACL_MEMORY_TTL_MILLISECONDS,
-                value,
-            })
-        }
-        return value
-    })()
-
-    pendingBuilds.set(kv, build)
+    // Only completed ACL data may cross invocation boundaries. In-flight D1/KV
+    // operations belong to the request that started them.
+    const cached = await readCachedAcl(kv)
+    if (cached) return cached
+    const value = await buildAcl(db, dbSchema)
+    memoryCache.set(kv, {
+        expiresAt: Date.now() + ACL_MEMORY_TTL_MILLISECONDS,
+        value,
+    })
     try {
-        return await build
-    } finally {
-        pendingBuilds.delete(kv)
+        await kv.put(ACL_CACHE_KEY, JSON.stringify(value), {
+            expirationTtl: ACL_CACHE_TTL_SECONDS,
+        })
+    } catch (error) {
+        logCacheFailure('write', error)
     }
+    return value
 }
 
 export default aclBuilder
